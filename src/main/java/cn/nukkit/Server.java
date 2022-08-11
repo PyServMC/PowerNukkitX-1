@@ -614,10 +614,10 @@ public class Server {
         this.baseLang = new BaseLang(this.getConfig("settings.language", BaseLang.FALLBACK_LANGUAGE));
 
         // 检测启动参数
-        if (!StartArgUtils.isValidStart()) {
+        /*if (!StartArgUtils.isValidStart()) {
             log.fatal(getLanguage().translateString("nukkit.start.invalid"));
             return;
-        }
+        }*/
 
         log.info(this.getLanguage().translateString("language.selected", new String[]{getLanguage().getName(), getLanguage().getLang()}));
         log.info(getLanguage().translateString("nukkit.server.start", TextFormat.AQUA + this.getVersion() + TextFormat.RESET));
