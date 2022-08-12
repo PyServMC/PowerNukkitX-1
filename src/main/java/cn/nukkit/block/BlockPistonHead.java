@@ -58,7 +58,7 @@ public class BlockPistonHead extends BlockTransparentMeta implements Faceable {
 
     @Override
     public Item[] getDrops(Item item) {
-        return Item.EMPTY_ARRAY;
+        return new Item[] {Item.get(BlockID.PISTON)};
     }
 
     @Override
@@ -76,7 +76,7 @@ public class BlockPistonHead extends BlockTransparentMeta implements Faceable {
         return true;
     }
 
-    @Since("FUTURE")
+    @Since("1.6.0.0-PN")
     public BlockFace getFacing() {
         return getBlockFace();
     }

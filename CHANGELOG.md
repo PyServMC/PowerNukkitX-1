@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 更新日志
 本项目所有值得注意的变化都将会记录在这个文件中
 
@@ -163,9 +164,36 @@
 - [#454] 添加包的注释信息。
 
 ## [Unreleased 1.6.0.0-PN] - Future ([点此查看项目里程碑](https://github.com/PowerNukkit/PowerNukkit/milestone/29?closed=1))
+=======
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) 
+with an added upstream's major version number in front of the major version, so we have a better distinction from
+Nukkit 1.X and 2.X.
+
+## [Unreleased 1.6.1.0-PN] - Future ([Check the milestone](https://github.com/PowerNukkit/PowerNukkit/milestone/25?closed=1))
+>>>>>>> 818ce735d614bc61d59fab1e4467cc34b9161a4f
 Click the link above to see the future.
 
-This work in progress version supports Minecraft `1.18.0`.
+## [1.6.0.1-PN] - 2022-04-21 ([Check the milestone](https://github.com/PowerNukkit/PowerNukkit/milestone/27?closed=1))
+Fixes backward compatibility with some important plugins, also pull some changes from NukkitX
+
+### Fixes
+- [#1343] Fix player data properties being sent twice
+- [#1343] Client side issues caused by normal data flags not being sent with extended flags
+- [#1343] Item Net ID should be 1 if the item is not air
+- [#1343] Accuracy of player movements
+- [#1343] Maximum chat message size was too low
+- [#1344] Backward compatibility with PowerNukkit port of Wode's AntiXRay plugin
+
+### Changed
+- [#1344] Log4J version to `2.17.1` (seriously, stop hacking it people)
+- [#1343] Cornflower and Lily of the Valley will now be generated in flower forest biomes
+
+## [1.6.0.0-PN] - 2022-04-20 ([Check the milestone](https://github.com/PowerNukkit/PowerNukkit/milestone/29?closed=1))
+Major version change adding support to Minecraft `1.18.30`.
 
 ### 重大变化
 - [#PN-1267] Changed Nimbus Jose JWT library from `7.9` to `9.13`
@@ -173,6 +201,7 @@ This work in progress version supports Minecraft `1.18.0`.
 - [#PN-1267] Changed the method signature to customize the boss bar color
 - [#PN-1267] `ItemArmor.TIER_OTHER` is not a constant anymore.
 
+<<<<<<< HEAD
 ### 折旧问题
 - [#PN-1266] Some APIs become deprecated, check the JDiff for details.
 - [#PN-1266] `ItemTrident.setCreative` and `getCreative` are now deprecated.
@@ -180,6 +209,18 @@ This work in progress version supports Minecraft `1.18.0`.
 ### 新增内容
 - [#PN-1266] API to get the potion names, level in roman string and tipped arrow potion.
 - [#PN-1266] API for the banner pattern snout (Piglin)
+=======
+### Depreciation
+- [#1266] Some APIs become deprecated, check the JDiff for details.
+- [#1266] `ItemTrident.setCreative` and `getCreative` are now deprecated.
+- [#1341] Some items had their name changed and their ID on `ItemID` are now deprecated
+
+### Added
+- [#1266] API to get the potion names, level in roman string and tipped arrow potion.
+- [#1266] API for the banner pattern snout (Piglin)
+- [#1341] New sounds to the sound enum
+- [#1341] New particles effects to the relevant enums
+>>>>>>> 818ce735d614bc61d59fab1e4467cc34b9161a4f
 
 ### 修改记录
 - [#PN-1258] Changed supported version to Minecraft Bedrock Edition `1.18.0`.
@@ -199,7 +240,16 @@ This work in progress version supports Minecraft `1.18.0`.
 - [#PN-1267] Added all missing `@Override` annotations
 - [#PN-1267] Removed all incorrect `@PowerNukkitOnly` annotations
 
+<<<<<<< HEAD
 ## [1.5.2.1-PN] - 2021-12-21 ([点此查看项目里程碑](https://github.com/PowerNukkit/PowerNukkit/milestone/30?closed=1))
+=======
+### Others
+There are many other fixes, additions and changes not documented in this file due to the size of this update.
+
+Check the [git logs][1.6.0.0-PN] for details on what has changed since 1.5.2.1-PN
+
+## [1.5.2.1-PN] - 2021-12-21 ([Check the milestone](https://github.com/PowerNukkit/PowerNukkit/milestone/30?closed=1))
+>>>>>>> 818ce735d614bc61d59fab1e4467cc34b9161a4f
 
 ### 安全漏洞修复
 - [#PN-1266], [#PN-1270] Changed Log4J library from `2.13.3` to `2.17.0`
@@ -987,7 +1037,9 @@ Need to switch languages?
 [updated changelog]:https://github.com/PowerNukkit/PowerNukkit/blob/bleeding/CHANGELOG.md
 [discord guild]: https://powernukkit.org/discord
 
-[Unreleased 1.6.0.0-PN]: https://github.com/PowerNukkit/PowerNukkit/compare/v1.5.2.1-PN...bleeding
+[Unreleased 1.6.1.0-PN]: https://github.com/PowerNukkit/PowerNukkit/compare/v1.6.0.1-PN...bleeding
+[1.6.0.1-PN]: https://github.com/PowerNukkit/PowerNukkit/compare/v1.6.0.0-PN...v1.6.0.1-PN
+[1.6.0.0-PN]: https://github.com/PowerNukkit/PowerNukkit/compare/v1.5.2.1-PN...v1.6.0.0-PN
 [1.5.2.1-PN]: https://github.com/PowerNukkit/PowerNukkit/compare/v1.5.2.0-PN...v1.5.2.1-PN
 [1.5.2.0-PN]: https://github.com/PowerNukkit/PowerNukkit/compare/v1.5.1.0-PN...v1.5.2.0-PN
 [1.5.1.0-PN]: https://github.com/PowerNukkit/PowerNukkit/compare/v1.5.0.0-PN...v1.5.1.0-PN
@@ -1012,6 +1064,7 @@ Need to switch languages?
 
 [NukkitX]: https://github.com/CloudburstMC/Nukkit
 
+<<<<<<< HEAD
 [#PN-12]: https://github.com/PowerNukkit/PowerNukkit/issues/12
 [#PN-44]: https://github.com/PowerNukkit/PowerNukkit/issues/44
 [#PN-46]: https://github.com/PowerNukkit/PowerNukkit/issues/46
@@ -1350,3 +1403,182 @@ Need to switch languages?
 <!--Social Links-->
 [QQ]: https://jq.qq.com/?_wv=1027&k=6rm3gbUI
 [Discord]:https://discord.gg/BcPhZCVJHJ
+=======
+[#12]: https://github.com/PowerNukkit/PowerNukkit/issues/12
+[#44]: https://github.com/PowerNukkit/PowerNukkit/issues/44
+[#46]: https://github.com/PowerNukkit/PowerNukkit/issues/46
+[#49]: https://github.com/PowerNukkit/PowerNukkit/pull/49
+[#50]: https://github.com/PowerNukkit/PowerNukkit/pull/50
+[#51]: https://github.com/PowerNukkit/PowerNukkit/pull/51
+[#52]: https://github.com/PowerNukkit/PowerNukkit/pull/52
+[#53]: https://github.com/PowerNukkit/PowerNukkit/pull/53
+[#54]: https://github.com/PowerNukkit/PowerNukkit/pull/54
+[#55]: https://github.com/PowerNukkit/PowerNukkit/pull/55
+[#56]: https://github.com/PowerNukkit/PowerNukkit/pull/56
+[#57]: https://github.com/PowerNukkit/PowerNukkit/pull/57
+[#58]: https://github.com/PowerNukkit/PowerNukkit/pull/58
+[#79]: https://github.com/PowerNukkit/PowerNukkit/issues/79
+[#80]: https://github.com/PowerNukkit/PowerNukkit/pull/80
+[#87]: https://github.com/PowerNukkit/PowerNukkit/issues/87
+[#93]: https://github.com/PowerNukkit/PowerNukkit/issues/93
+[#95]: https://github.com/PowerNukkit/PowerNukkit/issues/95
+[#102]: https://github.com/PowerNukkit/PowerNukkit/pull/102
+[#103]: https://github.com/PowerNukkit/PowerNukkit/issues/103
+[#108]: https://github.com/PowerNukkit/PowerNukkit/pull/108
+[#113]: https://github.com/PowerNukkit/PowerNukkit/issues/113
+[#116]: https://github.com/PowerNukkit/PowerNukkit/issues/116
+[#123]: https://github.com/PowerNukkit/PowerNukkit/issues/123
+[#129]: https://github.com/PowerNukkit/PowerNukkit/pull/129
+[#140]: https://github.com/PowerNukkit/PowerNukkit/pull/140
+[#152]: https://github.com/PowerNukkit/PowerNukkit/pull/152
+[#157]: https://github.com/PowerNukkit/PowerNukkit/issues/157
+[#170]: https://github.com/PowerNukkit/PowerNukkit/pull/170
+[#193]: https://github.com/PowerNukkit/PowerNukkit/issues/193
+[#210]: https://github.com/PowerNukkit/PowerNukkit/issues/210
+[#212]: https://github.com/PowerNukkit/PowerNukkit/issues/212
+[#220]: https://github.com/PowerNukkit/PowerNukkit/issues/220
+[#219]: https://github.com/PowerNukkit/PowerNukkit/pull/219
+[#222]: https://github.com/PowerNukkit/PowerNukkit/issues/223
+[#224]: https://github.com/PowerNukkit/PowerNukkit/pull/224
+[#226]: https://github.com/PowerNukkit/PowerNukkit/issues/226
+[#227]: https://github.com/PowerNukkit/PowerNukkit/pull/227
+[#228]: https://github.com/PowerNukkit/PowerNukkit/issues/228
+[#232]: https://github.com/PowerNukkit/PowerNukkit/issues/232
+[#234]: https://github.com/PowerNukkit/PowerNukkit/issues/234
+[#235]: https://github.com/PowerNukkit/PowerNukkit/issues/235
+[#239]: https://github.com/PowerNukkit/PowerNukkit/issues/239
+[#240]: https://github.com/PowerNukkit/PowerNukkit/issues/240
+[#242]: https://github.com/PowerNukkit/PowerNukkit/pull/242
+[#243]: https://github.com/PowerNukkit/PowerNukkit/issues/243
+[#244]: https://github.com/PowerNukkit/PowerNukkit/pull/244
+[#246]: https://github.com/PowerNukkit/PowerNukkit/issues/246
+[#247]: https://github.com/PowerNukkit/PowerNukkit/pull/247
+[#248]: https://github.com/PowerNukkit/PowerNukkit/pull/248
+[#253]: https://github.com/PowerNukkit/PowerNukkit/pull/253
+[#254]: https://github.com/PowerNukkit/PowerNukkit/issues/254
+[#255]: https://github.com/PowerNukkit/PowerNukkit/pull/255
+[#256]: https://github.com/PowerNukkit/PowerNukkit/pull/256
+[#259]: https://github.com/PowerNukkit/PowerNukkit/pull/259
+[#260]: https://github.com/PowerNukkit/PowerNukkit/pull/260
+[#261]: https://github.com/PowerNukkit/PowerNukkit/pull/261
+[#262]: https://github.com/PowerNukkit/PowerNukkit/pull/262
+[#263]: https://github.com/PowerNukkit/PowerNukkit/pull/263
+[#266]: https://github.com/PowerNukkit/PowerNukkit/issues/266
+[#267]: https://github.com/PowerNukkit/PowerNukkit/issues/267
+[#268]: https://github.com/PowerNukkit/PowerNukkit/pull/268
+[#270]: https://github.com/PowerNukkit/PowerNukkit/issues/270
+[#272]: https://github.com/PowerNukkit/PowerNukkit/issues/272
+[#273]: https://github.com/PowerNukkit/PowerNukkit/pull/273
+[#274]: https://github.com/PowerNukkit/PowerNukkit/pull/274
+[#275]: https://github.com/PowerNukkit/PowerNukkit/pull/275
+[#276]: https://github.com/PowerNukkit/PowerNukkit/pull/276
+[#277]: https://github.com/PowerNukkit/PowerNukkit/pull/277
+[#279]: https://github.com/PowerNukkit/PowerNukkit/pull/279
+[#281]: https://github.com/PowerNukkit/PowerNukkit/pull/281
+[#285]: https://github.com/PowerNukkit/PowerNukkit/pull/285
+[#287]: https://github.com/PowerNukkit/PowerNukkit/issues/287
+[#293]: https://github.com/PowerNukkit/PowerNukkit/pull/293
+[#297]: https://github.com/PowerNukkit/PowerNukkit/pull/297
+[#298]: https://github.com/PowerNukkit/PowerNukkit/issues/298
+[#315]: https://github.com/PowerNukkit/PowerNukkit/pull/315
+[#319]: https://github.com/PowerNukkit/PowerNukkit/pull/319
+[#320]: https://github.com/PowerNukkit/PowerNukkit/pull/320
+[#323]: https://github.com/PowerNukkit/PowerNukkit/issues/323
+[#326]: https://github.com/PowerNukkit/PowerNukkit/pull/326
+[#328]: https://github.com/PowerNukkit/PowerNukkit/issues/326
+[#330]: https://github.com/PowerNukkit/PowerNukkit/issues/330
+[#335]: https://github.com/PowerNukkit/PowerNukkit/issues/335
+[#338]: https://github.com/PowerNukkit/PowerNukkit/issues/338
+[#339]: https://github.com/PowerNukkit/PowerNukkit/issues/339
+[#340]: https://github.com/PowerNukkit/PowerNukkit/issues/340
+[#344]: https://github.com/PowerNukkit/PowerNukkit/issues/344
+[#346]: https://github.com/PowerNukkit/PowerNukkit/issues/346
+[#347]: https://github.com/PowerNukkit/PowerNukkit/issues/347
+[#348]: https://github.com/PowerNukkit/PowerNukkit/issues/348
+[#352]: https://github.com/PowerNukkit/PowerNukkit/issues/352
+[#359]: https://github.com/PowerNukkit/PowerNukkit/issues/359
+[#365]: https://github.com/PowerNukkit/PowerNukkit/issues/365
+[#366]: https://github.com/PowerNukkit/PowerNukkit/issues/366
+[#368]: https://github.com/PowerNukkit/PowerNukkit/issues/368
+[#390]: https://github.com/PowerNukkit/PowerNukkit/issues/390
+[#397]: https://github.com/PowerNukkit/PowerNukkit/issues/397
+[#400]: https://github.com/PowerNukkit/PowerNukkit/issues/400
+[#403]: https://github.com/PowerNukkit/PowerNukkit/issues/403
+[#404]: https://github.com/PowerNukkit/PowerNukkit/issues/404
+[#407]: https://github.com/PowerNukkit/PowerNukkit/issues/407
+[#412]: https://github.com/PowerNukkit/PowerNukkit/issues/412
+[#414]: https://github.com/PowerNukkit/PowerNukkit/issues/414
+[#422]: https://github.com/PowerNukkit/PowerNukkit/issues/422
+[#427]: https://github.com/PowerNukkit/PowerNukkit/issues/427
+[#430]: https://github.com/PowerNukkit/PowerNukkit/issues/430
+[#433]: https://github.com/PowerNukkit/PowerNukkit/issues/433
+[#436]: https://github.com/PowerNukkit/PowerNukkit/issues/436
+[#437]: https://github.com/PowerNukkit/PowerNukkit/issues/437
+[#440]: https://github.com/PowerNukkit/PowerNukkit/issues/440
+[#443]: https://github.com/PowerNukkit/PowerNukkit/issues/443
+[#445]: https://github.com/PowerNukkit/PowerNukkit/issues/445
+[#449]: https://github.com/PowerNukkit/PowerNukkit/issues/449
+[#450]: https://github.com/PowerNukkit/PowerNukkit/issues/450
+[#462]: https://github.com/PowerNukkit/PowerNukkit/issues/462
+[#464]: https://github.com/PowerNukkit/PowerNukkit/issues/464
+[#467]: https://github.com/PowerNukkit/PowerNukkit/issues/467
+[#469]: https://github.com/PowerNukkit/PowerNukkit/issues/469
+[#475]: https://github.com/PowerNukkit/PowerNukkit/issues/475
+[#544]: https://github.com/PowerNukkit/PowerNukkit/issues/544
+[#576]: https://github.com/PowerNukkit/PowerNukkit/issues/576
+[#625]: https://github.com/PowerNukkit/PowerNukkit/issues/625
+[#669]: https://github.com/PowerNukkit/PowerNukkit/issues/669
+[#702]: https://github.com/PowerNukkit/PowerNukkit/issues/702
+[#765]: https://github.com/PowerNukkit/PowerNukkit/issues/765
+[#766]: https://github.com/PowerNukkit/PowerNukkit/issues/766
+[#770]: https://github.com/PowerNukkit/PowerNukkit/issues/770
+[#776]: https://github.com/PowerNukkit/PowerNukkit/issues/776
+[#777]: https://github.com/PowerNukkit/PowerNukkit/issues/777
+[#778]: https://github.com/PowerNukkit/PowerNukkit/issues/778
+[#783]: https://github.com/PowerNukkit/PowerNukkit/issues/783
+[#857]: https://github.com/PowerNukkit/PowerNukkit/issues/857
+[#882]: https://github.com/PowerNukkit/PowerNukkit/issues/882
+[#902]: https://github.com/PowerNukkit/PowerNukkit/issues/902
+[#917]: https://github.com/PowerNukkit/PowerNukkit/issues/917
+[#959]: https://github.com/PowerNukkit/PowerNukkit/issues/959
+[#960]: https://github.com/PowerNukkit/PowerNukkit/issues/960
+[#979]: https://github.com/PowerNukkit/PowerNukkit/issues/979
+[#982]: https://github.com/PowerNukkit/PowerNukkit/issues/982
+[#990]: https://github.com/PowerNukkit/PowerNukkit/issues/990
+[#1100]: https://github.com/PowerNukkit/PowerNukkit/issues/1100
+[#1103]: https://github.com/PowerNukkit/PowerNukkit/issues/1103
+[#1107]: https://github.com/PowerNukkit/PowerNukkit/issues/1107
+[#1119]: https://github.com/PowerNukkit/PowerNukkit/issues/1119
+[#1120]: https://github.com/PowerNukkit/PowerNukkit/issues/1120
+[#1122]: https://github.com/PowerNukkit/PowerNukkit/issues/1122
+[#1130]: https://github.com/PowerNukkit/PowerNukkit/issues/1130
+[#1132]: https://github.com/PowerNukkit/PowerNukkit/issues/1132
+[#1134]: https://github.com/PowerNukkit/PowerNukkit/issues/1134
+[#1139]: https://github.com/PowerNukkit/PowerNukkit/issues/1139
+[#1146]: https://github.com/PowerNukkit/PowerNukkit/issues/1146
+[#1147]: https://github.com/PowerNukkit/PowerNukkit/issues/1147
+[#1149]: https://github.com/PowerNukkit/PowerNukkit/issues/1149
+[#1150]: https://github.com/PowerNukkit/PowerNukkit/issues/1150
+[#1151]: https://github.com/PowerNukkit/PowerNukkit/issues/1151
+[#1120]: https://github.com/PowerNukkit/PowerNukkit/issues/1120
+[#1153]: https://github.com/PowerNukkit/PowerNukkit/issues/1153
+[#1170]: https://github.com/PowerNukkit/PowerNukkit/issues/1170
+[#1172]: https://github.com/PowerNukkit/PowerNukkit/issues/1172
+[#1174]: https://github.com/PowerNukkit/PowerNukkit/issues/1174
+[#1177]: https://github.com/PowerNukkit/PowerNukkit/issues/1177
+[#1187]: https://github.com/PowerNukkit/PowerNukkit/issues/1187
+[#1191]: https://github.com/PowerNukkit/PowerNukkit/issues/1191
+[#1193]: https://github.com/PowerNukkit/PowerNukkit/issues/1193
+[#1202]: https://github.com/PowerNukkit/PowerNukkit/issues/1202
+[#1214]: https://github.com/PowerNukkit/PowerNukkit/issues/1214
+[#1233]: https://github.com/PowerNukkit/PowerNukkit/issues/1233
+[#1244]: https://github.com/PowerNukkit/PowerNukkit/issues/1244
+[#1216]: https://github.com/PowerNukkit/PowerNukkit/issues/1216
+[#1258]: https://github.com/PowerNukkit/PowerNukkit/issues/1258
+[#1266]: https://github.com/PowerNukkit/PowerNukkit/issues/1266
+[#1267]: https://github.com/PowerNukkit/PowerNukkit/issues/1267
+[#1270]: https://github.com/PowerNukkit/PowerNukkit/issues/1270
+[#1341]: https://github.com/PowerNukkit/PowerNukkit/issues/1341
+[#1343]: https://github.com/PowerNukkit/PowerNukkit/issues/1343
+[#1344]: https://github.com/PowerNukkit/PowerNukkit/issues/1344
+>>>>>>> 818ce735d614bc61d59fab1e4467cc34b9161a4f

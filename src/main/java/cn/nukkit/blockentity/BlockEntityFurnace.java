@@ -5,6 +5,8 @@ import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockID;
+import cn.nukkit.entity.Entity;
+import cn.nukkit.entity.item.EntityXPOrb;
 import cn.nukkit.event.inventory.FurnaceBurnEvent;
 import cn.nukkit.event.inventory.FurnaceSmeltEvent;
 import cn.nukkit.inventory.FurnaceInventory;
@@ -16,6 +18,7 @@ import cn.nukkit.item.ItemBlock;
 import cn.nukkit.item.ItemBucket;
 import cn.nukkit.level.Sound;
 import cn.nukkit.level.format.FullChunk;
+import cn.nukkit.math.NukkitMath;
 import cn.nukkit.nbt.NBTIO;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.ListTag;
@@ -35,6 +38,8 @@ public class BlockEntityFurnace extends BlockEntitySpawnable implements Inventor
     protected int burnDuration;
     protected int cookTime;
     protected int maxTime;
+    protected int speedMultiplier = 1;
+    protected double experience;
 
     private int crackledTime;
 
@@ -89,6 +94,12 @@ public class BlockEntityFurnace extends BlockEntitySpawnable implements Inventor
             this.namedTag.remove("BurnTicks");
         }
 
+        if(this.namedTag.contains("Experience") && this.namedTag.getDouble("Experience") > 0) {
+            this.experience = this.namedTag.getDouble("Experience");
+        } else {
+            this.experience = 0;
+        }
+
         if (burnTime > 0) {
             this.scheduleUpdate();
         }
@@ -112,11 +123,6 @@ public class BlockEntityFurnace extends BlockEntitySpawnable implements Inventor
     }
 
     @Override
-    public boolean hasName() {
-        return this.namedTag.contains("CustomName");
-    }
-
-    @Override
     public void setName(String name) {
         if (name == null || name.equals("")) {
             this.namedTag.remove("CustomName");
@@ -124,6 +130,11 @@ public class BlockEntityFurnace extends BlockEntitySpawnable implements Inventor
         }
 
         this.namedTag.putString("CustomName", name);
+    }
+
+    @Override
+    public boolean hasName() {
+        return this.namedTag.contains("CustomName");
     }
 
     @Override
@@ -155,6 +166,7 @@ public class BlockEntityFurnace extends BlockEntitySpawnable implements Inventor
         this.namedTag.putShort("BurnTime", burnTime);
         this.namedTag.putShort("BurnDuration", burnDuration);
         this.namedTag.putShort("MaxTime", maxTime);
+        this.namedTag.putDouble("Experience", experience);
     }
 
     @Since("1.6.0.0-PNX")
@@ -263,7 +275,7 @@ public class BlockEntityFurnace extends BlockEntitySpawnable implements Inventor
         if (burnTime > 0 && ev.isBurning()) {
             fuel.setCount(fuel.getCount() - 1);
             if (fuel.getCount() == 0) {
-                if (fuel.getId() == Item.BUCKET && ((ItemBucket)fuel).isLava()) {
+                if (fuel.getId() == Item.BUCKET && ((ItemBucket) fuel).isLava()) {
                     fuel.setDamage(0);
                     fuel.setCount(1);
                 } else {
@@ -281,7 +293,15 @@ public class BlockEntityFurnace extends BlockEntitySpawnable implements Inventor
 
     @PowerNukkitOnly
     protected int getSpeedMultiplier() {
-        return 1;
+        return speedMultiplier;
+    }
+
+    public void setSpeedMultiplier(int speedMultiplier) {
+        if (speedMultiplier >= 1) {
+            this.speedMultiplier = speedMultiplier;
+        } else {
+            speedMultiplier = 1;
+        }
     }
 
     @Override
@@ -316,14 +336,16 @@ public class BlockEntityFurnace extends BlockEntitySpawnable implements Inventor
             if (smelt != null && canSmelt) {
                 cookTime++;
                 if (cookTime >= readyAt) {
+                    double experience = smelt.getExperience();
                     int count = product.getCount() + 1;
                     product = smelt.getResult().clone();
                     product.setCount(count);
 
-                    FurnaceSmeltEvent ev = new FurnaceSmeltEvent(this, raw, product);
+                    FurnaceSmeltEvent ev = new FurnaceSmeltEvent(this, raw, product, experience);
                     this.server.getPluginManager().callEvent(ev);
                     if (!ev.isCancelled()) {
                         this.inventory.setResult(ev.getResult());
+                        this.experience += ev.getExperience();
                         raw.setCount(raw.getCount() - 1);
                         if (raw.getCount() == 0) {
                             raw = new ItemBlock(Block.get(BlockID.AIR), 0, 0);
@@ -369,6 +391,15 @@ public class BlockEntityFurnace extends BlockEntitySpawnable implements Inventor
         this.timing.stopTiming();
 
         return ret;
+    }
+
+    public void releaseExperience() {
+        int experience = NukkitMath.floorDouble(this.experience);
+        if(experience >= 1) {
+            this.setExperience(this.experience - experience);
+            EntityXPOrb orb = new EntityXPOrb(this.getChunk(), Entity.getDefaultNBT(this).putShort("Value", experience));
+            orb.spawnToAll();
+        }
     }
 
     @Override
@@ -419,5 +450,13 @@ public class BlockEntityFurnace extends BlockEntitySpawnable implements Inventor
 
     public void setMaxTime(int maxTime) {
         this.maxTime = maxTime;
+    }
+
+    public double getExperience() {
+        return experience;
+    }
+
+    public void setExperience(double experience) {
+        this.experience = experience;
     }
 }

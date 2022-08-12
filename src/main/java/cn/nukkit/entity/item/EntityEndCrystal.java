@@ -120,6 +120,13 @@ public class EntityEndCrystal extends Entity implements EntityExplosive {
     public void setShowBase(boolean value) {
         this.setDataFlag(DATA_FLAGS, DATA_FLAG_SHOWBASE, value);
     }
+
+    @PowerNukkitOnly
+    @Since("1.5.1.0-PN")
+    @Override
+    public String getOriginalName() {
+        return "Ender Crystal";
+    }
     
     @PowerNukkitOnly
     @Since("FUTURE")
@@ -131,12 +138,5 @@ public class EntityEndCrystal extends Entity implements EntityExplosive {
     @Since("FUTURE")
     public void setBeamTarget(Vector3 beamTarget) {
         this.setDataProperty(new IntPositionEntityData(DATA_BLOCK_TARGET, beamTarget));
-    }
-    
-    @PowerNukkitOnly
-    @Since("1.5.1.0-PN")
-    @Override
-    public String getOriginalName() {
-        return "Ender Crystal";
     }
 }

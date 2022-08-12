@@ -30,12 +30,10 @@ import com.google.gson.annotations.SerializedName;
 import io.netty.util.internal.EmptyArrays;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
-import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -352,10 +350,12 @@ public class Item implements Cloneable, BlockID, ItemID {
             list[ELYTRA] = ItemElytra.class; //444
             list[SHULKER_SHELL] = ItemShulkerShell.class; //445
             list[BANNER] = ItemBanner.class; //446
-
+            list[MEDICINE] = ItemMedicine.class; //447
+            list[BALLOON] = ItemBalloon.class; //448
             list[TOTEM] = ItemTotem.class; //450
 
             list[IRON_NUGGET] = ItemNuggetIron.class; //452
+            list[ICE_BOMB] = ItemIceBomb.class; //453
 
             list[TRIDENT] = ItemTrident.class; //455
             list[BEETROOT] = ItemBeetroot.class; //457
@@ -379,6 +379,8 @@ public class Item implements Cloneable, BlockID, ItemID {
             list[ACACIA_SIGN] = ItemAcaciaSign.class; //475
             list[DARKOAK_SIGN] = ItemDarkOakSign.class; //476
             list[SWEET_BERRIES] = ItemSweetBerries.class; //477
+
+            list[COMPOUND] = ItemCompound.class; //499
 
             list[RECORD_13] = ItemRecord13.class; //500
             list[RECORD_CAT] = ItemRecordCat.class; //501
@@ -443,7 +445,6 @@ public class Item implements Cloneable, BlockID, ItemID {
 
             list[AMETHYST_SHARD] = ItemAmethystShard.class; //771
             list[SPYGLASS] = ItemSpyglass.class; //772
-
             list[SOUL_CAMPFIRE] = ItemCampfireSoul.class; //801
 
 
@@ -472,6 +473,7 @@ public class Item implements Cloneable, BlockID, ItemID {
             runtimeMapping.registerNamespacedIdItem(ItemRawCopper.class);
             runtimeMapping.registerNamespacedIdItem(ItemGlowInkSac.class);
             runtimeMapping.registerNamespacedIdItem(ItemIngotCopper.class);
+            runtimeMapping.registerNamespacedIdItem(ItemBannerPatternGlobe.class);
         }
 
         initCreativeItems();
@@ -501,15 +503,22 @@ public class Item implements Cloneable, BlockID, ItemID {
 
     private static final ArrayList<Item> creative = new ArrayList<>();
 
-    @SneakyThrows(IOException.class)
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private static void initCreativeItems() {
         clearCreativeItems();
 
         Config config = new Config(Config.JSON);
-        try (InputStream resourceAsStream = Server.class.getClassLoader().getResourceAsStream("creative_items.json")) {
-            config.load(resourceAsStream);
+      
+        config.load(Server.class.getClassLoader().getResourceAsStream("creativeitems.json"));
+
+        if (Server.getInstance().isEducationEditionEnabled()) {
+            Config edu = new Config(Config.JSON);
+            edu.load(Server.class.getClassLoader().getResourceAsStream("creativeitems_edu.json"));
+            List<Map> items = config.getMapList("items");
+            items.addAll(edu.getMapList("items"));
+            config.set("items", items);
         }
+      
         List<Map> list = config.getMapList("items");
 
         for (Map map : list) {
@@ -728,7 +737,7 @@ public class Item implements Cloneable, BlockID, ItemID {
         if (id > 255) {
             id = 255 - id;
         }
-        return get(id, meta, count, tags);
+        return get(id, meta, count, tags, 0);
     }
 
     public static Item get(int id) {
@@ -743,10 +752,12 @@ public class Item implements Cloneable, BlockID, ItemID {
         return get(id, meta, count, EmptyArrays.EMPTY_BYTES);
     }
 
+    public static Item get(int id, Integer meta, int count, byte[] tags) { return get(id, meta, count, tags, 0); }
+
     @PowerNukkitDifference(
             info = "Prevents players from getting invalid items by limiting the return to the maximum damage defined in Block.getMaxItemDamage()",
             since = "1.4.0.0-PN")
-    public static Item get(int id, Integer meta, int count, byte[] tags) {
+    public static Item get(int id, Integer meta, int count, byte[] tags, int blockRuntimeId) {
         try {
             Class c = null;
             if (id <= 255 - Block.MAX_BLOCK_ID) {
@@ -771,7 +782,12 @@ public class Item implements Cloneable, BlockID, ItemID {
                     // Special case for item instances used in fuzzy recipes
                     item = new ItemBlock(Block.get(blockId), -1);
                 } else {
-                    BlockState state = BlockState.of(blockId, meta);
+                    BlockState state;
+                    if (blockRuntimeId == 0) {
+                        state = BlockState.of(blockId, meta);
+                    } else {
+                        state = BlockStateRegistry.getBlockStateByRuntimeId(blockRuntimeId);
+                    }
                     try {
                         state.validate();
                         item = state.asItemBlock(count);
@@ -810,7 +826,6 @@ public class Item implements Cloneable, BlockID, ItemID {
         }
     }
 
-    @PowerNukkitDifference(since = "1.4.0.0-PN", info = "Improve namespaced name handling and allows to get custom blocks by name")
     public static Item fromString(String str) {
         String normalized = str.trim().replace(' ', '_').toLowerCase();
         Matcher matcher = ITEM_STRING_PATTERN.matcher(normalized);
@@ -1077,8 +1092,66 @@ public class Item implements Cloneable, BlockID, ItemID {
     //Whether to apply the enchantment effect when using this item
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
-    public boolean applyEnchantments(){
+    public boolean applyEnchantments() {
         return true;
+    }
+
+    public boolean hasCustomEntityData() {
+        if (!this.hasCompoundTag()) {
+            return false;
+        }
+
+        CompoundTag tag = this.getNamedTag();
+        return tag.contains("EntityTag") && tag.get("EntityTag") instanceof CompoundTag;
+
+    }
+
+    public Item clearCustomEntityData() {
+        if (!this.hasCompoundTag()) {
+            return this;
+        }
+        CompoundTag tag = this.getNamedTag();
+
+        if (tag.contains("EntityTag") && tag.get("EntityTag") instanceof CompoundTag) {
+            tag.remove("EntityTag");
+            this.setNamedTag(tag);
+        }
+
+        return this;
+    }
+
+    public Item setCustomEntityData(CompoundTag compoundTag) {
+        CompoundTag tags = compoundTag.copy();
+        tags.setName("EntityTag");
+
+        CompoundTag tag;
+        if (!this.hasCompoundTag()) {
+            tag = new CompoundTag();
+        } else {
+            tag = this.getNamedTag();
+        }
+
+        tag.putCompound("EntityTag", tags);
+        this.setNamedTag(tag);
+
+        return this;
+    }
+
+    public CompoundTag getCustomEntityData() {
+        if (!this.hasCompoundTag()) {
+            return null;
+        }
+
+        CompoundTag tag = this.getNamedTag();
+
+        if (tag.contains("EntityTag")) {
+            Tag bet = tag.get("EntityTag");
+            if (bet instanceof CompoundTag) {
+                return (CompoundTag) bet;
+            }
+        }
+
+        return null;
     }
 
     public boolean hasEnchantments() {

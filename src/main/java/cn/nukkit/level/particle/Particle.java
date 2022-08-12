@@ -115,7 +115,6 @@ public abstract class Particle extends Vector3 {
     public static final int TYPE_SCULK_SOUL = dynamic(83);
     public static final int TYPE_SONIC_EXPLOSION = dynamic(84);
 
-    @Since("1.4.0.0-PN")
     public static Integer getParticleIdByName(String name) {
         name = name.toUpperCase();
 

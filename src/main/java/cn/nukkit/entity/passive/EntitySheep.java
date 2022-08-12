@@ -16,22 +16,26 @@ import cn.nukkit.entity.ai.route.SimpleFlatAStarRouteFinder;
 import cn.nukkit.entity.ai.route.posevaluator.WalkingPosEvaluator;
 import cn.nukkit.entity.ai.sensor.NearestBeggingPlayerSensor;
 import cn.nukkit.entity.ai.sensor.NearestPlayerSensor;
+import cn.nukkit.entity.EntityBalloonable;
 import cn.nukkit.entity.data.ByteEntityData;
 import cn.nukkit.event.entity.EntityDamageByEntityEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemDye;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.math.Vector3;
+import cn.nukkit.metadata.MetadataValue;
 import cn.nukkit.nbt.tag.CompoundTag;
+import cn.nukkit.plugin.Plugin;
 import cn.nukkit.utils.DyeColor;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author BeYkeRYkt (Nukkit Project)
  */
-public class EntitySheep extends EntityWalkingAnimal {
+public class EntitySheep extends EntityWalkingAnimal implements EntityBalloonable {
 
     public static final int NETWORK_ID = 13;
     private IBehaviorGroup behaviorGroup;
@@ -206,5 +210,30 @@ public class EntitySheep extends EntityWalkingAnimal {
         }
 
         return DyeColor.WHITE.getWoolData();
+    }
+
+    @Override
+    public float getBalloonMass() {
+        return 0.75F;
+    }
+
+    @Override
+    public void setMetadata(String metadataKey, MetadataValue newMetadataValue) {
+
+    }
+
+    @Override
+    public List<MetadataValue> getMetadata(String metadataKey) {
+        return null;
+    }
+
+    @Override
+    public boolean hasMetadata(String metadataKey) {
+        return false;
+    }
+
+    @Override
+    public void removeMetadata(String metadataKey, Plugin owningPlugin) {
+
     }
 }

@@ -11,11 +11,12 @@ import cn.nukkit.block.BlockID;
 import cn.nukkit.blockproperty.CommonBlockProperties;
 import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.entity.Entity;
-import cn.nukkit.entity.item.EntityItem;
+import cn.nukkit.entity.item.*;
 import cn.nukkit.event.inventory.InventoryMoveItemEvent;
 import cn.nukkit.inventory.*;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemBlock;
+import cn.nukkit.item.ItemBucket;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.BlockFace;
@@ -40,6 +41,10 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
     private AxisAlignedBB pickupArea;
     
     private boolean disabled;
+
+    private int lastUpdate;
+
+    private int lastSlotUpdated = -1;
     
     private final BlockVector3 temporalVector = new BlockVector3();
 
@@ -65,7 +70,7 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
             this.inventory.setItem(i, this.getItem(i));
         }
 
-        this.pickupArea = new SimpleAxisAlignedBB(this.x, this.y, this.z, this.x + 1, this.y + 2, this.z + 1);
+        this.pickupArea = new SimpleAxisAlignedBB(this.x, this.y, this.z - 0.0001, this.x + 1, this.y + 1.6, this.z + 1);
         
         this.scheduleUpdate();
 
@@ -197,8 +202,8 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         if (this.closed) {
             return false;
         }
-        
-        if (isOnTransferCooldown()) {
+
+        if (isOnTransferCooldown() && this.lastUpdate < this.server.getTick()) {
             this.transferCooldown--;
             return true;
         }
@@ -215,6 +220,7 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         if (blockEntity instanceof InventoryHolder || blockSide instanceof BlockComposter)  {
             changed = pullItems() || changed;
         } else {
+            changed = pullMinecartItems() || changed;
             changed = pickupItems() || changed;
         }
 
@@ -243,16 +249,35 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         Block blockSide = this.getBlock().getSide(BlockFace.UP);
         BlockEntity blockEntity = this.level.getBlockEntity(temporalVector.setComponentsAdding(this, BlockFace.UP));
 
-        if (blockEntity instanceof BlockEntityHopper) {
-            BlockEntityHopper hopper = (BlockEntityHopper) blockEntity;
-            if (hopper.disabled)
-                return false;
-        }
-
         //Fix for furnace outputs
         if (blockEntity instanceof BlockEntityFurnace) {
             FurnaceInventory inv = ((BlockEntityFurnace) blockEntity).getInventory();
-            Item item = inv.getResult();
+            Item item = inv.getFuel();
+
+            if (item instanceof ItemBucket && ((ItemBucket) item).isEmpty()) {
+                Item itemToAdd = item.clone();
+                itemToAdd.count = 1;
+
+                if (!this.inventory.canAddItem(itemToAdd)) {
+                    return false;
+                }
+
+                InventoryMoveItemEvent ev = new InventoryMoveItemEvent(inv, this.inventory, this, itemToAdd, InventoryMoveItemEvent.Action.SLOT_CHANGE);
+                this.server.getPluginManager().callEvent(ev);
+
+                if (ev.isCancelled()) {
+                    return false;
+                }
+
+                Item[] items = this.inventory.addItem(itemToAdd);
+
+                if (items.length <= 0) {
+                    item.count--;
+                    inv.setFuel(item);
+                    return true;
+                }
+            }
+            item = inv.getResult();
 
             if (!item.isNull()) {
                 Item itemToAdd = item.clone();
@@ -280,10 +305,19 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         } else if (blockEntity instanceof InventoryHolder) {
             Inventory inv = ((InventoryHolder) blockEntity).getInventory();
 
+            int slot = -1;
+            if (blockEntity instanceof BlockEntityHopper) {
+                slot = ((BlockEntityHopper) blockEntity).lastUpdate >= this.server.getTick() && ((BlockEntityHopper) blockEntity).lastSlotUpdated >= 0 && ((BlockEntityHopper) blockEntity).lastSlotUpdated < ((BlockEntityHopper) blockEntity).getInventory().getSize() ? ((BlockEntityHopper) blockEntity).lastSlotUpdated : -1;
+            }
+
             for (int i = 0; i < inv.getSize(); i++) {
                 Item item = inv.getItem(i);
 
                 if (!item.isNull()) {
+                    if (slot == i && item.getCount() <= 1) {
+                        continue;
+                    }
+
                     Item itemToAdd = item.clone();
                     itemToAdd.count = 1;
 
@@ -298,15 +332,28 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
                         continue;
                     }
 
-                    Item[] items = this.inventory.addItem(itemToAdd);
+                    int slotPulled = -1;
+                    for (int j = 0; j < this.inventory.getSize(); j++) {
+                        Item itemInInventory = this.inventory.getItem(j);
+                        if (itemInInventory.getId() == 0 || (itemInInventory.getCount() < itemInInventory.getMaxStackSize() && itemInInventory.equals(itemToAdd))) {
+                            itemToAdd.count += itemInInventory.count;
+                            this.inventory.setItem(j, itemToAdd);
+                            slotPulled = j;
+                            break;
+                        }
+                    }
 
-                    if (items.length >= 1) {
+                    if (slotPulled == -1) {
                         continue;
                     }
 
                     item.count--;
 
                     inv.setItem(i, item);
+
+                    this.lastUpdate = this.server.getTick();
+                    this.lastSlotUpdated = slotPulled;
+
                     return true;
                 }
             }
@@ -334,6 +381,61 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         return false;
     }
 
+    public boolean pullMinecartItems() {
+        if (this.inventory.isFull()) {
+            return false;
+        }
+        for(Entity entity : level.getCollidingEntities(new SimpleAxisAlignedBB(this.x + 0.125, this.y + 1, this.z + 0.125, this.x + 0.875, this.y + 1.875, this.z + 0.875))) {
+            if(!(entity instanceof EntityMinecartAbstract) || entity instanceof EntityMinecartEmpty || entity instanceof EntityMinecartTNT) {
+                continue;
+            }
+
+            InventoryHolder inventoryHolder = (InventoryHolder) entity;
+            Inventory inventory = inventoryHolder.getInventory();
+
+            for (int i = 0; i < inventory.getSize(); i++) {
+                Item item = inventory.getItem(i);
+
+                if (!item.isNull()) {
+                    Item itemToAdd = item.clone();
+                    itemToAdd.count = 1;
+
+                    if (!this.inventory.canAddItem(itemToAdd)) {
+                        continue;
+                    }
+
+                    InventoryMoveItemEvent ev = new InventoryMoveItemEvent(inventory, this.inventory, this, itemToAdd, InventoryMoveItemEvent.Action.SLOT_CHANGE);
+                    this.server.getPluginManager().callEvent(ev);
+
+                    if (ev.isCancelled()) {
+                        continue;
+                    }
+
+                    int slotPulled = -1;
+                    for (int j = 0; j < this.inventory.getSize(); j++) {
+                        Item itemInInventory = this.inventory.getItem(j);
+                        if (itemInInventory.getId() == 0 || (itemInInventory.getCount() < itemInInventory.getMaxStackSize() && itemInInventory.equals(itemToAdd))) {
+                            itemToAdd.count += itemInInventory.count;
+                            this.inventory.setItem(j, itemToAdd);
+                            slotPulled = j;
+                            break;
+                        }
+                    }
+
+                    if (slotPulled == -1) {
+                        continue;
+                    }
+
+                    item.count--;
+
+                    inventory.setItem(i, item);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public boolean pickupItems() {
         if (this.inventory.isFull()) {
             return false;
@@ -342,7 +444,7 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         boolean pickedUpItem = false;
 
         for (Entity entity : this.level.getCollidingEntities(this.pickupArea)) {
-            if (entity.isClosed() || !(entity instanceof EntityItem)) {
+            if (!(entity instanceof EntityItem) || entity.isClosed()) {
                 continue;
             }
 
@@ -416,8 +518,8 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         Block blockSide = this.getBlock().getSide(side);
         BlockEntity be = this.level.getBlockEntity(temporalVector.setComponentsAdding(this, side));
 
-        if (be instanceof BlockEntityHopper && levelBlockState.isDefaultState() || !(be instanceof InventoryHolder) && !(blockSide instanceof BlockComposter)) {
-            return false;
+        if (!(be instanceof InventoryHolder) && !(blockSide instanceof BlockComposter)) {
+            return fillMinecart(blockSide);
         }
 
         InventoryMoveItemEvent event;
@@ -450,7 +552,7 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
                                 item.count--;
                                 pushedItem = true;
                             }
-                        } else if (inventory.getSmelting().getId() == itemToAdd.getId() && inventory.getSmelting().getDamage() == itemToAdd.getDamage() && smelting.count < smelting.getMaxStackSize()) {
+                        } else if (inventory.getSmelting().equals(itemToAdd) && smelting.count < smelting.getMaxStackSize()) {
                             event = new InventoryMoveItemEvent(this.inventory, inventory, this, itemToAdd, InventoryMoveItemEvent.Action.SLOT_CHANGE);
                             this.server.getPluginManager().callEvent(event);
 
@@ -523,6 +625,73 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
                 return false;
             }
 
+            int slot = this.lastUpdate >= this.server.getTick() && lastSlotUpdated >= 0 && lastSlotUpdated < this.inventory.getSize() ? this.lastSlotUpdated : -1;
+
+            for (int i = 0; i < this.inventory.getSize(); i++) {
+                Item item = this.inventory.getItem(i);
+
+                if (!item.isNull()) {
+                    if (slot == i && item.getCount() <= 1) {
+                        continue;
+                    }
+
+                    Item itemToAdd = item.clone();
+                    itemToAdd.setCount(1);
+
+                    if (!inventory.canAddItem(itemToAdd)) {
+                        continue;
+                    }
+
+                    InventoryMoveItemEvent ev = new InventoryMoveItemEvent(this.inventory, inventory, this, itemToAdd, InventoryMoveItemEvent.Action.SLOT_CHANGE);
+                    this.server.getPluginManager().callEvent(ev);
+
+                    if (ev.isCancelled()) {
+                        continue;
+                    }
+
+                    int slotPushed = -1;
+                    for (int j = 0; j < inventory.getSize(); j++) {
+                        Item itemInInventory = inventory.getItem(j);
+                        if (itemInInventory.getId() == 0 || (itemInInventory.getCount() < itemInInventory.getMaxStackSize() && itemInInventory.equals(itemToAdd))) {
+                            itemToAdd.count += itemInInventory.count;
+                            inventory.setItem(j, itemToAdd);
+                            slotPushed = j;
+                            break;
+                        }
+                    }
+
+                    if (slotPushed == -1) {
+                        continue;
+                    }
+
+                    item.count--;
+                    this.inventory.setItem(i, item);
+                    if (be instanceof BlockEntityHopper) {
+                        ((BlockEntityHopper) be).setTransferCooldown(8);
+                        ((BlockEntityHopper) be).lastUpdate = this.server.getTick();
+                        ((BlockEntityHopper) be).lastSlotUpdated = slotPushed;
+                    }
+                    return true;
+                }
+            }
+        }
+
+        //TODO: check for minecart
+        return fillMinecart(blockSide);
+    }
+
+    private boolean fillMinecart(Block blockSide) {
+        if (this.inventory.isEmpty()) {
+            return false;
+        }
+        for(Entity entity : level.getCollidingEntities(new SimpleAxisAlignedBB(blockSide.x, blockSide.y, blockSide.z, blockSide.x + 1, blockSide.y + 1, blockSide.z + 1))) {
+            if(entity.isClosed() || !(entity instanceof EntityMinecartAbstract) || entity instanceof EntityMinecartEmpty || entity instanceof EntityMinecartTNT) {
+                continue;
+            }
+
+            InventoryHolder inventoryHolder = (InventoryHolder) entity;
+            Inventory inventory = inventoryHolder.getInventory();
+
             for (int i = 0; i < this.inventory.getSize(); i++) {
                 Item item = this.inventory.getItem(i);
 
@@ -541,9 +710,18 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
                         continue;
                     }
 
-                    Item[] items = inventory.addItem(itemToAdd);
+                    int slotPushed = -1;
+                    for (int j = 0; j < inventory.getSize(); j++) {
+                        Item itemInInventory = inventory.getItem(j);
+                        if (itemInInventory.getId() == 0 || (itemInInventory.getCount() < itemInInventory.getMaxStackSize() && itemInInventory.equals(itemToAdd))) {
+                            itemToAdd.count += itemInInventory.count;
+                            inventory.setItem(j, itemToAdd);
+                            slotPushed = j;
+                            break;
+                        }
+                    }
 
-                    if (items.length > 0) {
+                    if (slotPushed == -1) {
                         continue;
                     }
 
@@ -553,8 +731,6 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
                 }
             }
         }
-
-        //TODO: check for minecart
         return false;
     }
 
@@ -571,5 +747,15 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         }
 
         return c;
+    }
+
+    @Override
+    public String toString() {
+        return "BlockEntityHopper{" +
+                ", transferCooldown=" + transferCooldown +
+                ", disabled=" + disabled +
+                ", lastUpdate=" + lastUpdate +
+                ", lastSlotUpdated=" + lastSlotUpdated +
+                '}';
     }
 }

@@ -475,10 +475,6 @@ public class BinaryStream {
             for (int i = 0; i < canBreak.length; i++) {
                 canBreak[i] = stream.readUTF();
             }
-
-            if (id != null && id == ItemID.SHIELD) {
-                stream.readLong();
-            }
         } catch (IOException e) {
             throw new IllegalStateException("Unable to read item user data", e);
         } finally {
@@ -505,6 +501,9 @@ public class BinaryStream {
             if (canBreak.length > 0) {
                 ListTag<StringTag> listTag = new ListTag<>("CanDestroy");
                 for (String blockName : canBreak) {
+                    if (!blockName.contains(":")) {
+                        blockName = "minecraft:" + blockName;
+                    }
                     listTag.add(new StringTag("", blockName));
                 }
                 namedTag.put("CanDestroy", listTag);
@@ -513,6 +512,9 @@ public class BinaryStream {
             if (canPlace.length > 0) {
                 ListTag<StringTag> listTag = new ListTag<>("CanPlaceOn");
                 for (String blockName : canPlace) {
+                    if (!blockName.contains(":")) {
+                        blockName = "minecraft:" + blockName;
+                    }
                     listTag.add(new StringTag("", blockName));
                 }
                 namedTag.put("CanPlaceOn", listTag);

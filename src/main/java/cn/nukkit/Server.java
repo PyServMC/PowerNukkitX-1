@@ -190,6 +190,8 @@ public class Server {
 
     public boolean checkLoginTime = true;
 
+    private boolean educationEditionEnabled = false;
+
     private RCON rcon;
 
     private EntityMetadataStore entityMetadata;
@@ -595,6 +597,7 @@ public class Server {
                 put("force-resources", false);
                 put("xbox-auth", true);
                 put("check-login-time", true);
+                put("check-xuid", true);
                 put("disable-auto-bug-report", false);
             }
         });
@@ -647,6 +650,7 @@ public class Server {
         this.safeSpawn = this.getConfig().getBoolean("settings.safe-spawn", true);
         this.forceSkinTrusted = this.getConfig().getBoolean("player.force-skin-trusted", false);
         this.checkMovement = this.getConfig().getBoolean("player.check-movement", true);
+        this.educationEditionEnabled = this.getConfig("level-settings.education-edition", false);
 
         this.scheduler = new ServerScheduler();
 
@@ -763,13 +767,14 @@ public class Server {
 
         LevelProviderManager.addProvider(this, Anvil.class);
 
-        Generator.addGenerator(Flat.class, "flat", Generator.TYPE_FLAT);
+        Generator.addGenerator(Empty.class, "empty", Generator.TYPE_EMPTY);
         Generator.addGenerator(Normal.class, "normal", Generator.TYPE_INFINITE);
         if (useTerra) {
             Generator.addGenerator(PNXChunkGeneratorWrapper.class, "terra", Generator.TYPE_INFINITE);
             PNXPlatform.getInstance();
         }
         Generator.addGenerator(Normal.class, "default", Generator.TYPE_INFINITE);
+        Generator.addGenerator(Flat.class, "flat", Generator.TYPE_FLAT);
         Generator.addGenerator(Nether.class, "nether", Generator.TYPE_NETHER);
         Generator.addGenerator(TheEnd.class, "the_end", Generator.TYPE_THE_END);
         //todo: add old generator and hell generator
@@ -1359,6 +1364,10 @@ public class Server {
         player.dataPacket(pk);
     }
 
+    public boolean getCheckXUID() {
+        return this.getPropertyBoolean("check-xuid", true);
+    }
+
     public void sendRecipeList(Player player) {
         player.dataPacket(CraftingManager.getCraftingPacket());
     }
@@ -1415,9 +1424,9 @@ public class Server {
         if (this.getAutoSave()) {
             Timings.levelSaveTimer.startTiming();
             for (Player player : new ArrayList<>(this.players.values())) {
-                if (player.isOnline()) {
+                if (player.isOnline() && !player.closed) {
                     player.save(true);
-                } else if (!player.isConnected()) {
+                } else if (!player.isConnected() || player.closed) {
                     this.removePlayer(player);
                 }
             }
@@ -1654,7 +1663,7 @@ public class Server {
     }
 
     public String getIp() {
-        return this.getPropertyString("server-ip", "0.0.0.0");
+        return this.getPropertyString("server-ip", this.getPropertyBoolean("xbox-auth") ? "0.0.0.0" : "127.0.0.1");
     }
 
     public UUID getServerUniqueId() {
@@ -2159,6 +2168,16 @@ public class Server {
                     break;
                 }
             }
+            if (player.getDisplayName().toLowerCase().startsWith(name)) {
+                int curDelta = player.getDisplayName().length() - name.length();
+                if (curDelta < delta) {
+                    found = player;
+                    delta = curDelta;
+                }
+                if (curDelta == 0) {
+                    break;
+                }
+            }
         }
 
         return found;
@@ -2167,7 +2186,7 @@ public class Server {
     public Player getPlayerExact(String name) {
         name = name.toLowerCase();
         for (Player player : this.getOnlinePlayers().values()) {
-            if (player.getName().toLowerCase().equals(name)) {
+            if (player.getName().toLowerCase().equals(name) | player.getDisplayName().toLowerCase().equals(name)) {
                 return player;
             }
         }
@@ -2428,6 +2447,14 @@ public class Server {
         this.redstoneEnabled = redstoneEnabled;
     }
 
+    public boolean isEducationEditionEnabled() {
+        return educationEditionEnabled;
+    }
+
+    public void setEducationEditionEnabled(boolean educationEditionEnabled) {
+        this.educationEditionEnabled = educationEditionEnabled;
+    }
+
     public Network getNetwork() {
         return network;
     }
@@ -2631,13 +2658,16 @@ public class Server {
     private void registerEntities() {
         Entity.registerEntity("Lightning", EntityLightning.class);
         Entity.registerEntity("Arrow", EntityArrow.class);
+        Entity.registerEntity("Balloon", EntityBalloon.class);
         Entity.registerEntity("EnderPearl", EntityEnderPearl.class);
         Entity.registerEntity("FallingSand", EntityFallingBlock.class);
         Entity.registerEntity("Firework", EntityFirework.class);
         Entity.registerEntity("Item", EntityItem.class);
+        Entity.registerEntity("LeashKnot", EntityLeashKnot.class);
         Entity.registerEntity("Painting", EntityPainting.class);
         Entity.registerEntity("PrimedTnt", EntityPrimedTNT.class);
         Entity.registerEntity("Snowball", EntitySnowball.class);
+        Entity.registerEntity("TripodCamera", EntityTripodCamera.class);
         //Monsters
         Entity.registerEntity("Blaze", EntityBlaze.class);
         Entity.registerEntity("CaveSpider", EntityCaveSpider.class);
@@ -2649,6 +2679,7 @@ public class Server {
         Entity.registerEntity("Endermite", EntityEndermite.class);
         Entity.registerEntity("Evoker", EntityEvoker.class);
         Entity.registerEntity("Ghast", EntityGhast.class);
+        Entity.registerEntity("Goat", EntityGoat.class);
         Entity.registerEntity("Guardian", EntityGuardian.class);
         Entity.registerEntity("Hoglin", EntityHoglin.class);
         Entity.registerEntity("Husk", EntityHusk.class);
@@ -2676,7 +2707,10 @@ public class Server {
         Entity.registerEntity("ZombiePigman", EntityZombiePigman.class);
         Entity.registerEntity("ZombieVillager", EntityZombieVillager.class);
         Entity.registerEntity("ZombieVillagerV1", EntityZombieVillagerV1.class);
+        Entity.registerEntity("Warden", EntityWarden.class);
         //Passive
+        Entity.registerEntity("Agent", EntityAgent.class);
+        Entity.registerEntity("Axolotl", EntityAxolotl.class);
         Entity.registerEntity("Bat", EntityBat.class);
         Entity.registerEntity("Bee", EntityBee.class);
         Entity.registerEntity("Cat", EntityCat.class);
@@ -2686,10 +2720,12 @@ public class Server {
         Entity.registerEntity("Dolphin", EntityDolphin.class);
         Entity.registerEntity("Donkey", EntityDonkey.class);
         Entity.registerEntity("Fox", EntityFox.class);
+        Entity.registerEntity("GlowSquid", EntityGlowSquid.class);
         Entity.registerEntity("Horse", EntityHorse.class);
         Entity.registerEntity("Llama", EntityLlama.class);
         Entity.registerEntity("Mooshroom", EntityMooshroom.class);
         Entity.registerEntity("Mule", EntityMule.class);
+        Entity.registerEntity("NPC", EntityNPCEntity.class);
         Entity.registerEntity("Ocelot", EntityOcelot.class);
         Entity.registerEntity("Panda", EntityPanda.class);
         Entity.registerEntity("Parrot", EntityParrot.class);
@@ -2710,9 +2746,13 @@ public class Server {
         Entity.registerEntity("Wolf", EntityWolf.class);
         Entity.registerEntity("ZombieHorse", EntityZombieHorse.class);
         Entity.registerEntity("NPC", EntityNPCEntity.class);
+        Entity.registerEntity("Frog", EntityFrog.class);
+        Entity.registerEntity("Tadpole", EntityTadpole.class);
+        Entity.registerEntity("Allay", EntityAllay.class);
         //Projectile
         Entity.registerEntity("AreaEffectCloud", EntityAreaEffectCloud.class);
         Entity.registerEntity("Egg", EntityEgg.class);
+        Entity.registerEntity("IceBomb", EntityIceBomb.class);
         Entity.registerEntity("LingeringPotion", EntityPotionLingering.class);
         Entity.registerEntity("ThrownExpBottle", EntityExpBottle.class);
         Entity.registerEntity("ThrownPotion", EntityPotion.class);

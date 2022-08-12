@@ -2,7 +2,10 @@ package cn.nukkit.inventory;
 
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.blockentity.BlockEntityFurnace;
+import cn.nukkit.entity.Entity;
+import cn.nukkit.entity.item.EntityXPOrb;
 import cn.nukkit.item.Item;
+import cn.nukkit.math.NukkitMath;
 
 /**
  * @author MagicDroidX (Nukkit Project)

@@ -43,6 +43,7 @@ jobs:
         with:
           java-version: 17
       - name: Build with Maven
+<<<<<<< HEAD
         run: mvn -B package -DskipTests=false -Darguments="-Dmaven.javadoc.skip=true"
       - name: Get version
         id: getVersion
@@ -145,6 +146,9 @@ jobs:
           java-version: 17
       - name: Build with Maven
         run: mvn -B -f Bootstrap/pom.xml package -DskipTests=false -Darguments="-Dmaven.javadoc.skip=true"
+=======
+        run: mvn -B package -DskipTests=true -Darguments="-Dmaven.javadoc.skip=true"
+>>>>>>> 818ce735d614bc61d59fab1e4467cc34b9161a4f
       - name: Rename artifacts
         run: mv Bootstrap/target/Bootstrap-*-shaded.jar Bootstrap/target/bootstrap.jar
       - name: Archive artifacts

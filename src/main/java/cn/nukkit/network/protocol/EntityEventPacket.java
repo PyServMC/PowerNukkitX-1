@@ -10,13 +10,13 @@ import lombok.ToString;
 @ToString
 public class EntityEventPacket extends DataPacket {
     public static final int NETWORK_ID = ProtocolInfo.ENTITY_EVENT_PACKET;
-    
     @PowerNukkitOnly @Since("1.4.0.0-PN") public static final int NONE = 0;
     @PowerNukkitOnly @Since("1.4.0.0-PN") public static final int JUMP = 1;
     public static final int HURT_ANIMATION = 2;
     public static final int DEATH_ANIMATION = 3;
     public static final int ARM_SWING = 4;
     @PowerNukkitOnly @Since("1.4.0.0-PN") public static final int ATTACK_STOP = 5;
+    public static final int STOP_ATTACK = 5;
     public static final int TAME_FAIL = 6;
     public static final int TAME_SUCCESS = 7;
     public static final int SHAKE_WET = 8;
@@ -89,8 +89,7 @@ public class EntityEventPacket extends DataPacket {
     public static final int ENTITY_GROW_UP = 76;
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    public static final int VIBRATION_DETECTE = 77;
-
+    public static final int VIBRATION_DETECTED = 77;
     public static final int DRINK_MILK = 78;
 
     @Override

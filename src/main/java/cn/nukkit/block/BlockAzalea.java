@@ -143,6 +143,11 @@ public class BlockAzalea extends BlockFlowable {
     }
 
     @Override
+    public boolean canBeFlowedInto() {
+        return true;
+    }
+
+    @Override
     public boolean breaksWhenMoved() {
         return true;
     }
@@ -200,8 +205,8 @@ public class BlockAzalea extends BlockFlowable {
     }
 
     private void grow() {
-        BasicGenerator generator = null;
-        Vector3 vector3 = new Vector3();
+        BasicGenerator generator;
+        Vector3 vector3;
 
         generator = new ObjectAzaleaTree();
         vector3 = this.add(0,0,0);

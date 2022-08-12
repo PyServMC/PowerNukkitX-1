@@ -1,5 +1,6 @@
 package cn.nukkit.entity.weather;
 
+import cn.nukkit.Server;
 import cn.nukkit.api.PowerNukkitDifference;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
@@ -9,6 +10,7 @@ import cn.nukkit.entity.Entity;
 import cn.nukkit.event.block.BlockFadeEvent;
 import cn.nukkit.event.block.BlockIgniteEvent;
 import cn.nukkit.event.entity.EntityDamageEvent;
+import cn.nukkit.event.entity.LightningDistractEvent;
 import cn.nukkit.level.GameRule;
 import cn.nukkit.level.Position;
 import cn.nukkit.level.Sound;
@@ -16,10 +18,13 @@ import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.level.particle.ElectricSparkParticle;
 import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.Vector3;
+import cn.nukkit.metadata.MetadataValue;
 import cn.nukkit.nbt.tag.CompoundTag;
+import cn.nukkit.plugin.Plugin;
 
 import javax.annotation.Nonnull;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntConsumer;
@@ -52,6 +57,25 @@ public class EntityLightning extends Entity implements EntityLightningStrike {
     protected void initEntity() {
         super.initEntity();
 
+        if(!(this.getLevelBlock() instanceof BlockLightningRod) && !(this.getLevelBlock().down() instanceof BlockLightningRod)) {
+            x:
+            for(int x = -32; x <= 32; x++) {
+                for(int y = -32; y <= 32; y++) {
+                    for(int z = -32; z <= 32; z++) {
+                        Block rod = this.getLevel().getBlock(this.getFloorX() + x, this.getFloorY() + y, this.getFloorZ() + z);
+                        if(rod instanceof BlockLightningRod) {
+                            LightningDistractEvent lightningDistractEvent = new LightningDistractEvent(this, rod);
+                            Server.getInstance().getPluginManager().callEvent(lightningDistractEvent);
+                            if(!lightningDistractEvent.isCancelled()) {
+                                this.setPosition(lightningDistractEvent.getDistractionBlock());
+                            }
+                            break x;
+                        }
+                    }
+                }
+            }
+        }
+
         this.setHealth(4);
         this.setMaxHealth(4);
 
@@ -70,7 +94,7 @@ public class EntityLightning extends Entity implements EntityLightningStrike {
                 if (fire.isBlockTopFacingSurfaceSolid(fire.down()) || fire.canNeighborBurn()) {
 
                     BlockIgniteEvent e = new BlockIgniteEvent(block, null, this, BlockIgniteEvent.BlockIgniteCause.LIGHTNING);
-                    getServer().getPluginManager().callEvent(e);
+                    Server.getInstance().getPluginManager().callEvent(e);
 
                     if (!e.isCancelled()) {
                         level.setBlock(fire, fire, true);
@@ -174,7 +198,7 @@ public class EntityLightning extends Entity implements EntityLightningStrike {
                     Block current = level.getBlock(entry.getKey());
                     Block next = ((Oxidizable) current).getStateWithOxidizationLevel(entry.getValue()).getBlock(current);
                     BlockFadeEvent event = new BlockFadeEvent(current, next);
-                    getServer().getPluginManager().callEvent(event);
+                    Server.getInstance().getPluginManager().callEvent(event);
                     if (event.isCancelled()) {
                         break;
                     }
@@ -199,7 +223,7 @@ public class EntityLightning extends Entity implements EntityLightningStrike {
 
                     if (block.getId() == Block.AIR || block.getId() == Block.TALL_GRASS) {
                         BlockIgniteEvent e = new BlockIgniteEvent(block, null, this, BlockIgniteEvent.BlockIgniteCause.LIGHTNING);
-                        getServer().getPluginManager().callEvent(e);
+                        Server.getInstance().getPluginManager().callEvent(e);
 
                         if (!e.isCancelled()) {
                             Block fire = Block.get(BlockID.FIRE);
@@ -219,6 +243,10 @@ public class EntityLightning extends Entity implements EntityLightningStrike {
                 for (Entity entity : this.level.getCollidingEntities(bb, this)) {
                     entity.onStruckByLightning(this);
                 }
+                Block rod = this.getLevelBlock().down();
+                if(rod instanceof BlockLightningRod) {
+                    ((BlockLightningRod) rod).onStruckByLightning(this);
+                }
             }
         }
 
@@ -231,5 +259,25 @@ public class EntityLightning extends Entity implements EntityLightningStrike {
     @Override
     public String getOriginalName() {
         return "Lightning Bolt";
+    }
+
+    @Override
+    public void setMetadata(String metadataKey, MetadataValue newMetadataValue) {
+
+    }
+
+    @Override
+    public List<MetadataValue> getMetadata(String metadataKey) {
+        return null;
+    }
+
+    @Override
+    public boolean hasMetadata(String metadataKey) {
+        return false;
+    }
+
+    @Override
+    public void removeMetadata(String metadataKey, Plugin owningPlugin) {
+
     }
 }

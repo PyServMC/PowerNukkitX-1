@@ -26,6 +26,7 @@ import cn.nukkit.item.enchantment.trident.EnchantmentTridentRiptide;
 import cn.nukkit.math.NukkitMath;
 import io.netty.util.internal.EmptyArrays;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -41,11 +42,10 @@ public abstract class Enchantment implements Cloneable {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public static final Enchantment[] EMPTY_ARRAY = new Enchantment[0];
-
-    protected static Enchantment[] enchantments;
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
     protected static Map<String,Integer> enchantmentName2IDMap = new Object2IntArrayMap<>();
+    protected static Int2ObjectArrayMap<Enchantment> enchantments;
 
     public static final int ID_PROTECTION_ALL = 0;
     @PowerNukkitXOnly @Since("1.6.0.0-PNX") public static final String NAME_PROTECTION_ALL = "protection";
@@ -127,47 +127,46 @@ public abstract class Enchantment implements Cloneable {
 
 
     public static void init() {
-        enchantments = new Enchantment[256];
+        enchantments = new Int2ObjectArrayMap<>();
 
-        enchantments[ID_PROTECTION_ALL] = new EnchantmentProtectionAll();
-        enchantments[ID_PROTECTION_FIRE] = new EnchantmentProtectionFire();
-        enchantments[ID_PROTECTION_FALL] = new EnchantmentProtectionFall();
-        enchantments[ID_PROTECTION_EXPLOSION] = new EnchantmentProtectionExplosion();
-        enchantments[ID_PROTECTION_PROJECTILE] = new EnchantmentProtectionProjectile();
-        enchantments[ID_THORNS] = new EnchantmentThorns();
-        enchantments[ID_WATER_BREATHING] = new EnchantmentWaterBreath();
-        enchantments[ID_WATER_WORKER] = new EnchantmentWaterWorker();
-        enchantments[ID_WATER_WALKER] = new EnchantmentWaterWalker();
-        enchantments[ID_DAMAGE_ALL] = new EnchantmentDamageAll();
-        enchantments[ID_DAMAGE_SMITE] = new EnchantmentDamageSmite();
-        enchantments[ID_DAMAGE_ARTHROPODS] = new EnchantmentDamageArthropods();
-        enchantments[ID_KNOCKBACK] = new EnchantmentKnockback();
-        enchantments[ID_FIRE_ASPECT] = new EnchantmentFireAspect();
-        enchantments[ID_LOOTING] = new EnchantmentLootWeapon();
-        enchantments[ID_EFFICIENCY] = new EnchantmentEfficiency();
-        enchantments[ID_SILK_TOUCH] = new EnchantmentSilkTouch();
-        enchantments[ID_DURABILITY] = new EnchantmentDurability();
-        enchantments[ID_FORTUNE_DIGGING] = new EnchantmentLootDigging();
-        enchantments[ID_BOW_POWER] = new EnchantmentBowPower();
-        enchantments[ID_BOW_KNOCKBACK] = new EnchantmentBowKnockback();
-        enchantments[ID_BOW_FLAME] = new EnchantmentBowFlame();
-        enchantments[ID_BOW_INFINITY] = new EnchantmentBowInfinity();
-        enchantments[ID_FORTUNE_FISHING] = new EnchantmentLootFishing();
-        enchantments[ID_LURE] = new EnchantmentLure();
-        enchantments[ID_FROST_WALKER] = new EnchantmentFrostWalker();
-        enchantments[ID_MENDING]  = new EnchantmentMending();
-        enchantments[ID_BINDING_CURSE]  = new EnchantmentBindingCurse();
-        enchantments[ID_VANISHING_CURSE]  = new EnchantmentVanishingCurse();
-        enchantments[ID_TRIDENT_IMPALING]  = new EnchantmentTridentImpaling();
-        enchantments[ID_TRIDENT_RIPTIDE]  = new EnchantmentTridentRiptide();
-        enchantments[ID_TRIDENT_LOYALTY]  = new EnchantmentTridentLoyalty();
-        enchantments[ID_TRIDENT_CHANNELING]  = new EnchantmentTridentChanneling();
-        enchantments[ID_CROSSBOW_MULTISHOT]  = new EnchantmentCrossbowMultishot();
-        enchantments[ID_CROSSBOW_PIERCING]  = new EnchantmentCrossbowPiercing();
-        enchantments[ID_CROSSBOW_QUICK_CHARGE]  = new EnchantmentCrossbowQuickCharge();
-        enchantments[ID_SOUL_SPEED]  = new EnchantmentSoulSpeed();
-        enchantments[ID_SWIFT_SNEAK] = new EnchantmentSwiftSneak();
-
+        enchantments.put(ID_PROTECTION_ALL, new EnchantmentProtectionAll());
+        enchantments.put(ID_PROTECTION_FIRE, new EnchantmentProtectionFire());
+        enchantments.put(ID_PROTECTION_FALL, new EnchantmentProtectionFall());
+        enchantments.put(ID_PROTECTION_EXPLOSION, new EnchantmentProtectionExplosion());
+        enchantments.put(ID_PROTECTION_PROJECTILE, new EnchantmentProtectionProjectile());
+        enchantments.put(ID_THORNS, new EnchantmentThorns());
+        enchantments.put(ID_WATER_BREATHING, new EnchantmentWaterBreath());
+        enchantments.put(ID_WATER_WORKER, new EnchantmentWaterWorker());
+        enchantments.put(ID_WATER_WALKER, new EnchantmentWaterWalker());
+        enchantments.put(ID_DAMAGE_ALL, new EnchantmentDamageAll());
+        enchantments.put(ID_DAMAGE_SMITE, new EnchantmentDamageSmite());
+        enchantments.put(ID_DAMAGE_ARTHROPODS, new EnchantmentDamageArthropods());
+        enchantments.put(ID_KNOCKBACK, new EnchantmentKnockback());
+        enchantments.put(ID_FIRE_ASPECT, new EnchantmentFireAspect());
+        enchantments.put(ID_LOOTING, new EnchantmentLootWeapon());
+        enchantments.put(ID_EFFICIENCY, new EnchantmentEfficiency());
+        enchantments.put(ID_SILK_TOUCH, new EnchantmentSilkTouch());
+        enchantments.put(ID_DURABILITY, new EnchantmentDurability());
+        enchantments.put(ID_FORTUNE_DIGGING, new EnchantmentLootDigging());
+        enchantments.put(ID_BOW_POWER, new EnchantmentBowPower());
+        enchantments.put(ID_BOW_KNOCKBACK, new EnchantmentBowKnockback());
+        enchantments.put(ID_BOW_FLAME, new EnchantmentBowFlame());
+        enchantments.put(ID_BOW_INFINITY, new EnchantmentBowInfinity());
+        enchantments.put(ID_FORTUNE_FISHING, new EnchantmentLootFishing());
+        enchantments.put(ID_LURE, new EnchantmentLure());
+        enchantments.put(ID_FROST_WALKER, new EnchantmentFrostWalker());
+        enchantments.put(ID_MENDING, new EnchantmentMending());
+        enchantments.put(ID_BINDING_CURSE, new EnchantmentBindingCurse());
+        enchantments.put(ID_VANISHING_CURSE, new EnchantmentVanishingCurse());
+        enchantments.put(ID_TRIDENT_IMPALING, new EnchantmentTridentImpaling());
+        enchantments.put(ID_TRIDENT_RIPTIDE, new EnchantmentTridentRiptide());
+        enchantments.put(ID_TRIDENT_LOYALTY, new EnchantmentTridentLoyalty());
+        enchantments.put(ID_TRIDENT_CHANNELING, new EnchantmentTridentChanneling());
+        enchantments.put(ID_CROSSBOW_MULTISHOT, new EnchantmentCrossbowMultishot());
+        enchantments.put(ID_CROSSBOW_PIERCING, new EnchantmentCrossbowPiercing());
+        enchantments.put(ID_CROSSBOW_QUICK_CHARGE, new EnchantmentCrossbowQuickCharge());
+        enchantments.put(ID_SOUL_SPEED, new EnchantmentSoulSpeed());
+        enchantments.put(ID_SWIFT_SNEAK, new EnchantmentSwiftSneak());
 
         enchantmentName2IDMap.put(NAME_PROTECTION_ALL, ID_PROTECTION_ALL);
         enchantmentName2IDMap.put(NAME_PROTECTION_FIRE, ID_PROTECTION_FIRE);
@@ -220,14 +219,7 @@ public abstract class Enchantment implements Cloneable {
     @DeprecationDetails(by = "PowerNukkit", reason = "This is very insecure and can break the environment", since = "1.4.0.0-PN",
             replaceWith = "getEnchantment(int)")
     public static Enchantment get(int id) {
-        Enchantment enchantment = null;
-        if (id >= 0 && id < enchantments.length) {
-            enchantment = enchantments[id];
-        }
-        if (enchantment == null) {
-            return new UnknownEnchantment(id);
-        }
-        return enchantment;
+        return enchantments.getOrDefault(id, new UnknownEnchantment(id));
     }
 
     /**
@@ -256,16 +248,7 @@ public abstract class Enchantment implements Cloneable {
             replaceWith = "getRegisteredEnchantments()"
     )
     public static Enchantment[] getEnchantments() {
-        ArrayList<Enchantment> list = new ArrayList<>();
-        for (Enchantment enchantment : enchantments) {
-            if (enchantment == null) {
-                break;
-            }
-
-            list.add(enchantment);
-        }
-
-        return list.toArray(Enchantment.EMPTY_ARRAY);
+        return enchantments.values().toArray(Enchantment.EMPTY_ARRAY);
     }
 
     /**
@@ -275,7 +258,7 @@ public abstract class Enchantment implements Cloneable {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public static Collection<Enchantment> getRegisteredEnchantments() {
-        return Arrays.stream(enchantments)
+        return enchantments.values().stream()
                 .filter(Objects::nonNull)
                 .map(Enchantment::clone)
                 .collect(Collectors.toList());
@@ -285,6 +268,28 @@ public abstract class Enchantment implements Cloneable {
     @Since("1.6.0.0-PNX")
     public static Map<String,Integer> getEnchantmentName2IDMap() {
         return enchantmentName2IDMap;
+    }
+
+    public static boolean isIDOccupied(int id) {
+        return enchantments.containsKey(id);
+    }
+
+    public static boolean registerEnchantment(Enchantment enchantment) {
+        if (isIDOccupied(enchantment.getId()) || enchantment.getId() < Short.MIN_VALUE || enchantment.getId() > Short.MAX_VALUE) {
+            return false;
+        }
+
+        enchantments.put(enchantment.getId(), enchantment);
+        return true;
+    }
+
+    public static boolean unregisterEnchantment(int id) {
+        if (!isIDOccupied(id)) {
+            return false;
+        }
+
+        enchantments.remove(id);
+        return true;
     }
 
     /**
@@ -462,7 +467,7 @@ public abstract class Enchantment implements Cloneable {
 
     }
 
-    @Since("FUTURE")
+    @Since("1.6.0.0-PN")
     public void doAttack(Entity attacker, Entity entity) {
 
     }

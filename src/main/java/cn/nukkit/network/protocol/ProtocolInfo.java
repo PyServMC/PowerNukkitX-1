@@ -23,8 +23,7 @@ public interface ProtocolInfo {
     List<Integer> SUPPORTED_PROTOCOLS = Ints.asList(CURRENT_PROTOCOL);
 
     String MINECRAFT_VERSION_NETWORK = dynamic("1.19.20");
-
-    String MINECRAFT_VERSION = 'v' + MINECRAFT_VERSION_NETWORK;
+    String MINECRAFT_VERSION = dynamic('v' + MINECRAFT_VERSION_NETWORK);
 
     byte LOGIN_PACKET = 0x01;
     byte PLAY_STATUS_PACKET = 0x02;
@@ -268,5 +267,6 @@ public interface ProtocolInfo {
     @Since("1.6.0.0-PNX")
     @PowerNukkitXOnly
     byte EDITOR_NETWORK_PACKET = (byte) 0xbe;
+    @Since("FUTURE") @PowerNukkitOnly byte CREATE_PHOTO_PACKET = (byte) 0xab;
     byte BATCH_PACKET = (byte) 0xff;
 }

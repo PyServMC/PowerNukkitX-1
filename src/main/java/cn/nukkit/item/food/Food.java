@@ -5,7 +5,7 @@ import cn.nukkit.api.*;
 import cn.nukkit.block.Block;
 import cn.nukkit.event.player.PlayerEatFoodEvent;
 import cn.nukkit.item.Item;
-import cn.nukkit.item.StringItem;
+import cn.nukkit.item.MinecraftItemID;
 import cn.nukkit.plugin.Plugin;
 import cn.nukkit.potion.Effect;
 
@@ -84,11 +84,11 @@ public abstract class Food {
             .addRelative(Item.PUFFERFISH));
     public static final Food dried_kelp = registerDefaultFood(new FoodNormal(1, 0.6F).addRelative(Item.DRIED_KELP).setEatingTick(16));
     public static final Food sweet_berries = registerDefaultFood(new FoodNormal(2, 0.4F).addRelative(Item.SWEET_BERRIES));
-    
+
     @PowerNukkitOnly
     public static final Food suspicious_stew_night_vision = registerDefaultFood(new FoodEffectiveInBow(6, 7.2F)
             .addEffect(Effect.getEffect(Effect.NIGHT_VISION).setAmplifier(1).setDuration(4 * 20)).addRelative(Item.SUSPICIOUS_STEW, 0));
-    
+
     @PowerNukkitOnly
     public static final Food suspicious_stew_jump = registerDefaultFood(new FoodEffectiveInBow(6, 7.2F)
             .addEffect(Effect.getEffect(Effect.JUMP).setAmplifier(1).setDuration(4 * 20)).addRelative(Item.SUSPICIOUS_STEW, 1));
@@ -178,6 +178,19 @@ public abstract class Food {
         return result[0];
     }
 
+    public static Food getByRelative(String relativeID) {
+        final Food[] result = {null};
+        registryCustom.forEach((n, f) -> {
+            if (n.stringId != null && n.stringId.equals(relativeID) && n.plugin.isEnabled()) result[0] = f;
+        });
+        if (result[0] == null) {
+            registryDefault.forEach((n, f) -> {
+                if (n.stringId != null && n.stringId.equals(relativeID)) result[0] = f;
+            });
+        }
+        return result[0];
+    }
+
     protected int restoreFood = 0;
     protected float restoreSaturation = 0;
     protected final List<NodeIDMeta> relativeIDs = new ArrayList<>();
@@ -253,10 +266,18 @@ public abstract class Food {
     static class NodeIDMeta {
         final int id;
         final int meta;
+        final String stringId;
 
         NodeIDMeta(int id, int meta) {
             this.id = id;
             this.meta = meta;
+            this.stringId = null;
+        }
+
+        NodeIDMeta(String id) {
+            this.id = 255;
+            this.meta = 0;
+            this.stringId = id;
         }
     }
 
@@ -265,6 +286,11 @@ public abstract class Food {
 
         NodeIDMetaPlugin(int id, int meta, Plugin plugin) {
             super(id, meta);
+            this.plugin = plugin;
+        }
+
+        NodeIDMetaPlugin(String id, Plugin plugin) {
+            super(id);
             this.plugin = plugin;
         }
     }

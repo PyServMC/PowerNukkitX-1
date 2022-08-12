@@ -1,5 +1,7 @@
 package cn.nukkit.utils;
 
+import cn.nukkit.Player;
+import cn.nukkit.Server;
 import cn.nukkit.network.protocol.LoginPacket;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -109,6 +111,11 @@ public final class ClientChainData implements LoginChainData {
     @Override
     public String getXUID() {
         return xuid;
+    }
+
+    @Override
+    public void setXUID(String xuid) {
+        this.xuid = xuid;
     }
 
     private boolean xboxAuthed;
@@ -253,7 +260,7 @@ public final class ClientChainData implements LoginChainData {
                 this.identityPublicKey = chainMap.get("identityPublicKey").getAsString();
         }
 
-        if (!xboxAuthed) {
+        if (!xboxAuthed && Server.getInstance().getCheckXUID()) {
             xuid = null;
         }
     }

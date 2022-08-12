@@ -65,7 +65,7 @@ public class BlockRespawnAnchor extends BlockMeta {
     }
 
     @PowerNukkitOnly
-    @Since("FUTURE")
+    @Since("1.6.0.0-PN")
     public BlockRespawnAnchor(int meta) throws InvalidBlockPropertyMetaException {
         super(meta);
     }
@@ -112,7 +112,7 @@ public class BlockRespawnAnchor extends BlockMeta {
     @PowerNukkitOnly
     protected boolean attemptToSetSpawn(@Nonnull Player player) {
         if (this.level.getDimension() != Level.DIMENSION_NETHER) {
-            if (this.level.getGameRules().getBoolean(GameRule.TNT_EXPLODES)) {
+            if (this.level.getGameRules().getBoolean(GameRule.RESPAWN_BLOCKS_EXPLODE)) {
                 explode();
             }
             return true;

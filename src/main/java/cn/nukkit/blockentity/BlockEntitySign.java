@@ -21,7 +21,7 @@ import java.util.Objects;
  */
 public class BlockEntitySign extends BlockEntitySpawnable {
 
-    private String[] text;
+    protected String[] text;
 
     public BlockEntitySign(FullChunk chunk, CompoundTag nbt) {
         super(chunk, nbt);
@@ -113,12 +113,8 @@ public class BlockEntitySign extends BlockEntitySpawnable {
         return true;
     }
 
-    public String[] getText() {
-        return text;
-    }
-
     public BlockColor getColor() {
-        return new BlockColor(this.namedTag.getInt("SignTextColor"), true);
+        return new BlockColor(this.namedTag.getInt("SignTextColor"));
     }
 
     public void setColor(BlockColor color) {
@@ -131,6 +127,11 @@ public class BlockEntitySign extends BlockEntitySpawnable {
 
     public void setGlowing(boolean glowing) {
         this.namedTag.putBoolean("IgnoreLighting", glowing);
+    }
+
+
+    public String[] getText() {
+        return text;
     }
 
     @Override
@@ -148,6 +149,17 @@ public class BlockEntitySign extends BlockEntitySpawnable {
         SignChangeEvent signChangeEvent = new SignChangeEvent(this.getBlock(), player, lines);
 
         if (!this.namedTag.contains("Creator") || !Objects.equals(player.getUniqueId().toString(), this.namedTag.getString("Creator"))) {
+            signChangeEvent.setCancelled();
+        }
+
+        boolean empty = true;
+        for (String line : lines) {
+            if (!line.equals("")) {
+                empty = false;
+            }
+        }
+
+        if (empty) {
             signChangeEvent.setCancelled();
         }
 
@@ -180,7 +192,7 @@ public class BlockEntitySign extends BlockEntitySpawnable {
                 .putInt("z", (int) this.z);
     }
 
-    private static void sanitizeText(String[] lines) {
+    protected static void sanitizeText(String[] lines) {
         for (int i = 0; i < lines.length; i++) {
             // Don't allow excessive text per line.
             if (lines[i] != null) {

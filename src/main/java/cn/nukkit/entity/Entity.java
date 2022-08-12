@@ -233,7 +233,7 @@ public abstract class Entity extends Location implements Metadatable {
 
     @PowerNukkitOnly("Removed from Cloudburst Nukkit")
     @Deprecated
-    @DeprecationDetails(by = "Cloudburst Nukkit", reason = "Duplicated and removed", replaceWith = "DATA_INTERACTIVE_TAG", since = "FUTURE")
+    @DeprecationDetails(by = "Cloudburst Nukkit", reason = "Duplicated and removed", replaceWith = "DATA_INTERACTIVE_TAG", since = "1.6.0.0-PN")
     @Since("1.2.0.0-PN")
     public static final int DATA_INTERACT_TEXT = dynamic(DATA_INTERACTIVE_TAG); //string
 
@@ -286,6 +286,9 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_MOVEMENT_SOUND_DISTANCE_OFFSET = dynamic(125); // ???
     public static final int DATA_HEARTBEAT_INTERVAL_TICKS = dynamic(126); // ???
     public static final int DATA_HEARTBEAT_SOUND_EVENT = dynamic(127); // ???
+    public static final int DATA_PLAYER_LAST_DEATH_POS = dynamic(128);
+    public static final int DATA_PLAYER_LAST_DEATH_DIMENSION = dynamic(129);
+    public static final int DATA_PLAYER_HAS_DIED = dynamic(130);
 
     // Flags
     public static final int DATA_FLAG_ONFIRE = dynamic(0);
@@ -444,6 +447,7 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_FLAG_SNIFFING = dynamic(104);
     @Since("1.6.0.0-PNX")
     public static final int DATA_FLAG_DIGGING = dynamic(105);
+    public static final int DATA_FLAG_SONIC_BOOM = 106;
 
     public static long entityCount = 1;
 
@@ -979,7 +983,9 @@ public abstract class Entity extends Location implements Metadatable {
             return; //here add null means add nothing
         }
 
-        effect.add(this);
+        if (!effect.add(this)) {
+            return;
+        }
 
         this.effects.put(effect.getId(), effect);
 
@@ -1477,7 +1483,6 @@ public abstract class Entity extends Location implements Metadatable {
                 }
                 if (totem) {
                     this.getLevel().addLevelEvent(this, LevelEventPacket.EVENT_SOUND_TOTEM);
-                    this.getLevel().addParticleEffect(this, ParticleEffect.TOTEM);
 
                     this.extinguish();
                     this.removeAllEffects();
@@ -2075,7 +2080,9 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     public final void scheduleUpdate() {
-        this.level.updateEntities.put(this.id, this);
+        if (this.level != null) {
+            this.level.updateEntities.put(this.id, this);
+        }
     }
 
     public boolean isOnFire() {
@@ -2143,10 +2150,10 @@ public abstract class Entity extends Location implements Metadatable {
 
             if (fallDistance > 0) {
                 // check if we fell into at least 1 block of water
-                var lb = this.getLevelBlock();
-                var lb2 = this.getLevelBlockAtLayer(1);
-                if (this instanceof EntityLiving && !(lb instanceof BlockWater || lb instanceof BlockFence ||
-                        (lb2 instanceof BlockWater && lb2.getMaxY() == 1d))) {
+                Block lb = this.getLevelBlock();
+                Block lb2 = this.getLevelBlockAtLayer(1);
+                // TODO: BlockFenceGate
+                if (this instanceof EntityLiving &&  !(this.getLevelBlock() instanceof BlockPowderSnow) && !(lb instanceof BlockWater || lb instanceof BlockFence || (lb2 instanceof BlockWater && lb2.getMaxY() == 1d))) {
                     this.fall(fallDistance);
                 }
                 this.resetFallDistance();
@@ -2294,6 +2301,10 @@ public abstract class Entity extends Location implements Metadatable {
 
     public boolean onInteract(Player player, Item item) {
         return false;
+    }
+
+    public Item toItem() {
+        return Item.get(Item.AIR);
     }
 
     protected boolean switchLevel(Level targetLevel) {
@@ -2652,6 +2663,7 @@ public abstract class Entity extends Location implements Metadatable {
         boolean portal = false;
         boolean scaffolding = false;
         boolean endPortal = false;
+        boolean powderSnow = false;
         for (Block block : this.getCollisionBlocks()) {
             switch (block.getId()) {
                 case Block.NETHER_PORTAL -> portal = true;
@@ -2757,6 +2769,27 @@ public abstract class Entity extends Location implements Metadatable {
                 }
             }
         else ((EntityPhysical) this).addPreviousLiquidMovement();
+
+        if(this instanceof EntityLiving) {
+            EntityLiving living = (EntityLiving) this;
+            if(powderSnow) {
+                if(living.freezingTicks < 140) {
+                    living.freezingTicks++;
+                    living.setDataProperty(new FloatEntityData(DATA_FREEZING_EFFECT_STRENGTH, (1f / 140f) * living.freezingTicks));
+                }
+            } else {
+                living.freezingTicks = Math.max(living.freezingTicks - 2, 0);
+                this.setDataProperty(new FloatEntityData(DATA_FREEZING_EFFECT_STRENGTH, (1f / 140f) * living.freezingTicks));
+            }
+        }
+
+        if (vector.lengthSquared() > 0) {
+            vector = vector.normalize();
+            double d = 0.014d;
+            this.motionX += vector.x * d;
+            this.motionY += vector.y * d;
+            this.motionZ += vector.z * d;
+        }
     }
 
     public boolean setPositionAndRotation(Vector3 pos, double yaw, double pitch) {
@@ -2768,7 +2801,7 @@ public abstract class Entity extends Location implements Metadatable {
         return false;
     }
 
-    @Since("FUTURE")
+    @Since("1.6.0.0-PN")
     public boolean setPositionAndRotation(Vector3 pos, double yaw, double pitch, double headYaw) {
         if (this.setPosition(pos)) {
             this.setRotation(yaw, pitch, headYaw);
@@ -2784,7 +2817,7 @@ public abstract class Entity extends Location implements Metadatable {
         this.scheduleUpdate();
     }
 
-    @Since("FUTURE")
+    @Since("1.6.0.0-PN")
     public void setRotation(double yaw, double pitch, double headYaw) {
         this.yaw = yaw;
         this.pitch = pitch;
@@ -2887,11 +2920,15 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     public void kill() {
-        this.health = 0;
-        this.scheduleUpdate();
+        EntityKillEvent event = new EntityKillEvent(this);
+        Server.getInstance().getPluginManager().callEvent(event);
+        if (!event.isCancelled()) {
+            this.health = 0;
+            this.scheduleUpdate();
 
-        for (Entity passenger : new ArrayList<>(this.passengers)) {
-            dismountEntity(passenger);
+            for (Entity passenger : new ArrayList<>(this.passengers)) {
+                dismountEntity(passenger);
+            }
         }
     }
 
@@ -3041,8 +3078,8 @@ public abstract class Entity extends Location implements Metadatable {
                 this.chunk.removeEntity(this);
             }
 
-            if (this.level != null) {
-                this.level.removeEntity(this);
+                if (this.level != null) {
+                    this.level.removeEntity(this);
             }
         }
     }
@@ -3063,7 +3100,7 @@ public abstract class Entity extends Location implements Metadatable {
             if (data.getId() == DATA_FLAGS_EXTENDED) {
                 metadata.put(this.dataProperties.get(DATA_FLAGS));
             }
-            this.sendData(this.hasSpawned.values().toArray(new Player[0]), metadata);
+            this.sendData(this.hasSpawned.values().toArray(Player.EMPTY_ARRAY), metadata);
         }
         return true;
     }

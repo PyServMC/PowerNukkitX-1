@@ -250,7 +250,7 @@ public class Network {
     }
 
     @PowerNukkitOnly
-    @Since("FUTURE")
+    @Since("1.6.0.0-PN")
     public List<DataPacket> unpackBatchedPackets(BatchPacket packet) throws ProtocolException {
         List<DataPacket> packets = new ObjectArrayList<>();
         processBatch(packet.payload, packets);
@@ -393,6 +393,7 @@ public class Network {
         this.registerPacket(ProtocolInfo.BLOCK_ENTITY_DATA_PACKET, BlockEntityDataPacket.class);
         this.registerPacket(ProtocolInfo.BLOCK_EVENT_PACKET, BlockEventPacket.class);
         this.registerPacket(ProtocolInfo.BLOCK_PICK_REQUEST_PACKET, BlockPickRequestPacket.class);
+        this.registerPacket(ProtocolInfo.ENTITY_PICK_REQUEST_PACKET, EntityPickRequestPacket.class);
         this.registerPacket(ProtocolInfo.BOOK_EDIT_PACKET, BookEditPacket.class);
         this.registerPacket(ProtocolInfo.BOSS_EVENT_PACKET, BossEventPacket.class);
         this.registerPacket(ProtocolInfo.CHANGE_DIMENSION_PACKET, ChangeDimensionPacket.class);
@@ -421,6 +422,7 @@ public class Network {
         this.registerPacket(ProtocolInfo.MAP_INFO_REQUEST_PACKET, MapInfoRequestPacket.class);
         this.registerPacket(ProtocolInfo.MOB_ARMOR_EQUIPMENT_PACKET, MobArmorEquipmentPacket.class);
         this.registerPacket(ProtocolInfo.MOB_EQUIPMENT_PACKET, MobEquipmentPacket.class);
+        this.registerPacket(ProtocolInfo.PHOTO_TRANSFER_PACKET, PhotoTransferPacket.class);
         this.registerPacket(ProtocolInfo.MODAL_FORM_REQUEST_PACKET, ModalFormRequestPacket.class);
         this.registerPacket(ProtocolInfo.MODAL_FORM_RESPONSE_PACKET, ModalFormResponsePacket.class);
         this.registerPacket(ProtocolInfo.MOVE_ENTITY_ABSOLUTE_PACKET, MoveEntityAbsolutePacket.class);
@@ -522,5 +524,6 @@ public class Network {
         this.registerPacket(ProtocolInfo.CHANGE_MOB_PROPERTY_PACKET, ChangeMobPropertyPacket.class);
         this.registerPacket(ProtocolInfo.DIMENSION_DATA_PACKET, DimensionDataPacket.class);
         this.registerPacket(ProtocolInfo.TICKING_AREAS_LOAD_STATUS_PACKET, TickingAreasLoadStatusPacket.class);
+        this.registerPacket(ProtocolInfo.CREATE_PHOTO_PACKET, CreatePhotoPacket.class);
     }
 }

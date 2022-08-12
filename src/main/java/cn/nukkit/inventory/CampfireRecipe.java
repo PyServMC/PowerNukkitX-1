@@ -10,10 +10,17 @@ public class CampfireRecipe implements SmeltingRecipe {
 
     private Item ingredient;
 
+    private double experience;
+
     @PowerNukkitOnly
     public CampfireRecipe(Item result, Item ingredient) {
+        this(result, ingredient, 0);
+    }
+
+    public CampfireRecipe(Item result, Item ingredient, double experience) {
         this.output = result.clone();
         this.ingredient = ingredient.clone();
+        this.experience = experience;
     }
 
     @PowerNukkitOnly
@@ -25,6 +32,11 @@ public class CampfireRecipe implements SmeltingRecipe {
     @Override
     public Item getInput() {
         return this.ingredient.clone();
+    }
+
+    @Override
+    public double getExperience() {
+        return experience;
     }
 
     @Override

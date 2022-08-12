@@ -17,16 +17,20 @@ import cn.nukkit.entity.ai.route.SimpleFlatAStarRouteFinder;
 import cn.nukkit.entity.ai.route.posevaluator.WalkingPosEvaluator;
 import cn.nukkit.entity.ai.sensor.NearestBeggingPlayerSensor;
 import cn.nukkit.entity.ai.sensor.NearestPlayerSensor;
+import cn.nukkit.entity.EntityBalloonable;
 import cn.nukkit.item.Item;
 import cn.nukkit.level.format.FullChunk;
+import cn.nukkit.metadata.MetadataValue;
 import cn.nukkit.nbt.tag.CompoundTag;
+import cn.nukkit.plugin.Plugin;
 
+import java.util.List;
 import java.util.Set;
 
 /**
  * @author BeYkeRYkt (Nukkit Project)
  */
-public class EntityPig extends EntityWalkingAnimal {
+public class EntityPig extends EntityWalkingAnimal implements EntityBalloonable {
 
     public static final int NETWORK_ID = 12;
 
@@ -121,5 +125,30 @@ public class EntityPig extends EntityWalkingAnimal {
         int id = item.getId();
 
         return id == Item.CARROT || id == Item.POTATO || id == Item.BEETROOT;
+    }
+
+    @Override
+    public float getBalloonMass() {
+        return 0.75F;
+    }
+
+    @Override
+    public void setMetadata(String metadataKey, MetadataValue newMetadataValue) {
+
+    }
+
+    @Override
+    public List<MetadataValue> getMetadata(String metadataKey) {
+        return null;
+    }
+
+    @Override
+    public boolean hasMetadata(String metadataKey) {
+        return false;
+    }
+
+    @Override
+    public void removeMetadata(String metadataKey, Plugin owningPlugin) {
+
     }
 }

@@ -10,6 +10,7 @@ import cn.nukkit.blockproperty.value.WoodType;
 import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.blockstate.IBlockState;
 import cn.nukkit.blockstate.exception.InvalidBlockStateException;
+import cn.nukkit.item.ItemBlock;
 import cn.nukkit.utils.BlockColor;
 
 import javax.annotation.Nonnull;
@@ -49,6 +50,16 @@ public class BlockWood extends BlockLog {
     public int getId() {
         return WOOD;
     }
+
+    @Override
+    public ItemBlock asItemBlock(int count) {
+        if ((getDamage() & 0b1100) == 0b1100) {
+            return new ItemBlock(new BlockWoodBark(), this.getDamage() & 0x3, count);
+        } else {
+            return new ItemBlock(this, this.getDamage() & 0x03, count);
+        }
+    }
+
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly

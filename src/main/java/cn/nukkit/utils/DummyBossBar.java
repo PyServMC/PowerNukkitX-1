@@ -54,7 +54,7 @@ public class DummyBossBar {
             return this;
         }
 
-        @Since("FUTURE")
+        @Since("1.6.0.0-PN")
         public Builder color(BossBarColor color) {
             this.color = color;
             return this;
@@ -97,7 +97,7 @@ public class DummyBossBar {
         }
     }
 
-    @Since("FUTURE")
+    @Since("1.6.0.0-PN")
     public void setColor(@Nullable BossBarColor color) {
         final BossBarColor currentColor = this.color;
         if (currentColor == null || !currentColor.equals(color)) {
@@ -106,7 +106,7 @@ public class DummyBossBar {
         }
     }
 
-    @Since("FUTURE")
+    @Since("1.6.0.0-PN")
     @Nullable
     public BossBarColor getColor() {
         return this.color;
@@ -165,7 +165,7 @@ public class DummyBossBar {
         BossEventPacket pk = new BossEventPacket();
         pk.bossEid = this.bossBarId;
         pk.type = BossEventPacket.TYPE_TEXTURE;
-        pk.color = color != null? color.ordinal() : 0;
+        pk.color = color != null ? color.ordinal() : 0;
         player.dataPacket(pk);
     }
 

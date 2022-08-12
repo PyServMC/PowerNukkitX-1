@@ -45,25 +45,17 @@ import java.util.concurrent.TimeUnit;
 public class RakNetInterface implements RakNetServerListener, AdvancedSourceInterface {
 
     private final Server server;
-
-    private Network network;
-
     private final RakNetServer raknet;
-
     private final Map<InetSocketAddress, NukkitRakNetSession> sessions = new HashMap<>();
-
     private final Queue<NukkitRakNetSession> sessionCreationQueue = PlatformDependent.newMpscQueue();
-
-
     private final Set<ScheduledFuture<?>> tickFutures = new HashSet<>();
-
     private final FastThreadLocal<Set<NukkitRakNetSession>> sessionsToTick = new FastThreadLocal<Set<NukkitRakNetSession>>() {
         @Override
         protected Set<NukkitRakNetSession> initialValue() {
             return Collections.newSetFromMap(new IdentityHashMap<>());
         }
     };
-
+    private Network network;
     private byte[] advertisement;
 
     public RakNetInterface(Server server) {
@@ -218,6 +210,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         NukkitRakNetSession session = this.sessions.get(player.getSocketAddress());
 
         if (session != null) {
+   // removed because PowerNukkit doesnt have it anymore packet = packet.clone(); // TODO Attempting to solve PowerNukkit#887 by sending a clone
             packet.tryEncode();
             if (!immediate) {
                 session.outbound.offer(packet.clone());

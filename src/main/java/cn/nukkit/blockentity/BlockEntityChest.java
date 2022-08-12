@@ -66,8 +66,12 @@ public class BlockEntityChest extends BlockEntitySpawnableContainer implements B
         return this.doubleInventory != null ? this.doubleInventory : this.inventory;
     }
 
-    public boolean holdingDoubleInventory(){
+    public boolean holdingDoubleInventory() {
         return this.doubleInventory != null;
+    }
+
+    public BaseInventory getInventoryWithoutCheckingToPair() {
+        return this.doubleInventory != null ? this.doubleInventory : this.inventory;
     }
 
     public ChestInventory getRealInventory() {

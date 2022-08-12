@@ -1,7 +1,5 @@
 package cn.nukkit.network.protocol;
 
-import cn.nukkit.api.PowerNukkitOnly;
-import cn.nukkit.api.Since;
 import cn.nukkit.math.BlockVector3;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.utils.Utils;
@@ -15,8 +13,7 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 
 /**
- * @author CreeperFace
- * @since 5.3.2017
+ * Created by CreeperFace on 5.3.2017.
  */
 @ToString
 public class ClientboundMapItemDataPacket extends DataPacket {
@@ -25,6 +22,9 @@ public class ClientboundMapItemDataPacket extends DataPacket {
 
     public int[] eids = EmptyArrays.EMPTY_INTS;
 
+    public static final int TEXTURE_UPDATE = 0x02;
+    public static final int DECORATIONS_UPDATE = 0x04;
+    public static final int ENTITIES_UPDATE = 0x08;
     public long mapId;
     public int update;
     public byte scale;
@@ -33,7 +33,6 @@ public class ClientboundMapItemDataPacket extends DataPacket {
     public int height;
     public int offsetX;
     public int offsetZ;
-
     public byte dimensionId;
     public BlockVector3 origin = new BlockVector3();
 
@@ -41,12 +40,6 @@ public class ClientboundMapItemDataPacket extends DataPacket {
     public MapDecorator[] decorators = MapDecorator.EMPTY_ARRAY;
     public int[] colors = EmptyArrays.EMPTY_INTS;
     public BufferedImage image = null;
-
-    //update
-    public static final int TEXTURE_UPDATE = 0x02;
-    public static final int DECORATIONS_UPDATE = 0x04;
-    public static final int ENTITIES_UPDATE = 0x08;
-
     @Override
     public byte pid() {
         return NETWORK_ID;
@@ -105,12 +98,12 @@ public class ClientboundMapItemDataPacket extends DataPacket {
 
             this.putUnsignedVarInt(decorators.length);
             for (MapDecorator decorator : decorators) {
-                this.putByte(decorator.rotation);
                 this.putByte(decorator.icon);
+                this.putByte(decorator.rotation);
                 this.putByte(decorator.offsetX);
                 this.putByte(decorator.offsetZ);
                 this.putString(decorator.label);
-                this.putVarInt(decorator.color.getRGB());
+                this.putUnsignedVarInt(decorator.color.getRGB());
             }
         }
 
@@ -139,10 +132,8 @@ public class ClientboundMapItemDataPacket extends DataPacket {
     }
 
     public static class MapDecorator {
-        @PowerNukkitOnly
-        @Since("1.4.0.0-PN")
-        public static final MapDecorator[] EMPTY_ARRAY = new MapDecorator[0];
-        
+        public static MapDecorator[] EMPTY_ARRAY = new MapDecorator[0];
+
         public byte rotation;
         public byte icon;
         public byte offsetX;

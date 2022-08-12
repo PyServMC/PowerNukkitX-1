@@ -129,6 +129,11 @@ public class BlockEntityItemFrame extends BlockEntitySpawnable {
         return tag;
     }
 
+    @Override
+    public CompoundTag getCleanedNBT() {
+        return new CompoundTag();
+    }
+
     public int getAnalogOutput() {
         return this.getItem() == null || this.getItem().getId() == 0 ? 0 : this.getItemRotation() % 8 + 1;
     }
@@ -179,12 +184,10 @@ public class BlockEntityItemFrame extends BlockEntitySpawnable {
                 return null;
             }
         }
-        
         setItem(MinecraftItemID.AIR.get(0), true);
         setItemRotation(0);
         spawnToAll();
         level.addLevelEvent(this, LevelEventPacket.EVENT_SOUND_ITEM_FRAME_REMOVED);
-        
         return itemEntity;
     }
 }
