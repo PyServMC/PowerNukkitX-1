@@ -527,7 +527,7 @@ public class Level implements ChunkManager, Metadatable {
 
     public void initLevel() {
         Generator generator = generators.get();
-        this.dimensionData = generator.getDimensionData();
+        this.dimensionData = generator != null ? generator.getDimensionData() : DimensionEnum.OVERWORLD.getDimensionData();
         this.gameRules = this.requireProvider().getGamerules();
 
         log.info("Preparing start region for level \"{}\"", this.getFolderName());
