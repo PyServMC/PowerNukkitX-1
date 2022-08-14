@@ -1,13 +1,19 @@
 package cn.nukkit.level.format.anvil;
 
 import cn.nukkit.Player;
+import cn.nukkit.api.PowerNukkitXOnly;
+import cn.nukkit.api.Since;
+import cn.nukkit.api.UsedByReflection;
 import cn.nukkit.block.Block;
 import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.entity.Entity;
+import cn.nukkit.level.DimensionData;
 import cn.nukkit.level.Level;
+import cn.nukkit.level.biome.Biome;
 import cn.nukkit.level.format.LevelProvider;
 import cn.nukkit.level.format.anvil.palette.BiomePalette;
 import cn.nukkit.level.format.generic.BaseChunk;
+import cn.nukkit.level.format.generic.BaseFullChunk;
 import cn.nukkit.level.format.generic.EmptyChunkSection;
 import cn.nukkit.nbt.NBTIO;
 import cn.nukkit.nbt.tag.*;
@@ -16,6 +22,7 @@ import cn.nukkit.utils.BlockUpdateEntry;
 import cn.nukkit.utils.ChunkException;
 import cn.nukkit.utils.Zlib;
 import lombok.extern.log4j.Log4j2;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -35,6 +42,9 @@ public class Chunk extends BaseChunk {
     protected boolean terrainPopulated;
     protected boolean terrainGenerated;
     protected boolean isNew384World = false;
+    @PowerNukkitXOnly
+    @Since("1.19.20-r4")
+    protected DimensionData dimensionData = null;
 
     @Override
     public Chunk clone() {
@@ -42,11 +52,24 @@ public class Chunk extends BaseChunk {
     }
 
     public Chunk(LevelProvider level) {
-        this(level, null);
+        this(level, (CompoundTag) null);
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.20-r4")
+    public Chunk(LevelProvider level, DimensionData dimensionData) {
+        this(level, null, dimensionData);
     }
 
     public Chunk(Class<? extends LevelProvider> providerClass) {
-        this((LevelProvider) null, null);
+        this((LevelProvider) null, (CompoundTag) null);
+        this.providerClass = providerClass;
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.20-r4")
+    public Chunk(Class<? extends LevelProvider> providerClass, DimensionData dimensionData) {
+        this((LevelProvider) null, null, dimensionData);
         this.providerClass = providerClass;
     }
 
@@ -55,10 +78,29 @@ public class Chunk extends BaseChunk {
         this.providerClass = providerClass;
     }
 
+    @PowerNukkitXOnly
+    @Since("1.19.20-r4")
+    public Chunk(Class<? extends LevelProvider> providerClass, CompoundTag nbt, DimensionData dimensionData) {
+        this((LevelProvider) null, nbt, dimensionData);
+        this.providerClass = providerClass;
+    }
+
     public Chunk(LevelProvider level, CompoundTag nbt) {
+        this(level, nbt, null);
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.20-r4")
+    public Chunk(LevelProvider level, CompoundTag nbt, DimensionData dimensionData) {
         this.provider = level;
         if (level != null) {
+            if (level.getLevel() != null) {
+                this.dimensionData = level.getLevel().getDimensionData();
+            }
             this.providerClass = level.getClass();
+        }
+        if (dimensionData != null) {
+            this.dimensionData = dimensionData;
         }
 
         this.sections = new cn.nukkit.level.format.ChunkSection[getChunkSectionCount()];
@@ -73,11 +115,26 @@ public class Chunk extends BaseChunk {
             return;
         }
 
+        if (nbt.contains("BiomeColors")) {
+            this.biomes = new byte[16 * 16];
+            int[] biomeColors = nbt.getIntArray("BiomeColors");
+            if (biomeColors != null && biomeColors.length == 256) {
+                BiomePalette palette = new BiomePalette(biomeColors);
+                for (int x = 0; x < 16; x++) {
+                    for (int z = 0; z < 16; z++) {
+                        this.biomes[(x << 4) | z] = (byte) (palette.get(x, z) >> 24);
+                    }
+                }
+            }
+        } else {
+            this.biomes = Arrays.copyOf(nbt.getByteArray("Biomes"), 256);
+        }
+
         for (Tag section : nbt.getList("Sections").getAll()) {
             if (section instanceof CompoundTag) {
                 int y = ((CompoundTag) section).getByte("Y");
                 if (y < getChunkSectionCount()) {
-                    final ChunkSection chunkSection = new ChunkSection((CompoundTag) section);
+                    final ChunkSection chunkSection = new ChunkSection((CompoundTag) section, this.biomes);
                     if (chunkSection.hasBlocks()) {
                         sections[y] = chunkSection;
                     } else {
@@ -101,21 +158,6 @@ public class Chunk extends BaseChunk {
         this.setPosition(nbt.getInt("xPos"), nbt.getInt("zPos"));
         if (sections.length > getChunkSectionCount()) {
             throw new ChunkException("Invalid amount of chunks");
-        }
-
-        if (nbt.contains("BiomeColors")) {
-            this.biomes = new byte[16 * 16];
-            int[] biomeColors = nbt.getIntArray("BiomeColors");
-            if (biomeColors != null && biomeColors.length == 256) {
-                BiomePalette palette = new BiomePalette(biomeColors);
-                for (int x = 0; x < 16; x++) {
-                    for (int z = 0; z < 16; z++) {
-                        this.biomes[(x << 4) | z] = (byte) (palette.get(x, z) >> 24);
-                    }
-                }
-            }
-        } else {
-            this.biomes = Arrays.copyOf(nbt.getByteArray("Biomes"), 256);
         }
 
         int[] heightMap = nbt.getIntArray("HeightMap");
@@ -178,6 +220,30 @@ public class Chunk extends BaseChunk {
         }
     }
 
+    @Since("1.19.20-r4")
+    @Override
+    public int getMaxHeight() {
+        if (dimensionData != null) {
+            return dimensionData.getMaxHeight() + 1;
+        }
+        return getChunkSectionCount() == 24 ? 320 : 256;
+    }
+
+    @Since("1.19.20-r4")
+    @Override
+    public int getMinHeight() {
+        if (dimensionData != null) {
+            return dimensionData.getMinHeight();
+        }
+        return getChunkSectionCount() == 24 ? -64 : 0;
+    }
+
+    @Since("1.19.20-r3")
+    @Override
+    public boolean isChunkSection3DBiomeSupported() {
+        return true;
+    }
+
     @Override
     public boolean isPopulated() {
         return this.terrainPopulated;
@@ -212,6 +278,46 @@ public class Chunk extends BaseChunk {
             this.terrainGenerated = value;
             setChanged();
         }
+    }
+
+    @Override
+    public int getBiomeId(int x, int z) {
+        return getBiomeId(x, 70, z);
+    }
+
+    @Override
+    public void setBiomeId(int x, int z, byte biomeId) {
+        for (var section : sections) {
+            if (section instanceof cn.nukkit.level.format.anvil.ChunkSection anvilSection) {
+                for (int dy = 0; dy < 16; dy++) {
+                    anvilSection.setBiomeId(x, dy, z, biomeId);
+                }
+            }
+        }
+        super.setBiomeId(x, z, biomeId);
+    }
+
+    @Override
+    public int getBiomeId(int x, int y, int z) {
+        if (sections[toSectionY(y)] instanceof cn.nukkit.level.format.anvil.ChunkSection anvilSection) {
+            return anvilSection.getBiomeId(x, y & 0xf, z) & 0xFF;
+        }
+        return super.getBiomeId(x, z);
+    }
+
+    @Override
+    public void setBiomeId(int x, int y, int z, byte biomeId) {
+        if (sections[toSectionY(y)] instanceof cn.nukkit.level.format.anvil.ChunkSection anvilSection) {
+            anvilSection.setBiomeId(x, y & 0xf, z, biomeId);
+            this.setChanged();
+            return;
+        }
+        super.setBiomeId(x, z, biomeId);
+    }
+
+    @Override
+    public void setBiome(int x, int y, int z, Biome biome) {
+        setBiomeId(x, y, z, (byte) biome.getId());
     }
 
     public CompoundTag getNBT() {
@@ -487,17 +593,35 @@ public class Chunk extends BaseChunk {
         }
     }
 
+    @Nullable
+    @UsedByReflection
     public static Chunk getEmptyChunk(int chunkX, int chunkZ) {
-        return getEmptyChunk(chunkX, chunkZ, null);
+        return getEmptyChunk(chunkX, chunkZ, (LevelProvider) null);
     }
 
+    @PowerNukkitXOnly
+    @Since("1.19.20-r4")
+    @Nullable
+    @UsedByReflection
+    public static Chunk getEmptyChunk(int chunkX, int chunkZ, DimensionData dimensionData) {
+        return getEmptyChunk(chunkX, chunkZ, null, dimensionData);
+    }
+
+    @Nullable
     public static Chunk getEmptyChunk(int chunkX, int chunkZ, LevelProvider provider) {
+        return getEmptyChunk(chunkX, chunkZ, provider, null);
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.20-r4")
+    @Nullable
+    public static Chunk getEmptyChunk(int chunkX, int chunkZ, LevelProvider provider, DimensionData dimensionData) {
         try {
             Chunk chunk;
             if (provider != null) {
-                chunk = new Chunk(provider, null);
+                chunk = new Chunk(provider, null, dimensionData);
             } else {
-                chunk = new Chunk(Anvil.class, null);
+                chunk = new Chunk(Anvil.class, null, dimensionData);
             }
 
             chunk.setPosition(chunkX, chunkZ);
@@ -529,5 +653,45 @@ public class Chunk extends BaseChunk {
             }
         }
         return result;
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.20-r4")
+    @Override
+    public int getChunkSectionCount() {
+        if (dimensionData != null) {
+            return dimensionData.getHeight() >> 4 + ((dimensionData.getHeight() & 15) == 0 ? 0 : 1);
+        }
+        return super.getChunkSectionCount();
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.20-r4")
+    @Override
+    public boolean isOverWorld() {
+        if (dimensionData != null) {
+            return dimensionData.getDimensionId() == Level.DIMENSION_OVERWORLD;
+        }
+        return super.isOverWorld();
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.20-r4")
+    @Override
+    public boolean isNether() {
+        if (dimensionData != null) {
+            return dimensionData.getDimensionId() == Level.DIMENSION_NETHER;
+        }
+        return super.isNether();
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.20-r4")
+    @Override
+    public boolean isTheEnd() {
+        if (dimensionData != null) {
+            return dimensionData.getDimensionId() == Level.DIMENSION_THE_END;
+        }
+        return super.isTheEnd();
     }
 }

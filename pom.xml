@@ -8,7 +8,7 @@
 
     <groupId>cn.powernukkitx</groupId>
     <artifactId>powernukkitx</artifactId>
-    <version>1.19.20-r1</version>
+    <version>1.19.20-r4</version>
 
     <inceptionYear>2022</inceptionYear>
     <organization>
@@ -789,6 +789,10 @@
                 </executions>
                 <configuration>
                     <skip>${skipGpg}</skip>
+                    <gpgArguments>
+                        <arg>--pinentry-mode</arg>
+                        <arg>loopback</arg>
+                    </gpgArguments>
                 </configuration>
             </plugin>
             <plugin>
