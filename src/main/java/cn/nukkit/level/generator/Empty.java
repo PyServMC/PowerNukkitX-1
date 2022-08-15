@@ -1,6 +1,8 @@
 package cn.nukkit.level.generator;
 
 import cn.nukkit.level.ChunkManager;
+import cn.nukkit.level.DimensionData;
+import cn.nukkit.level.DimensionEnum;
 import cn.nukkit.math.NukkitRandom;
 import cn.nukkit.math.Vector3;
 import lombok.extern.log4j.Log4j2;
@@ -59,5 +61,10 @@ public class Empty extends Generator {
     @Override
     public Vector3 getSpawn() {
         return new Vector3(0, 0, 0);
+    }
+
+    @Override
+    public DimensionData getDimensionData() {
+        return DimensionEnum.OVERWORLD.getDimensionData();
     }
 }
