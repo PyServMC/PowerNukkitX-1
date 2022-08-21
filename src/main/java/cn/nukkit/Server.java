@@ -327,13 +327,13 @@ public class Server {
 
         File cmdDir = new File(tempDir, "command_data");
         commandDataPath = cmdDir.getPath();
-        
+
         Files.createParentDirs(dir);
         Files.createParentDirs(new File(tempDir, "worlds"));
         Files.createParentDirs(new File(tempDir, "players"));
-        
+
         baseLang = new BaseLang(BaseLang.FALLBACK_LANGUAGE);
-        
+
         console = new NukkitConsole(this);
         consoleThread = new ConsoleThread();
         this.computeThreadPool = new ForkJoinPool();
@@ -394,7 +394,7 @@ public class Server {
             log.info(TextFormat.GREEN + "Welcome! Please choose a language first!");
             String languagesCommaList;
             try {
-                InputStream languageList = this.getClass().getClassLoader().getResourceAsStream("language/language.list");
+                InputStream languageList = this.getClass().getModule().getResourceAsStream("language/language.list");
                 if (languageList == null) {
                     throw new IllegalStateException("language/language.list is missing. If you are running a development version, make sure you have run 'git submodule update --init'.");
                 }
@@ -412,28 +412,39 @@ public class Server {
 
             String fallback = BaseLang.FALLBACK_LANGUAGE;
             String language = null;
-            while (language == null) {
-                String lang;
-                if (predefinedLanguage != null) {
-                    log.info("Trying to load language from predefined language: {}", predefinedLanguage);
-                    lang = predefinedLanguage;
-                } else {
-                    lang = this.console.readLine();
-                }
+            try {
+                while (language == null) {
+                    String lang;
+                    if (predefinedLanguage != null) {
+                        log.info("Trying to load language from predefined language: {}", predefinedLanguage);
+                        lang = predefinedLanguage;
+                    } else {
+                        lang = this.console.readLine();
+                    }
 
-                InputStream conf = this.getClass().getClassLoader().getResourceAsStream("language/" + lang + "/lang.ini");
-                if (conf != null) {
-                    language = lang;
-                } else if (predefinedLanguage != null) {
-                    log.warn("No language found for predefined language: {}, please choose a valid language", predefinedLanguage);
-                    predefinedLanguage = null;
+                    InputStream conf = null;
+                    conf = this.getClass().getModule().getResourceAsStream("language/" + lang + "/lang.ini");
+                    if (conf != null) {
+                        language = lang;
+                    } else if (predefinedLanguage != null) {
+                        log.warn("No language found for predefined language: {}, please choose a valid language", predefinedLanguage);
+                        predefinedLanguage = null;
+                    }
                 }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
 
             Properties nukkitYmlLang = new Properties();
-            InputStream nukkitYmlLangIS = this.getClass().getClassLoader().getResourceAsStream("language/" + language + "/nukkit.yml.properties");
-            if (nukkitYmlLangIS == null) {
-                nukkitYmlLangIS = this.getClass().getClassLoader().getResourceAsStream("language/" + fallback + "/nukkit.yml.properties");
+            InputStream nukkitYmlLangIS;
+
+            try {
+                nukkitYmlLangIS = this.getClass().getModule().getResourceAsStream("language/" + language + "/nukkit.yml.properties");
+                if (nukkitYmlLangIS == null) {
+                    nukkitYmlLangIS = this.getClass().getModule().getResourceAsStream("language/" + fallback + "/nukkit.yml.properties");
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
 
             if (nukkitYmlLangIS == null) {
@@ -465,7 +476,7 @@ public class Server {
                 }
 
                 StringBuilder keyBuilder = new StringBuilder();
-                try(BufferedReader in = new BufferedReader(new InputStreamReader(Server.class.getResourceAsStream("/default-nukkit.yml"), StandardCharsets.UTF_8))) {
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(Server.class.getResourceAsStream("/default-nukkit.yml"), StandardCharsets.UTF_8))) {
                     String line;
                     LinkedList<String[]> path = new LinkedList<>();
                     Pattern pattern = Pattern.compile("^( *)([a-z-]+):");
@@ -596,12 +607,13 @@ public class Server {
                 put("check-login-time", true);
                 put("check-xuid", true);
                 put("disable-auto-bug-report", false);
+                put("allow-shaded", false);
             }
         });
 
         // Allow Nether? (determines if we create a nether world if one doesn't exist on startup)
         this.allowNether = this.properties.getBoolean("allow-nether", true);
-        
+
         this.allowTheEnd = this.properties.getBoolean("allow-the_end", true);
 
         this.useTerra = this.properties.getBoolean("use-terra", false);
@@ -609,7 +621,7 @@ public class Server {
         this.enableExperimentMode = this.properties.getBoolean("enable-experiment-mode", true);
 
         this.checkLoginTime = this.properties.getBoolean("check-login-time", true);
-        
+
         this.forceLanguage = this.getConfig("settings.force-language", false);
         this.baseLang = new BaseLang(this.getConfig("settings.language", BaseLang.FALLBACK_LANGUAGE));
 
@@ -618,6 +630,14 @@ public class Server {
             log.fatal(getLanguage().translateString("nukkit.start.invalid"));
             return;
         }*/
+
+        // 检测非法使用shaded包启动
+        if (!this.properties.getBoolean("allow-shaded", false) && StartArgUtils.isShaded()) {
+            log.fatal(getLanguage().translateString("nukkit.start.shaded1"));
+            log.fatal(getLanguage().translateString("nukkit.start.shaded2"));
+            log.fatal(getLanguage().translateString("nukkit.start.shaded3"));
+            return;
+        }
 
         log.info(this.getLanguage().translateString("language.selected", new String[]{getLanguage().getName(), getLanguage().getLang()}));
         log.info(getLanguage().translateString("nukkit.server.start", TextFormat.AQUA + this.getVersion() + TextFormat.RESET));
@@ -748,7 +768,7 @@ public class Server {
         this.queryRegenerateEvent = new QueryRegenerateEvent(this, 5);
 
         this.network.registerInterface(new RakNetInterface(this));
-        
+
         try {
             log.debug("Loading position tracking service");
             this.positionTrackingService = new PositionTrackingService(new File(Nukkit.DATA_PATH, "services/position_tracking_db"));
@@ -756,7 +776,7 @@ public class Server {
         } catch (IOException e) {
             log.fatal("Failed to start the Position Tracking DB service!", e);
         }
-        
+
         this.pluginManager.loadPowerNukkitPlugins();
         this.pluginManager.loadPlugins(this.pluginPath);
 
@@ -853,7 +873,7 @@ public class Server {
             this.watchdog = new Watchdog(this, 60000);
             this.watchdog.start();
         }
-        
+
         System.runFinalization();
         this.start();
     }
@@ -942,7 +962,7 @@ public class Server {
         }
     }
 
-    @DeprecationDetails(since = "1.4.0.0-PN", by = "Cloudburst Nukkit", 
+    @DeprecationDetails(since = "1.4.0.0-PN", by = "Cloudburst Nukkit",
             reason = "Packet management was refactored, batching is done automatically near the RakNet layer")
     @Deprecated
     public void batchPackets(Player[] players, DataPacket[] packets) {
@@ -1031,7 +1051,7 @@ public class Server {
         // First we need to check if this command is on the main thread or not, if not, warn the user
         if (!this.isPrimaryThread()) {
             log.warn("Command Dispatched Async: {}\nPlease notify author of plugin causing this execution to fix this bug!", commandLine,
-                    new ConcurrentModificationException("Command Dispatched Async: "+commandLine));
+                    new ConcurrentModificationException("Command Dispatched Async: " + commandLine));
 
             this.scheduler.scheduleTask(null, () -> dispatchCommand(sender, commandLine));
             return true;
@@ -1229,7 +1249,7 @@ public class Server {
                 System.gc();
             }
         }, 60);
-        
+
         this.nextTick = System.currentTimeMillis();
         try {
             while (this.isRunning.get()) {
@@ -1351,11 +1371,11 @@ public class Server {
         pk.type = PlayerListPacket.TYPE_ADD;
         pk.entries = this.playerList.values().stream()
                 .map(p -> new PlayerListPacket.Entry(
-                p.getUniqueId(),
-                p.getId(),
-                p.getDisplayName(),
-                p.getSkin(),
-                p.getLoginChainData().getXUID()))
+                        p.getUniqueId(),
+                        p.getId(),
+                        p.getDisplayName(),
+                        p.getSkin(),
+                        p.getLoginChainData().getXUID()))
                 .toArray(PlayerListPacket.Entry[]::new);
 
         player.dataPacket(pk);
@@ -1632,6 +1652,7 @@ public class Server {
     /**
      * 将服务器设置为繁忙状态，这可以阻止相关代码认为服务器处于无响应状态。
      * 请牢记，必须在设置之后清除。
+     *
      * @param busyTime 单位为毫秒
      * @return id
      */
@@ -2084,7 +2105,7 @@ public class Server {
                 //doing it like this ensures that the playerdata will be saved in a server shutdown
                 @Override
                 public void onCancel() {
-                    if (!this.hasRun)    {
+                    if (!this.hasRun) {
                         this.hasRun = true;
                         saveOfflinePlayerDataInternal(event.getSerializer(), tag, nameLower, event.getUuid().orElse(null));
                     }
@@ -2839,14 +2860,14 @@ public class Server {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    public boolean isSafeSpawn(){
+    public boolean isSafeSpawn() {
         return safeSpawn;
     }
 
     public static Server getInstance() {
         return instance;
     }
-    
+
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     @Nonnull
@@ -2856,22 +2877,22 @@ public class Server {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    public boolean isForceSkinTrusted(){
+    public boolean isForceSkinTrusted() {
         return forceSkinTrusted;
     }
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    public boolean isCheckMovement(){
+    public boolean isCheckMovement() {
         return checkMovement;
     }
-    
+
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public long getLaunchTime() {
         return launchTime;
     }
-    
+
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public boolean isTheEndAllowed() {
