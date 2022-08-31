@@ -3,12 +3,14 @@ package cn.nukkit.level.format.anvil;
 import cn.nukkit.Server;
 import cn.nukkit.api.DeprecationDetails;
 import cn.nukkit.api.PowerNukkitOnly;
+import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockID;
 import cn.nukkit.block.BlockUnknown;
 import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.blockstate.exception.InvalidBlockStateException;
+import cn.nukkit.level.Level;
 import cn.nukkit.level.format.ChunkSection3DBiome;
 import cn.nukkit.level.format.LevelProvider;
 import cn.nukkit.level.format.anvil.util.BlockStorage;
@@ -70,6 +72,10 @@ public class ChunkSection implements cn.nukkit.level.format.ChunkSection, ChunkS
     protected byte[] compressedLight;
     protected boolean hasBlockLight;
     protected boolean hasSkyLight;
+
+    @PowerNukkitXOnly
+    @Since("1.19.21-r1")
+    protected boolean invalidCustomBlockWhenLoad = false;
 
     private int contentVersion;
 
@@ -216,6 +222,7 @@ public class ChunkSection implements cn.nukkit.level.format.ChunkSection, ChunkS
                                 if (tmp == null) {
                                     log.warn(Server.getInstance().getLanguage().translateString("nukkit.anvil.load.unknown-custom-block", namespaceId));
                                     storage.setBlockState(bx, by, bz, BlockState.AIR);
+                                    invalidCustomBlockWhenLoad = true;
                                     continue;
                                 }
                                 currentCustomBlocksIdMap.put(blockId, blockId = tmp);
@@ -325,6 +332,7 @@ public class ChunkSection implements cn.nukkit.level.format.ChunkSection, ChunkS
     public void setBlockId(int x, int y, int z, int layer, int id) {
         sectionLock.writeLock().lock();
         try {
+            layerStorage.setNeedReObfuscate();
             if (id != 0) {
                 layerStorage.getOrSetStorage(this::setLayerStorage, this::getContentVersion, layer).setBlockId(x, y, z, id);
             } else {
@@ -405,6 +413,7 @@ public class ChunkSection implements cn.nukkit.level.format.ChunkSection, ChunkS
     public void setBlockData(int x, int y, int z, int layer, int data) {
         sectionLock.writeLock().lock();
         try {
+            layerStorage.setNeedReObfuscate();
             if (data != 0) {
                 layerStorage.getOrSetStorage(this::setLayerStorage, this::getContentVersion, layer).setBlockData(x, y, z, data);
             } else {
@@ -473,6 +482,7 @@ public class ChunkSection implements cn.nukkit.level.format.ChunkSection, ChunkS
     public Block getAndSetBlock(int x, int y, int z, int layer, Block block) {
         sectionLock.writeLock().lock();
         try {
+            layerStorage.setNeedReObfuscate();
             BlockStorage storage;
             if (block.getId() != 0 || !block.isDefaultState()) {
                 storage = layerStorage.getOrSetStorage(this::setLayerStorage, this::getContentVersion, layer);
@@ -500,6 +510,7 @@ public class ChunkSection implements cn.nukkit.level.format.ChunkSection, ChunkS
     public BlockState getAndSetBlockState(int x, int y, int z, int layer, BlockState state) {
         sectionLock.writeLock().lock();
         try {
+            layerStorage.setNeedReObfuscate();
             if (!BlockState.AIR.equals(state)) {
                 return layerStorage.getOrSetStorage(this::setLayerStorage, this::getContentVersion, layer).getAndSetBlockState(x, y, z, state);
             } else {
@@ -711,6 +722,12 @@ public class ChunkSection implements cn.nukkit.level.format.ChunkSection, ChunkS
     @Override
     public synchronized void writeTo(@Nonnull BinaryStream stream) {
         layerStorage.writeTo(stream);
+    }
+
+    @Since("1.19.21-r1")
+    @Override
+    public void writeObfuscatedTo(BinaryStream stream, Level level) {
+        layerStorage.writeObfuscatedTo(stream, level);
     }
 
     @SuppressWarnings("java:S1905")
@@ -1023,6 +1040,13 @@ public class ChunkSection implements cn.nukkit.level.format.ChunkSection, ChunkS
     @Override
     public void setBiomeId(int x, int y, int z, byte id) {
         this.biomeId[getAnvilIndex(x, y, z)] = id;
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.21-r1")
+    @Override
+    public void setNeedReObfuscate() {
+        layerStorage.setNeedReObfuscate();
     }
 
     @Override

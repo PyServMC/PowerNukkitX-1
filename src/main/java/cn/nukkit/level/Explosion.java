@@ -1,5 +1,6 @@
 package cn.nukkit.level;
 
+import cn.nukkit.Player;
 import cn.nukkit.api.PowerNukkitDifference;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
@@ -262,7 +263,10 @@ public class Explosion {
                 }
 
                 if (!(entity instanceof EntityItem || entity instanceof EntityXPOrb)) {
-                    entity.setMotion(motion.multiply(impact));
+                    var multipliedMotion = motion.multiply(impact);
+                    entity.motionX += multipliedMotion.x;
+                    entity.motionY += multipliedMotion.y;
+                    entity.motionZ += multipliedMotion.z;
                 }
             }
         }
