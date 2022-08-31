@@ -8,7 +8,11 @@
 
     <groupId>cn.powernukkitx</groupId>
     <artifactId>powernukkitx</artifactId>
+<<<<<<< HEAD
     <version>PNX-CUSTOM</version>
+=======
+    <version>1.19.21-r2</version>
+>>>>>>> 1a7598f9a9856d80d745cf5e485296572bd0e88e
 
     <inceptionYear>2022</inceptionYear>
     <organization>
