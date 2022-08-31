@@ -206,27 +206,14 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     protected PlayerUIInventory playerUIInventory;
     protected CraftingGrid craftingGrid;
     protected CraftingTransaction craftingTransaction;
-<<<<<<< HEAD
     @Since("1.3.1.0-PN") protected EnchantTransaction enchantTransaction;
     @Since("1.4.0.0-PN") protected RepairItemTransaction repairItemTransaction;
     @Since("1.4.0.0-PN") @PowerNukkitOnly protected GrindstoneTransaction grindstoneTransaction;
     @Since("1.4.0.0-PN") @PowerNukkitOnly protected SmithingTransaction smithingTransaction;
     @Since("1.4.0.0-PN") @PowerNukkitOnly protected LoomTransaction loomTransaction;
-=======
-    @Since("1.3.1.0-PN")
-    protected EnchantTransaction enchantTransaction;
-    @Since("1.4.0.0-PN")
-    protected RepairItemTransaction repairItemTransaction;
-    @Since("1.4.0.0-PN")
-    @PowerNukkitOnly
-    protected GrindstoneTransaction grindstoneTransaction;
-    @Since("1.4.0.0-PN")
-    @PowerNukkitOnly
-    protected SmithingTransaction smithingTransaction;
     @PowerNukkitXOnly
     @Since("1.19.21-r1")
     protected TradingTransaction tradingTransaction;
->>>>>>> 1a7598f9a9856d80d745cf5e485296572bd0e88e
 
     public long creationTime = 0;
 
