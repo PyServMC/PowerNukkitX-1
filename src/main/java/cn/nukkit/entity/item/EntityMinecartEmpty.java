@@ -21,18 +21,13 @@ public class EntityMinecartEmpty extends EntityMinecartAbstract {
 
     public static final int NETWORK_ID = 84;
 
-    @Override
-    public int getNetworkId() {
-        return NETWORK_ID;
-    }
-
     public EntityMinecartEmpty(FullChunk chunk, CompoundTag nbt) {
         super(chunk, nbt);
     }
 
     @Override
-    public Item toItem() {
-        return Item.get(Item.MINECART);
+    public int getNetworkId() {
+        return NETWORK_ID;
     }
 
     @PowerNukkitOnly

@@ -1,24 +1,13 @@
 package cn.nukkit.entity.passive;
 
-import cn.nukkit.Player;
-import cn.nukkit.item.Item;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.nbt.tag.CompoundTag;
 
-import javax.annotation.Nonnull;
-
-public class EntityAxolotl extends EntityAnimal {
-
+public class EntityAxolotl extends EntitySwimmingAnimal {
     public static final int NETWORK_ID = 130;
 
     public EntityAxolotl(FullChunk chunk, CompoundTag nbt) {
         super(chunk, nbt);
-    }
-
-    @Nonnull
-    @Override
-    public String getName() {
-        return "Axolotl";
     }
 
     @Override
@@ -27,22 +16,24 @@ public class EntityAxolotl extends EntityAnimal {
     }
 
     @Override
-    public boolean playerApplyNameTag(@Nonnull Player player, @Nonnull Item item, boolean consume) {
-        return super.playerApplyNameTag(player, item, consume);
-    }
-
-    @Override
-    public boolean applyNameTag(Item item) {
-        return super.applyNameTag(item);
+    public float getHeight() {
+        return 0.42f;
     }
 
     @Override
     public float getWidth() {
-        return .65f;
+        return 0.75f;
     }
 
     @Override
-    public float getHeight() {
-        return .55f;
+    protected void initEntity() {
+        super.initEntity();
+        this.setMaxHealth(14);
+    }
+
+
+    @Override
+    public String getOriginalName() {
+        return "Axolotl";
     }
 }

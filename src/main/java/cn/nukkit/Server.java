@@ -622,6 +622,10 @@ public class Server {
 
         this.checkLoginTime = this.properties.getBoolean("check-login-time", true);
 
+        if (this.isWaterdogCapable()) {
+            this.checkLoginTime = false;
+        }
+
         this.forceLanguage = this.getConfig("settings.force-language", false);
         this.baseLang = new BaseLang(this.getConfig("settings.language", BaseLang.FALLBACK_LANGUAGE));
 
@@ -998,7 +1002,7 @@ public class Server {
         List<InetSocketAddress> targets = new ArrayList<>();
         for (Player p : players) {
             if (p.isConnected()) {
-                targets.add(p.getSocketAddress());
+                targets.add(p.getRawSocketAddress());
             }
         }
 
@@ -2227,7 +2231,7 @@ public class Server {
     }
 
     public void removePlayer(Player player) {
-        Player toRemove = this.players.remove(player.getSocketAddress());
+        Player toRemove = this.players.remove(player.getRawSocketAddress());
         if (toRemove != null) {
             return;
         }
@@ -2723,6 +2727,7 @@ public class Server {
         Entity.registerEntity("Stray", EntityStray.class);
         Entity.registerEntity("Vex", EntityVex.class);
         Entity.registerEntity("Vindicator", EntityVindicator.class);
+        Entity.registerEntity("Warden", EntityWarden.class);
         Entity.registerEntity("Witch", EntityWitch.class);
         Entity.registerEntity("Wither", EntityWither.class);
         Entity.registerEntity("WitherSkeleton", EntityWitherSkeleton.class);
@@ -2734,6 +2739,7 @@ public class Server {
         Entity.registerEntity("Warden", EntityWarden.class);
         //Passive
         Entity.registerEntity("Agent", EntityAgent.class);
+        Entity.registerEntity("Allay", EntityAllay.class);
         Entity.registerEntity("Axolotl", EntityAxolotl.class);
         Entity.registerEntity("Bat", EntityBat.class);
         Entity.registerEntity("Bee", EntityBee.class);
@@ -2745,6 +2751,7 @@ public class Server {
         Entity.registerEntity("Donkey", EntityDonkey.class);
         Entity.registerEntity("Fox", EntityFox.class);
         Entity.registerEntity("GlowSquid", EntityGlowSquid.class);
+        Entity.registerEntity("Frog", EntityFrog.class);
         Entity.registerEntity("Horse", EntityHorse.class);
         Entity.registerEntity("Llama", EntityLlama.class);
         Entity.registerEntity("Mooshroom", EntityMooshroom.class);
@@ -2762,6 +2769,7 @@ public class Server {
         Entity.registerEntity("SkeletonHorse", EntitySkeletonHorse.class);
         Entity.registerEntity("Squid", EntitySquid.class);
         Entity.registerEntity("Strider", EntityStrider.class);
+        Entity.registerEntity("Tadpole", EntityTadpole.class);
         Entity.registerEntity("TropicalFish", EntityTropicalFish.class);
         Entity.registerEntity("Turtle", EntityTurtle.class);
         Entity.registerEntity("Villager", EntityVillager.class);
@@ -2903,6 +2911,12 @@ public class Server {
     @Since("1.6.0.0-PNX")
     public boolean isEnableExperimentMode() {
         return this.enableExperimentMode;
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.21-r4")
+    public boolean isWaterdogCapable() {
+        return this.getConfig("settings.waterdogpe", false);
     }
 
     private class ConsoleThread extends Thread implements InterruptibleThread {

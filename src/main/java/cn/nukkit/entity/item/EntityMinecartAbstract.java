@@ -50,6 +50,7 @@ public abstract class EntityMinecartAbstract extends EntityVehicle {
             {{0, 0, -1}, {-1, 0, 0}},
             {{0, 0, -1}, {1, 0, 0}}
     };
+    private final boolean devs = false; // Avoid maintained features into production
     private double currentSpeed = 0;
     private Block blockInside;
     private Block lastBlock;
@@ -62,11 +63,7 @@ public abstract class EntityMinecartAbstract extends EntityVehicle {
     private double flyingY = 0.95;
     private double flyingZ = 0.95;
     private double maxSpeed = 0.4D;
-    private final boolean devs = false; // Avoid maintained features into production
-
-    public abstract MinecartType getType();
-
-    public abstract boolean isRideable();
+    private boolean hasUpdated = false;
 
     public EntityMinecartAbstract(FullChunk chunk, CompoundTag nbt) {
         super(chunk, nbt);
@@ -74,6 +71,10 @@ public abstract class EntityMinecartAbstract extends EntityVehicle {
         setMaxHealth(40);
         setHealth(40);
     }
+
+    public abstract MinecartType getType();
+
+    public abstract boolean isRideable();
 
     @Override
     public float getHeight() {
@@ -169,11 +170,11 @@ public abstract class EntityMinecartAbstract extends EntityVehicle {
                 // Activate the minecart/TNT
                 if (block instanceof BlockRailActivator && ((BlockRailActivator) block).isActive()) {
                     activate(dx, dy, dz, (block.getDamage() & 0x8) != 0);
-                    if (this.isRideable() && this.getRiding() != null){
+                    if (this.isRideable() && this.getRiding() != null) {
                         this.dismountEntity(this.getRiding());
                     }
                 }
-                if (block instanceof BlockRailDetector detector){
+                if (block instanceof BlockRailDetector detector) {
                     detector.setActive();
                 }
             } else {
@@ -401,8 +402,6 @@ public abstract class EntityMinecartAbstract extends EntityVehicle {
 
     protected void activate(int x, int y, int z, boolean flag) {
     }
-
-    private boolean hasUpdated = false;
 
     private void setFalling() {
         motionX = NukkitMath.clamp(motionX, -getMaxSpeed(), getMaxSpeed());
@@ -730,20 +729,20 @@ public abstract class EntityMinecartAbstract extends EntityVehicle {
      * @param block The block that will changed. Set {@code null} for BlockAir
      * @return {@code true} if the block is normal block
      */
-    public boolean setDisplayBlock(Block block){
+    public boolean setDisplayBlock(Block block) {
         return setDisplayBlock(block, true);
     }
 
     /**
      * Set the minecart display block
      *
-     * @param block The block that will changed. Set {@code null} for BlockAir
+     * @param block  The block that will changed. Set {@code null} for BlockAir
      * @param update Do update for the block. (This state changes if you want to show the block)
      * @return {@code true} if the block is normal block
      */
     @API(usage = Usage.MAINTAINED, definition = Definition.UNIVERSAL)
     public boolean setDisplayBlock(Block block, boolean update) {
-        if(!update){
+        if (!update) {
             if (block.isNormalBlock()) {
                 blockInside = block;
             } else {
@@ -781,16 +780,6 @@ public abstract class EntityMinecartAbstract extends EntityVehicle {
     }
 
     /**
-     * Set the block offset.
-     *
-     * @param offset The offset
-     */
-    @API(usage = Usage.EXPERIMENTAL, definition = Definition.PLATFORM_NATIVE)
-    public void setDisplayBlockOffset(int offset) {
-        setDataProperty(new IntEntityData(DATA_DISPLAY_OFFSET, offset));
-    }
-
-    /**
      * Get the block display offset
      *
      * @return integer
@@ -798,6 +787,16 @@ public abstract class EntityMinecartAbstract extends EntityVehicle {
     @API(usage = Usage.EXPERIMENTAL, definition = Definition.UNIVERSAL)
     public int getDisplayBlockOffset() {
         return super.getDataPropertyInt(DATA_DISPLAY_OFFSET);
+    }
+
+    /**
+     * Set the block offset.
+     *
+     * @param offset The offset
+     */
+    @API(usage = Usage.EXPERIMENTAL, definition = Definition.PLATFORM_NATIVE)
+    public void setDisplayBlockOffset(int offset) {
+        setDataProperty(new IntEntityData(DATA_DISPLAY_OFFSET, offset));
     }
 
     /**

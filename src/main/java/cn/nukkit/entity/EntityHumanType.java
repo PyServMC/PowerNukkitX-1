@@ -3,6 +3,7 @@ package cn.nukkit.entity;
 import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.api.PowerNukkitOnly;
+import cn.nukkit.api.PowerNukkitXDifference;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.BlockID;
 import cn.nukkit.event.entity.EntityDamageByEntityEvent;
@@ -15,6 +16,8 @@ import cn.nukkit.inventory.PlayerEnderChestInventory;
 import cn.nukkit.inventory.PlayerInventory;
 import cn.nukkit.inventory.PlayerOffhandInventory;
 import cn.nukkit.item.Item;
+import cn.nukkit.item.ItemArmor;
+import cn.nukkit.item.ItemID;
 import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.level.Sound;
 import cn.nukkit.level.format.FullChunk;
@@ -120,7 +123,7 @@ public abstract class EntityHumanType extends EntityCreature implements Inventor
                     inventoryTag.add(NBTIO.putItemHelper(item, slot));
                 }
             }
-            
+
             this.namedTag.putInt("SelectedInventorySlot", this.inventory.getHeldItemIndex());
         }
 
@@ -196,8 +199,11 @@ public abstract class EntityHumanType extends EntityCreature implements Inventor
             }
 
             for (int slot = 0; slot < 4; slot++) {
-                Item armor = damageArmor(this.inventory.getArmorItem(slot), damager);
-                inventory.setArmorItem(slot, armor, armor.getId() != BlockID.AIR);
+                Item armorOld = this.inventory.getArmorItem(slot);
+                if (armorOld.isArmor()) {
+                    Item armor = damageArmor(armorOld, damager, source);
+                    inventory.setArmorItem(slot, armor, armor.getId() != BlockID.AIR);
+                }
             }
 
             return true;
@@ -213,7 +219,7 @@ public abstract class EntityHumanType extends EntityCreature implements Inventor
 
         double epf = 0;
 
-        if(item.applyEnchantments()) {
+        if (item.applyEnchantments()) {
             for (Enchantment ench : item.getEnchantments()) {
                 epf += ench.getProtectionFactor(source);
             }
@@ -253,10 +259,11 @@ public abstract class EntityHumanType extends EntityCreature implements Inventor
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    protected Item damageArmor(Item armor, Entity damager) {
+    @PowerNukkitXDifference(since = "1.19.21-r4", info = "add EntityDamageEvent param to help cal the armor damage")
+    protected Item damageArmor(Item armor, Entity damager, EntityDamageEvent event) {
         if (armor.hasEnchantments()) {
             if (damager != null) {
-                if(armor.applyEnchantments()) {
+                if (armor.applyEnchantments()) {
                     for (Enchantment enchantment : armor.getEnchantments()) {
                         enchantment.doPostAttack(damager, this);
                     }
@@ -275,16 +282,10 @@ public abstract class EntityHumanType extends EntityCreature implements Inventor
             return armor;
         }
 
-        Item armorAfter = armor.clone();
-        armorAfter.setDamage(armor.getDamage() + 1);
-
-        if(this instanceof Player) {
-            PlayerArmorDamageEvent playerArmorDamageEvent = new PlayerArmorDamageEvent((Player) this, armor, armorAfter);
-            Server.getInstance().getPluginManager().callEvent(playerArmorDamageEvent);
-            if(playerArmorDamageEvent.isCancelled()) {
-                return armor;
-            }
-        }
+        if (armor.getId() == ItemID.SHIELD)
+            armor.setDamage(armor.getDamage() + (event.getDamage() >= 3 ? (int) event.getDamage() + 1 : 0));
+        else
+            armor.setDamage(armor.getDamage() + Math.max(1, (int) (event.getDamage() / 4.0f)));
 
         if (armor.getDamage() >= armor.getMaxDurability()) {
             getLevel().addSound(this, Sound.RANDOM_BREAK);

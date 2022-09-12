@@ -125,7 +125,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
     @Override
     public int getNetworkLatency(Player player) {
-        RakNetServerSession session = this.raknet.getSession(player.getSocketAddress());
+        RakNetServerSession session = this.raknet.getSession(player.getRawSocketAddress());
         return session == null ? -1 : (int) session.getPing();
     }
 
@@ -136,7 +136,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
     @Override
     public void close(Player player, String reason) {
-        RakNetServerSession session = this.raknet.getSession(player.getSocketAddress());
+        RakNetServerSession session = this.raknet.getSession(player.getRawSocketAddress());
         if (session != null) {
             session.close();
         }
@@ -207,7 +207,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
     @Override
     public Integer putPacket(Player player, DataPacket packet, boolean needACK, boolean immediate) {
-        NukkitRakNetSession session = this.sessions.get(player.getSocketAddress());
+        NukkitRakNetSession session = this.sessions.get(player.getRawSocketAddress());
 
         if (session != null) {
    // removed because PowerNukkit doesnt have it anymore packet = packet.clone(); // TODO Attempting to solve PowerNukkit#887 by sending a clone
@@ -249,12 +249,12 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
     public void onUnhandledDatagram(ChannelHandlerContext ctx, DatagramPacket datagramPacket) {
         this.server.handlePacket(datagramPacket.sender(), datagramPacket.content());
     }
-    
+
     @PowerNukkitOnly
     @Since("1.5.2.0-PN")
     @Override
     public Integer putResourcePacket(Player player, DataPacket packet) {
-        NukkitRakNetSession session = this.sessions.get(player.getSocketAddress());
+        NukkitRakNetSession session = this.sessions.get(player.getRawSocketAddress());
 
         if (session != null) {
             packet.tryEncode();
@@ -263,7 +263,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
         return null;
     }
-    
+
     @RequiredArgsConstructor
     private class NukkitRakNetSession implements RakNetSessionListener {
         private final RakNetServerSession raknet;
@@ -356,7 +356,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             byteBuf.writeBytes(payload);
             this.raknet.send(byteBuf);
         }
-        
+
         private void sendPacketImmediately(DataPacket packet) {
             BinaryStream batched = new BinaryStream();
             Preconditions.checkArgument(!(packet instanceof BatchPacket), "Cannot batch BatchPacket");
@@ -374,7 +374,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 log.error("Error occured while sending a packet immediately", e);
             }
         }
-        
+
         private void sendResourcePacket(DataPacket packet) {
             BinaryStream batched = new BinaryStream();
             Preconditions.checkArgument(!(packet instanceof BatchPacket), "Cannot batch BatchPacket");

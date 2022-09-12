@@ -1,16 +1,9 @@
 package cn.nukkit.entity.passive;
 
-import cn.nukkit.api.PowerNukkitOnly;
-import cn.nukkit.api.Since;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.nbt.tag.CompoundTag;
 
-/**
- * @author Kaooot
- * @version 1.0
- */
-public class EntityTadpole extends EntityAnimal {
-
+public class EntityTadpole extends EntitySwimmingAnimal {
     public static final int NETWORK_ID = 133;
 
     public EntityTadpole(FullChunk chunk, CompoundTag nbt) {
@@ -22,20 +15,13 @@ public class EntityTadpole extends EntityAnimal {
         return NETWORK_ID;
     }
 
-    @Since("1.5.1.0-PN")
-    @PowerNukkitOnly
     @Override
-    public String getOriginalName() {
-        return "Tadpole";
-    }
-
-    @Override
-    public float getWidth() {
+    public float getHeight() {
         return 0.8f;
     }
 
     @Override
-    public float getHeight() {
+    public float getWidth() {
         return 0.6f;
     }
 
@@ -43,5 +29,10 @@ public class EntityTadpole extends EntityAnimal {
     protected void initEntity() {
         super.initEntity();
         this.setMaxHealth(6);
+    }
+
+    @Override
+    public String getOriginalName() {
+        return "Tadpole";
     }
 }

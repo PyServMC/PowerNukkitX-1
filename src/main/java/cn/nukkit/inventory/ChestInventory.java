@@ -109,4 +109,9 @@ public class ChestInventory extends ContainerInventory {
             super.sendSlot(index, players);
         }
     }
+
+    @Override
+    public boolean canCauseVibration() {
+        return true;
+    }
 }

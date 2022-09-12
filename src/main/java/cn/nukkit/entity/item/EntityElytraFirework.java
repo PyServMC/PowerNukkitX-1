@@ -67,11 +67,11 @@ public class EntityElytraFirework extends EntityFirework {
         }
     }
 
-    public void setFollowingPlayer(Player followingPlayer) {
-        this.followingPlayer = followingPlayer;
-    }
-
     public Player getFollowingPlayer() {
         return followingPlayer;
+    }
+
+    public void setFollowingPlayer(Player followingPlayer) {
+        this.followingPlayer = followingPlayer;
     }
 }
