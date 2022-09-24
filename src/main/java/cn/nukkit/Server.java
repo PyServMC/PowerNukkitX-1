@@ -76,7 +76,8 @@ import cn.nukkit.potion.Potion;
 import cn.nukkit.resourcepacks.ResourcePackManager;
 import cn.nukkit.scheduler.ServerScheduler;
 import cn.nukkit.scheduler.Task;
-import cn.nukkit.scoreboard.ScoreboardManager;
+import cn.nukkit.scoreboard.manager.IScoreboardManager;
+import cn.nukkit.scoreboard.manager.ScoreboardManager;
 import cn.nukkit.scoreboard.storage.JSONScoreboardStorage;
 import cn.nukkit.utils.*;
 import cn.nukkit.utils.bugreport.ExceptionHandler;
@@ -144,6 +145,9 @@ public class Server {
 
     private ServerScheduler scheduler;
 
+    /**
+     * 一个tick计数器,记录服务器已经经过的tick数
+     */
     private int tickCounter;
 
     private long nextTick;
@@ -173,7 +177,7 @@ public class Server {
 
     private ConsoleCommandSender consoleSender;
 
-    private ScoreboardManager scoreboardManager;
+    private IScoreboardManager scoreboardManager;
 
     private FunctionManager functionManager;
 
@@ -1085,6 +1089,8 @@ public class Server {
             level.save();
         }
 
+        this.scoreboardManager.save();
+
         this.pluginManager.disablePlugins();
         this.pluginManager.clearPlugins();
         this.commandMap.clearCommands();
@@ -1114,6 +1120,7 @@ public class Server {
         JSIInitiator.reset();
         JSFeatures.clearFeatures();
         JSFeatures.initInternalFeatures();
+        this.scoreboardManager.read();
         this.pluginManager.registerInterface(JSPluginLoader.class);
         this.pluginManager.loadPlugins(this.pluginPath);
         this.functionManager.reload();
@@ -1154,6 +1161,9 @@ public class Server {
 
             log.debug("Removing event handlers");
             HandlerList.unregisterAll();
+
+            log.debug("Saving scoreboards data");
+            this.scoreboardManager.save();
 
             log.debug("Stopping all tasks");
             this.scheduler.cancelAllTasks();
@@ -1447,6 +1457,7 @@ public class Server {
                 level.save();
             }
             Timings.levelSaveTimer.stopTiming();
+            this.getScoreboardManager().save();
         }
     }
 
@@ -1874,7 +1885,7 @@ public class Server {
         return resourcePackManager;
     }
 
-    public ScoreboardManager getScoreboardManager() {
+    public IScoreboardManager getScoreboardManager() {
         return scoreboardManager;
     }
 
