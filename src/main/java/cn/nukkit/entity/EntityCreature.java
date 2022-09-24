@@ -3,6 +3,7 @@ package cn.nukkit.entity;
 import cn.nukkit.Player;
 import cn.nukkit.api.PowerNukkitDifference;
 import cn.nukkit.api.PowerNukkitOnly;
+import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.entity.item.EntityBalloon;
 import cn.nukkit.item.Item;
@@ -17,7 +18,7 @@ import javax.annotation.Nonnull;
  * @author MagicDroidX (Nukkit Project)
  */
 @PowerNukkitDifference(since = "1.4.0.0-PN", info = "Implements EntityNameable only in PowerNukkit")
-public abstract class EntityCreature extends EntityLiving implements EntityNameable {
+public abstract class EntityCreature extends EntityLiving implements EntityNameable, EntityAgeable {
     private EntityBalloon balloon = null;
 
     public EntityCreature(FullChunk chunk, CompoundTag nbt) {
@@ -75,5 +76,20 @@ public abstract class EntityCreature extends EntityLiving implements EntityNamea
         if (this instanceof EntityBalloonable) {
             this.balloon = balloon;
         }
+    }
+
+    @Override
+    public boolean isBaby() {
+        return this.getDataFlag(DATA_FLAGS, Entity.DATA_FLAG_BABY);
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.6.0.0-PNX")
+    public void setBaby(boolean flag) {
+        this.setDataFlag(DATA_FLAGS, Entity.DATA_FLAG_BABY, flag);
+        if (flag)
+            this.setScale(0.5f);
+        else
+            this.setScale(1f);
     }
 }
