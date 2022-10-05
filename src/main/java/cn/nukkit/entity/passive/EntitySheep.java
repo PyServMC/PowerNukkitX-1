@@ -125,6 +125,7 @@ public class EntitySheep extends EntityWalkingAnimal implements EntityBalloonabl
 
     @Override
     public void initEntity() {
+        super.initEntity();
         this.setMaxHealth(8);
         this.setHealth(8);
 

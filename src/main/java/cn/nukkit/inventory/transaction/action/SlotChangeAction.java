@@ -51,7 +51,6 @@ public class SlotChangeAction extends InventoryAction {
     @Override
     public boolean isValid(Player source) {
         Item check = inventory.getItem(this.inventorySlot);
-
         return check.equalsExact(this.sourceItem);
     }
 
@@ -63,7 +62,7 @@ public class SlotChangeAction extends InventoryAction {
      */
     @Override
     public boolean execute(Player source) {
-        return this.inventory.setItem(this.inventorySlot, this.targetItem, false);
+        return this.inventory.setItem(this.inventorySlot, this.targetItem, true);
     }
 
     /**
