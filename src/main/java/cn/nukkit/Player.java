@@ -2564,28 +2564,29 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
         //写入自定义物品数据
         ItemComponentPacket itemComponentPacket = new ItemComponentPacket();
-        if (!Item.getCustomItems().isEmpty()) {
+        if (server.isForceCustomItems() || !server.isWaterdogCapable()) {
+            if (!Item.getCustomItems().isEmpty()) {
+                Int2ObjectOpenHashMap<ItemComponentPacket.Entry> entries = new Int2ObjectOpenHashMap<>();
 
-            Int2ObjectOpenHashMap<ItemComponentPacket.Entry> entries = new Int2ObjectOpenHashMap<>();
+                int i = 0;
+                for (String id : Item.getCustomItems().keySet()) {
+                    try {
+                        Item item = Item.fromString(id);
+                        if (item instanceof ItemCustom itemCustom) {
+                            CompoundTag data = itemCustom.getComponentsData();
+                            data.putShort("minecraft:identifier", i);
 
-            int i = 0;
-            for (String id : Item.getCustomItems().keySet()) {
-                try {
-                    Item item = Item.fromString(id);
-                    if (item instanceof ItemCustom itemCustom) {
-                        CompoundTag data = itemCustom.getComponentsData();
-                        data.putShort("minecraft:identifier", i);
+                            entries.put(i, new ItemComponentPacket.Entry(item.getNamespaceId(), data));
 
-                        entries.put(i, new ItemComponentPacket.Entry(item.getNamespaceId(), data));
-
-                        i++;
+                            i++;
+                        }
+                    } catch (Exception e) {
+                        log.error("ItemComponentPacket encoding error", e);
                     }
-                } catch (Exception e) {
-                    log.error("ItemComponentPacket encoding error", e);
                 }
-            }
 
-            itemComponentPacket.setEntries(entries.values().toArray(ItemComponentPacket.Entry.EMPTY_ARRAY));
+                itemComponentPacket.setEntries(entries.values().toArray(ItemComponentPacket.Entry.EMPTY_ARRAY));
+            }
         }
         this.dataPacket(itemComponentPacket);
 

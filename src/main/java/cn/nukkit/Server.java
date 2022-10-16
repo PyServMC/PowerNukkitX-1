@@ -193,6 +193,8 @@ public class Server {
 
     private boolean educationEditionEnabled = false;
 
+    private boolean forceCustomItems = false;
+
     private RCON rcon;
 
     private EntityMetadataStore entityMetadata;
@@ -2953,6 +2955,14 @@ public class Server {
     @Since("1.19.30-r2")
     public int getMaximumSizePerChunk() {
         return maximumSizePerChunk;
+    }
+
+    public boolean isForceCustomItems() {
+        return forceCustomItems;
+    }
+
+    public void setForceCustomItems(boolean forceCustomItems) {
+        this.forceCustomItems = forceCustomItems;
     }
 
     private class ConsoleThread extends Thread implements InterruptibleThread {
