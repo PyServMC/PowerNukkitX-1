@@ -5559,6 +5559,14 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     //todo something on performance, lots of exp orbs then lots of packets, could crash client
     @PowerNukkitOnly
     public void setExperience(int exp, int level, boolean playLevelUpSound) {
+        var expEvent = new PlayerExperienceChangeEvent(this, this.getExperience(), this.getExperienceLevel(), exp, level);
+        this.server.getPluginManager().callEvent(expEvent);
+        if (expEvent.isCancelled()) {
+            return;
+        }
+        exp = expEvent.getNewExperience();
+        level = expEvent.getNewExperienceLevel();
+
         int levelBefore = this.expLevel;
         this.exp = exp;
         this.expLevel = level;
@@ -6307,7 +6315,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         return this.isConnected();
     }
 
-
     public static BatchPacket getChunkCacheFromData(int chunkX, int chunkZ, int subChunkCount, byte[] payload) {
         LevelChunkPacket pk = new LevelChunkPacket();
         pk.chunkX = chunkX;
@@ -6666,7 +6673,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         EntityFishingHook fishingHook = new EntityFishingHook(chunk, nbt, this);
         fishingHook.setMotion(new Vector3(-Math.sin(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)) * f * f, -Math.sin(Math.toRadians(pitch)) * f * f,
                 Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)) * f * f));
-        ProjectileLaunchEvent ev = new ProjectileLaunchEvent(fishingHook);
+        ProjectileLaunchEvent ev = new ProjectileLaunchEvent(fishingHook, this);
         this.getServer().getPluginManager().callEvent(ev);
         if (ev.isCancelled()) {
             fishingHook.close();
