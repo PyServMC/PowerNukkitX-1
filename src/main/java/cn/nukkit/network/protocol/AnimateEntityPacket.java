@@ -24,7 +24,7 @@ public class AnimateEntityPacket extends DataPacket {
     private String nextState;
     private String stopExpression;
     @PowerNukkitXOnly
-    @Since("1.19.31-r2")
+    @Since("1.19.40-r1")
     private int stopExpressionVersion;
     private String controller;
     private float blendOutTime;
@@ -98,18 +98,6 @@ public class AnimateEntityPacket extends DataPacket {
     public String getStopExpression() {
         return this.stopExpression;
     }
-
-    @PowerNukkitOnly
-    @Since("1.5.1.0-PN")
-    public void setStopExpressionVersion(int stopExpressionVersion) {
-        this.stopExpressionVersion = stopExpressionVersion;
-    }
-
-    @PowerNukkitOnly
-    @Since("1.5.1.0-PN")
-    public int getStopExpressionVersion() {
-        return this.stopExpressionVersion;
-    }
     
     @PowerNukkitOnly
     @Since("1.5.1.0-PN")
@@ -145,5 +133,17 @@ public class AnimateEntityPacket extends DataPacket {
     @Since("1.5.1.0-PN")
     public List<Long> getEntityRuntimeIds() {
         return this.entityRuntimeIds;
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.40-r1")
+    public void setStopExpressionVersion(int stopExpressionVersion) {
+        this.stopExpressionVersion = stopExpressionVersion;
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.40-r1")
+    public int getStopExpressionVersion() {
+        return stopExpressionVersion;
     }
 }

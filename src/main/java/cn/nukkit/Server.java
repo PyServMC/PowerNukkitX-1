@@ -1639,7 +1639,7 @@ public class Server {
     }
 
     public String getBStatsNukkitVersion() {
-        return Nukkit.VERSION + "-PNX";
+        return Nukkit.VERSION;
     }
 
     @PowerNukkitOnly
