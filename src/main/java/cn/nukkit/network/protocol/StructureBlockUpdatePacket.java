@@ -1,7 +1,6 @@
 package cn.nukkit.network.protocol;
 
 import cn.nukkit.math.BlockVector3;
-import cn.nukkit.math.Vector3;
 import cn.nukkit.network.protocol.types.structure.StructureEditorData;
 import cn.nukkit.network.protocol.types.structure.StructureSettings;
 import lombok.ToString;
