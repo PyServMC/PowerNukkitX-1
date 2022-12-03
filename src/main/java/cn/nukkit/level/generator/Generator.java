@@ -13,6 +13,7 @@ import cn.nukkit.level.generator.populator.type.PopulatorStructure;
 import cn.nukkit.level.generator.task.ChunkPopulationTask;
 import cn.nukkit.math.NukkitRandom;
 import cn.nukkit.math.Vector3;
+import cn.nukkit.scheduler.AsyncTask;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -42,6 +43,8 @@ public abstract class Generator implements BlockID {
     @Since("1.19.21-r2")
     protected NukkitRandom random;
 
+    @PowerNukkitXOnly
+    @Since("1.19.21-r2")
     protected List<PopulatorStructure> structurePopulators = new ArrayList<>();
 
     {
@@ -59,6 +62,8 @@ public abstract class Generator implements BlockID {
 
     public abstract int getId();
 
+    @PowerNukkitXOnly
+    @Since("1.19.21-r2")
     public List<PopulatorStructure> getStructurePopulators() {
         return structurePopulators;
     }
@@ -108,6 +113,8 @@ public abstract class Generator implements BlockID {
         this.level = level;
     }
 
+    @PowerNukkitXOnly
+    @Since("1.19.21-r2")
     public void setChunkManager(ChunkManager chunkManager) {
         this.chunkManager = chunkManager;
     }
@@ -143,7 +150,7 @@ public abstract class Generator implements BlockID {
      * 注册未知类型的生成器(Terra)
      */
     @PowerNukkitXOnly
-    @Since("1.19.40-r4")
+    @Since("1.19.50-r1")
     public static boolean addGenerator(Class<? extends Generator> clazz, String name) {
         name = name.toLowerCase();
         if (clazz != null && !Generator.nameList.containsKey(name)) {
@@ -191,6 +198,9 @@ public abstract class Generator implements BlockID {
         return Generator.TYPE_INFINITE;
     }
 
+    /**
+     * 事实上这个方法的两个形参已经无实际意义
+     */
     public abstract void init(ChunkManager chunkManager, NukkitRandom random);
 
     public abstract void generateChunk(int chunkX, int chunkZ);
@@ -211,7 +221,8 @@ public abstract class Generator implements BlockID {
         //因为在这个方法调用时，区块地形生成工作已完成，chunkManager(实际为PopChunkManager)内所有区块已清空
         var chunk = level.getChunk(chunkX, chunkZ);
         for (PopulatorStructure populator : structurePopulators) {
-            if (populator.isAsync()) Server.getInstance().getScheduler().scheduleAsyncTask(null, new ChunkPopulationTask(level, chunk, populator));
+            if (populator.isAsync())
+                handleAsyncStructureGenTask(new ChunkPopulationTask(level, chunk, populator));
             else populator.populate(level, chunkX, chunkZ, random, chunk);
         }
     }
@@ -231,5 +242,33 @@ public abstract class Generator implements BlockID {
     @Since("1.19.21-r2")
     public boolean shouldGenerateStructures() {
         return false;
+    }
+
+    /**
+     * 处理需要计算的异步地形生成任务<br/>
+     * 有特殊需求的地形生成器可以覆写此方法并提供自己的逻辑<br/>
+     * 默认采用Server类的fjp线程池
+     * @param task 地形生成任务
+     */
+    @PowerNukkitXOnly
+    @Since("1.19.50-r2")
+    public void handleAsyncChunkPopTask(AsyncTask task) {
+        //这个判断是防止单元测试报错
+        if (Server.getInstance().computeThreadPool != null)
+            Server.getInstance().computeThreadPool.submit(task);
+    }
+
+    /**
+     * 处理需要计算的异步结构生成任务<br/>
+     * 有特殊需求的地形生成器可以覆写此方法并提供自己的逻辑<br/>
+     * 默认采用Server类的fjp线程池
+     * @param task 结构生成任务
+     */
+    @PowerNukkitXOnly
+    @Since("1.19.50-r2")
+    public void handleAsyncStructureGenTask(AsyncTask task) {
+        //这个判断是防止单元测试报错
+        if (Server.getInstance().computeThreadPool != null)
+            Server.getInstance().computeThreadPool.submit(task);
     }
 }

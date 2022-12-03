@@ -6,6 +6,7 @@ import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.Block;
 import cn.nukkit.blockentity.*;
+import cn.nukkit.blockstate.BlockStateRegistry;
 import cn.nukkit.command.*;
 import cn.nukkit.command.function.FunctionManager;
 import cn.nukkit.console.NukkitConsole;
@@ -38,6 +39,7 @@ import cn.nukkit.level.format.LevelProviderManager;
 import cn.nukkit.level.format.anvil.Anvil;
 import cn.nukkit.level.generator.*;
 import cn.nukkit.level.terra.PNXPlatform;
+import cn.nukkit.level.terra.TerraGenerator;
 import cn.nukkit.level.tickingarea.manager.SimpleTickingAreaManager;
 import cn.nukkit.level.tickingarea.manager.TickingAreaManager;
 import cn.nukkit.level.tickingarea.storage.JSONTickingAreaStorage;
@@ -81,6 +83,7 @@ import cn.nukkit.scoreboard.manager.ScoreboardManager;
 import cn.nukkit.scoreboard.storage.JSONScoreboardStorage;
 import cn.nukkit.utils.*;
 import cn.nukkit.utils.bugreport.ExceptionHandler;
+import cn.nukkit.utils.collection.FreezableArrayManager;
 import co.aikar.timings.Timings;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -95,6 +98,7 @@ import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.Options;
 import org.iq80.leveldb.impl.Iq80DBFactory;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.io.*;
@@ -104,10 +108,14 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.security.*;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -167,6 +175,11 @@ public class Server {
     private final NukkitConsole console;
     private final ConsoleThread consoleThread;
 
+    /**
+     * 负责地形生成，数据压缩等计算任务的FJP线程池<br/>
+     * <br/>
+     * FJP thread pool responsible for terrain generation, data compression and other computing tasks
+     */
     public final ForkJoinPool computeThreadPool;
 
     private SimpleCommandMap commandMap;
@@ -311,6 +324,10 @@ public class Server {
     @Since("1.6.0.0-PNX")
     private boolean enableExperimentMode;
 
+    @PowerNukkitXOnly
+    @Since("1.19.50-r1")
+    private FreezableArrayManager freezableArrayManager;
+
     /**
      * Minimal initializer for testing
      */
@@ -346,7 +363,8 @@ public class Server {
 
         console = new NukkitConsole(this);
         consoleThread = new ConsoleThread();
-        this.computeThreadPool = new ForkJoinPool();
+        this.computeThreadPool = new ForkJoinPool(Math.min(0x7fff, Runtime.getRuntime().availableProcessors()), new ComputeThreadPoolThreadFactory(), null, true);
+        freezableArrayManager = new FreezableArrayManager(32, 32, 0, -256, 1024, 16, 1, 32);
         properties = new Config();
         banByName = new BanList(dataPath + "banned-players.json");
         banByIP = new BanList(dataPath + "banned-ips.json");
@@ -393,8 +411,7 @@ public class Server {
         this.console = new NukkitConsole(this);
         this.consoleThread = new ConsoleThread();
         this.consoleThread.start();
-
-        this.computeThreadPool = new ForkJoinPool();
+        this.computeThreadPool = new ForkJoinPool(Math.min(0x7fff, Runtime.getRuntime().availableProcessors()), new ComputeThreadPoolThreadFactory(), null, true);
 
         this.playerDataSerializer = new DefaultPlayerDataSerializer(this);
 
@@ -617,7 +634,6 @@ public class Server {
                 put("disable-auto-bug-report", false);
                 put("allow-shaded", false);
                 put("server-authoritative-movement", "client-auth");// Allowed values: "client-auth", "server-auth", "server-auth-with-rewind"
-                put("server-authoritative-block-breaking", false);
             }
         });
         // Allow Nether? (determines if we create a nether world if one doesn't exist on startup)
@@ -660,7 +676,7 @@ public class Server {
             try {
                 poolSize = Integer.valueOf((String) poolSize);
             } catch (Exception e) {
-                poolSize = Math.max(Runtime.getRuntime().availableProcessors() + 1, 4);
+                poolSize = Math.max(Runtime.getRuntime().availableProcessors(), 4);
             }
         }
 
@@ -756,6 +772,16 @@ public class Server {
 
         this.commandMap = new SimpleCommandMap(this);
 
+        freezableArrayManager = new FreezableArrayManager(
+                this.getConfig("memory-compression.slots", 32),
+                this.getConfig("memory-compression.default-temperature", 32),
+                this.getConfig("memory-compression.threshold.freezing-point", 0),
+                this.getConfig("memory-compression.threshold.absolute-zero", -256),
+                this.getConfig("memory-compression.threshold.boiling-point", 1024),
+                this.getConfig("memory-compression.heat.melting", 16),
+                this.getConfig("memory-compression.heat.single-operation", 1),
+                this.getConfig("memory-compression.heat.batch-operation", 32));
+
         scoreboardManager = new ScoreboardManager(new JSONScoreboardStorage(this.commandDataPath + "/scoreboard.json"));
 
         functionManager = new FunctionManager(this.commandDataPath + "/functions");
@@ -804,7 +830,7 @@ public class Server {
         Generator.addGenerator(Flat.class, "flat", Generator.TYPE_FLAT);
         Generator.addGenerator(Normal.class, "normal", Generator.TYPE_INFINITE);
         if (useTerra) {
-            Generator.addGenerator(PNXChunkGeneratorWrapper.class, "terra");
+            Generator.addGenerator(TerraGeneratorWrapper.class, "terra");
             PNXPlatform.getInstance();
         }
         Generator.addGenerator(Normal.class, "default", Generator.TYPE_INFINITE);
@@ -1139,9 +1165,9 @@ public class Server {
         this.functionManager.reload();
         this.enablePlugins(PluginLoadOrder.STARTUP);
         this.enablePlugins(PluginLoadOrder.POSTWORLD);
-        Timings.reset();
         ServerStartedEvent serverStartedEvent = new ServerStartedEvent();
         getPluginManager().callEvent(serverStartedEvent);
+        Timings.reset();
     }
 
     public void shutdown() {
@@ -1178,6 +1204,8 @@ public class Server {
             log.debug("Saving scoreboards data");
             this.scoreboardManager.save();
 
+            BlockStateRegistry.close();
+
             log.debug("Stopping all tasks");
             this.scheduler.cancelAllTasks();
             this.scheduler.mainThreadHeartbeat(Integer.MAX_VALUE);
@@ -1204,6 +1232,11 @@ public class Server {
             if (nameLookup != null) {
                 nameLookup.close();
             }
+            //close watchdog and metrics
+            this.watchdog.running = false;
+            NukkitMetrics.closeNow(this);
+            //close computeThreadPool
+            this.computeThreadPool.shutdownNow();
 
             log.debug("Disabling timings");
             Timings.stopServer();
@@ -1545,10 +1578,17 @@ public class Server {
         }
 
         if (this.tickCounter % 100 == 0) {
-            for (Level level : this.levelArray) {
-                level.doChunkGarbageCollection();
-            }
+            CompletableFuture.allOf(Arrays.stream(this.levelArray).parallel()
+                    .flatMap(l -> l.asyncChunkGarbageCollection().stream())
+                    .toArray(CompletableFuture[]::new));
         }
+
+        // 处理可冻结数组
+        int freezableArrayCompressTime = (int) (50 - (System.currentTimeMillis() - tickTime));
+        if (freezableArrayCompressTime > 4) {
+            freezableArrayManager.setMaxCompressionTime(freezableArrayCompressTime).tick();
+        }
+
 
         Timings.fullServerTickTimer.stopTiming();
         //long now = System.currentTimeMillis();
@@ -1908,6 +1948,10 @@ public class Server {
 
     public TickingAreaManager getTickingAreaManager() {
         return tickingAreaManager;
+    }
+
+    public FreezableArrayManager getFreezableArrayManager() {
+        return freezableArrayManager;
     }
 
     public ServerScheduler getScheduler() {
@@ -2929,17 +2973,45 @@ public class Server {
         };
     }
 
-    @PowerNukkitXOnly
-    @Since("1.19.40-r3")
-    public boolean isServerAuthoritativeBlockBreaking() {
-        return this.properties.get("server-authoritative-block-breaking", false);
-    }
-
+    //todo NukkitConsole 会阻塞关不掉
     private class ConsoleThread extends Thread implements InterruptibleThread {
-
         @Override
         public void run() {
             console.start();
+        }
+    }
+
+    private static class ComputeThread extends ForkJoinWorkerThread {
+        /**
+         * Creates a ForkJoinWorkerThread operating in the given pool.
+         *
+         * @param pool the pool this thread works in
+         * @throws NullPointerException if pool is null
+         */
+        ComputeThread(ForkJoinPool pool, AtomicInteger threadCount) {
+            super(pool);
+            this.setName("ComputeThreadPool-thread-" + threadCount.getAndIncrement());
+        }
+    }
+
+    private static class ComputeThreadPoolThreadFactory implements ForkJoinPool.ForkJoinWorkerThreadFactory {
+        private static final AtomicInteger threadCount = new AtomicInteger(0);
+        @SuppressWarnings("removal")
+        private static final AccessControlContext ACC = contextWithPermissions(
+                new RuntimePermission("getClassLoader"),
+                new RuntimePermission("setContextClassLoader"));
+
+        @SuppressWarnings("removal")
+        static AccessControlContext contextWithPermissions(@NotNull Permission... perms) {
+            Permissions permissions = new Permissions();
+            for (var perm : perms)
+                permissions.add(perm);
+            return new AccessControlContext(new ProtectionDomain[]{new ProtectionDomain(null, permissions)});
+        }
+
+        @SuppressWarnings("removal")
+        public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
+            return AccessController.doPrivileged((PrivilegedAction<ForkJoinWorkerThread>) () -> new ComputeThread(pool, threadCount), ACC);
         }
     }
 }
