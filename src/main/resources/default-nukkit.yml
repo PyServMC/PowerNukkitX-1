@@ -13,6 +13,7 @@ network:
  batch-threshold: 256
  compression-level: 7
  async-compression: false
+ zlib-provider: 2
 
 debug:
  level: 1
@@ -62,6 +63,20 @@ ticks-per:
  monster-spawns: 1
  autosave: 6000
  cache-cleanup: 900
+
+memory-compression:
+ enable: true
+ slots: 32
+ default-temperature: 32
+ threshold:
+  freezing-point: 0
+  boiling-point: 1024
+  absolute-zero: -256
+ heat:
+  melting: 16
+  single-operation: 1
+  batch-operation: 32
+
 
 spawn-limits:
  monsters: 70

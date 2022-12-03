@@ -35,8 +35,8 @@ public class EntityPanda extends EntityWalkingAnimal implements EntityBalloonabl
 
     @Override
     public void initEntity() {
-        super.initEntity();
         this.setMaxHealth(20);
+        super.initEntity();
     }
 
 

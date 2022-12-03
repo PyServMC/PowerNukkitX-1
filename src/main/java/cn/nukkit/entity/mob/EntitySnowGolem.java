@@ -40,8 +40,8 @@ public class EntitySnowGolem extends EntityWalkingMob implements EntityBalloonab
 
     @Override
     protected void initEntity() {
-        super.initEntity();
         this.setMaxHealth(4);
+        super.initEntity();
     }
 
     @Override

@@ -14,7 +14,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * @author MagicDroidX (Nukkit Project)
  */
-public class EntityArrow extends EntityProjectile {
+public class EntityArrow extends SlenderProjectile {
 
     public static final int NETWORK_ID = 80;
 
@@ -39,17 +39,7 @@ public class EntityArrow extends EntityProjectile {
     }
 
     @Override
-    public float getWidth() {
-        return 0.5f;
-    }
-
-    @Override
     public float getLength() {
-        return 0.5f;
-    }
-
-    @Override
-    public float getHeight() {
         return 0.5f;
     }
 

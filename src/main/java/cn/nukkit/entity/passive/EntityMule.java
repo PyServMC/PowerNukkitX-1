@@ -50,8 +50,8 @@ public class EntityMule extends EntityWalkingAnimal implements EntityBalloonable
 
     @Override
     public void initEntity() {
-        super.initEntity();
         this.setMaxHealth(15);
+        super.initEntity();
     }
 
 

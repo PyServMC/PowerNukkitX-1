@@ -18,6 +18,7 @@ import cn.nukkit.item.customitem.CustomItemDefinition;
 import cn.nukkit.item.customitem.ItemCustom;
 import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.item.enchantment.sideeffect.SideEffect;
+import cn.nukkit.item.randomitem.ItemEchoShard;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.Vector3;
@@ -253,7 +254,7 @@ public class Item implements Cloneable, BlockID, ItemID {
             list[PAPER] = ItemPaper.class; //339
             list[BOOK] = ItemBook.class; //340
             list[SLIMEBALL] = ItemSlimeball.class; //341
-            list[MINECART_WITH_CHEST] = ItemMinecartChest.class; //342
+            list[CHEST_MINECART] = ItemMinecartChest.class; //342
 
             list[EGG] = ItemEgg.class; //344
             list[COMPASS] = ItemCompass.class; //345
@@ -318,8 +319,8 @@ public class Item implements Cloneable, BlockID, ItemID {
             list[COMPARATOR] = ItemRedstoneComparator.class; //404
             list[NETHER_BRICK] = ItemNetherBrick.class; //405
             list[QUARTZ] = ItemQuartz.class; //406
-            list[MINECART_WITH_TNT] = ItemMinecartTNT.class; //407
-            list[MINECART_WITH_HOPPER] = ItemMinecartHopper.class; //408
+            list[TNT_MINECART] = ItemMinecartTNT.class; //407
+            list[HOPPER_MINECART] = ItemMinecartHopper.class; //408
             list[PRISMARINE_SHARD] = ItemPrismarineShard.class; //409
             list[HOPPER] = ItemHopper.class;
             list[RAW_RABBIT] = ItemRabbitRaw.class; //411
@@ -409,6 +410,8 @@ public class Item implements Cloneable, BlockID, ItemID {
             list[ITEM_MANGROVE_DOOR] = ItemDoorMangrove.class;//633
             list[MANGROVE_SIGN] = ItemMangroveSign.class;//634
 
+            list[RECORD_5] = ItemRecord5.class;//636
+            list[DISC_FRAGMENT_5] = ItemDiscFragment5.class;//637
 
             list[OAK_CHEST_BOAT] = ItemChestBoatOak.class; //638
             list[BIRCH_CHEST_BOAT] = ItemChestBoatBirch.class; //639
@@ -417,6 +420,8 @@ public class Item implements Cloneable, BlockID, ItemID {
             list[ACACIA_CHEST_BOAT] = ItemChestBoatAcacia.class; //642
             list[DARK_OAK_CHEST_BOAT] = ItemChestBoatDarkOak.class; //643
             list[MANGROVE_CHEST_BOAT] = ItemChestBoatMangrove.class; //644
+
+            list[ECHO_SHARD] = ItemEchoShard.class; //647
 
             list[GLOW_BERRIES] = ItemGlowBerries.class; //654
 

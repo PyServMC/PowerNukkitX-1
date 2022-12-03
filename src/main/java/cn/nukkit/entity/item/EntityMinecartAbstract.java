@@ -11,11 +11,12 @@ import cn.nukkit.entity.EntityHuman;
 import cn.nukkit.entity.EntityLiving;
 import cn.nukkit.entity.data.ByteEntityData;
 import cn.nukkit.entity.data.IntEntityData;
+import cn.nukkit.event.entity.EntityDamageByEntityEvent;
 import cn.nukkit.event.entity.EntityDamageEvent;
 import cn.nukkit.event.vehicle.VehicleMoveEvent;
 import cn.nukkit.event.vehicle.VehicleUpdateEvent;
 import cn.nukkit.item.Item;
-import cn.nukkit.item.ItemID;
+import cn.nukkit.item.ItemMinecart;
 import cn.nukkit.level.GameRule;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.Location;
@@ -254,11 +255,13 @@ public abstract class EntityMinecartAbstract extends EntityVehicle {
     }
 
     public void dropItem() {
-        Item minecart = Item.get(ItemID.MINECART);
-        if (this.hasCustomName()) {
-            minecart.setCustomName(this.getNameTag());
+        if (this.lastDamageCause instanceof EntityDamageByEntityEvent entityDamageByEntityEvent) {
+            Entity damager = entityDamageByEntityEvent.getDamager();
+            if (damager instanceof Player player && player.isCreative()) {
+                return;
+            }
         }
-        level.dropItem(this, minecart);
+        level.dropItem(this, new ItemMinecart());
     }
 
     @PowerNukkitDifference(info = "Fixes a dupe issue when attacking too quickly", since = "1.3.1.2-PN")

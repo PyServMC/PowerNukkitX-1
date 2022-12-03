@@ -47,10 +47,13 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
 
     private boolean disabled;
 
+<<<<<<< HEAD
     private int lastUpdate;
 
     private int lastSlotUpdated = -1;
     
+=======
+>>>>>>> 81a7cd2f2b119fb51aeb89efcd5a5d7ca2b0b8b2
     private final BlockVector3 temporalVector = new BlockVector3();
 
     public BlockEntityHopper(FullChunk chunk, CompoundTag nbt) {
@@ -84,7 +87,7 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
 
         Block block = getBlock();
         if (block instanceof BlockHopper) {
-            disabled = !((BlockHopper)block).isEnabled();
+            disabled = !((BlockHopper) block).isEnabled();
         }
     }
 
@@ -209,13 +212,17 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
             return false;
         }
 
+<<<<<<< HEAD
         if (isOnTransferCooldown() && this.lastUpdate < this.server.getTick()) {
+=======
+        if (isOnTransferCooldown()) {
+>>>>>>> 81a7cd2f2b119fb51aeb89efcd5a5d7ca2b0b8b2
             this.transferCooldown--;
             return true;
         }
-        
+
         if (disabled) {
-        	return false;
+            return false;
         }
 
         Block blockSide = this.getBlock().getSide(BlockFace.UP);
@@ -223,7 +230,7 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
 
         boolean changed = pushItems() || pushItemsIntoMinecart();
 
-        if (blockEntity instanceof InventoryHolder || blockSide instanceof BlockComposter)  {
+        if (blockEntity instanceof InventoryHolder || blockSide instanceof BlockComposter) {
             changed = pullItems() || changed;
         } else {
             changed = pullItemsFromMinecart() || pickupItems() || changed;
@@ -363,7 +370,7 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
                 }
             }
         } else if (blockSide instanceof BlockComposter) {
-            BlockComposter blockComposter = (BlockComposter)blockSide;
+            BlockComposter blockComposter = (BlockComposter) blockSide;
             if (blockComposter.isFull()) {
                 Item item = blockComposter.empty();
 
@@ -560,7 +567,7 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         if (levelBlockState.getBlockId() != BlockID.HOPPER_BLOCK) {
             return false;
         }
-        
+
         BlockFace side = levelBlockState.getPropertyValue(CommonBlockProperties.FACING_DIRECTION);
         Block blockSide = this.getBlock().getSide(side);
         BlockEntity be = this.level.getBlockEntity(temporalVector.setComponentsAdding(this, side));
@@ -642,7 +649,7 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
 
             return pushedItem;
         } else if (blockSide instanceof BlockComposter) {
-            BlockComposter composter = (BlockComposter)blockSide;
+            BlockComposter composter = (BlockComposter) blockSide;
             if (composter.isFull()) {
                 return false;
             }

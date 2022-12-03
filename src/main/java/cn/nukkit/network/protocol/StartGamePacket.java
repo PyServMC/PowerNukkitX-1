@@ -1,6 +1,7 @@
 package cn.nukkit.network.protocol;
 
 import cn.nukkit.Server;
+import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.customblock.CustomBlockDefinition;
 import cn.nukkit.item.RuntimeItems;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -88,9 +90,14 @@ public class StartGamePacket extends DataPacket {
     public String worldName;
     public String premiumWorldTemplateId = "";
     public boolean isTrial = false;
+    @Deprecated
     public boolean isMovementServerAuthoritative;
+    @PowerNukkitXOnly
+    @Since("1.19.40-r3")
+    public Integer serverAuthoritativeMovement;
     @Since("1.3.0.0-PN")
     public boolean isInventoryServerAuthoritative;
+
     public long currentTick;
     public long blockRegistryChecksum = 0;
 
@@ -196,14 +203,17 @@ public class StartGamePacket extends DataPacket {
         this.putByte(this.chatRestrictionLevel);
         this.putBoolean(this.disablePlayerInteractions);
         /* Level settings end */
-
         this.putString(this.levelId);
         this.putString(this.worldName);
         this.putString(this.premiumWorldTemplateId);
         this.putBoolean(this.isTrial);
-        this.putVarInt(this.isMovementServerAuthoritative ? 1 : 0); // 2 - rewind
+        this.putVarInt(Objects.requireNonNullElseGet(this.serverAuthoritativeMovement, () -> this.isMovementServerAuthoritative ? 1 : 0));// 2 - rewind
         this.putVarInt(0); // RewindHistorySize
-        this.putBoolean(false); // isServerAuthoritativeBlockBreaking
+        if (this.serverAuthoritativeMovement != null) {
+            this.putBoolean(this.serverAuthoritativeMovement > 0); // isServerAuthoritativeBlockBreaking
+        } else {//兼容nkx旧插件
+            this.putBoolean(this.isMovementServerAuthoritative); // isServerAuthoritativeBlockBreaking
+        }
         this.putLLong(this.currentTick);
         this.putVarInt(this.enchantmentSeed);
 

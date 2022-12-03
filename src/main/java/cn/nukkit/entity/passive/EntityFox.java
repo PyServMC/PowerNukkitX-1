@@ -42,8 +42,8 @@ public class EntityFox extends EntityWalkingAnimal implements EntityBalloonable 
 
     @Override
     protected void initEntity() {
-        super.initEntity();
         this.setMaxHealth(20);
+        super.initEntity();
     }
 
     @PowerNukkitOnly

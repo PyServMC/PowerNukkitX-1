@@ -54,7 +54,7 @@ public class GameRules {
 
         @SuppressWarnings("deprecation") GameRule deprecated = SHOW_DEATH_MESSAGE;
         gameRules.gameRules.put(deprecated, gameRules.gameRules.get(SHOW_DEATH_MESSAGES));
-        
+
         gameRules.gameRules.put(SPAWN_RADIUS, new Value<>(Type.INTEGER, 5));
         gameRules.gameRules.put(TNT_EXPLODES, new Value<>(Type.BOOLEAN, true));
         gameRules.gameRules.put(SHOW_TAGS, new Value<>(Type.BOOLEAN, true));
