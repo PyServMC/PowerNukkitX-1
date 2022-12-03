@@ -10,4 +10,9 @@ public class ChemistryBehaviorPack extends AbstractEducationPack {
     public UUID getPackId() {
         return CHEMISTRY_BEHAVIOR_PACK_ID;
     }
+
+    @Override
+    public String getEncryptionKey() {
+        return "";
+    }
 }

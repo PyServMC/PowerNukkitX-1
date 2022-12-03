@@ -47,13 +47,10 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
 
     private boolean disabled;
 
-<<<<<<< HEAD
     private int lastUpdate;
 
     private int lastSlotUpdated = -1;
-    
-=======
->>>>>>> 81a7cd2f2b119fb51aeb89efcd5a5d7ca2b0b8b2
+
     private final BlockVector3 temporalVector = new BlockVector3();
 
     public BlockEntityHopper(FullChunk chunk, CompoundTag nbt) {
@@ -212,11 +209,7 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
             return false;
         }
 
-<<<<<<< HEAD
-        if (isOnTransferCooldown() && this.lastUpdate < this.server.getTick()) {
-=======
         if (isOnTransferCooldown()) {
->>>>>>> 81a7cd2f2b119fb51aeb89efcd5a5d7ca2b0b8b2
             this.transferCooldown--;
             return true;
         }
