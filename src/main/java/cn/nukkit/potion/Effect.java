@@ -279,8 +279,7 @@ public class Effect implements Cloneable {
     public boolean add(Entity entity) {
         Effect oldEffect = entity.getEffect(getId());
         if (oldEffect != null && (Math.abs(this.getAmplifier()) < Math.abs(oldEffect.getAmplifier()) ||
-                Math.abs(this.getAmplifier()) == Math.abs(oldEffect.getAmplifier())
-                        && this.getDuration() < oldEffect.getDuration())) {
+                this.getDuration() < oldEffect.getDuration())) {
             return false;
         }
 

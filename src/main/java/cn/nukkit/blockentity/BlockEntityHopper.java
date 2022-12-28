@@ -254,61 +254,14 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         Block blockSide = this.getBlock().getSide(BlockFace.UP);
         BlockEntity blockEntity = this.level.getBlockEntity(temporalVector.setComponentsAdding(this, BlockFace.UP));
 
-        //Fix for furnace outputs
-        if (blockEntity instanceof BlockEntityFurnace) {
-            FurnaceInventory inv = ((BlockEntityFurnace) blockEntity).getInventory();
-            Item item = inv.getFuel();
+        if (blockEntity instanceof BlockEntityHopper) {
+            BlockEntityHopper hopper = (BlockEntityHopper) blockEntity;
+            if (hopper.disabled)
+                return false;
+        }
 
-            if (item instanceof ItemBucket && ((ItemBucket) item).isEmpty()) {
-                Item itemToAdd = item.clone();
-                itemToAdd.count = 1;
-
-                if (!this.inventory.canAddItem(itemToAdd)) {
-                    return false;
-                }
-
-                InventoryMoveItemEvent ev = new InventoryMoveItemEvent(inv, this.inventory, this, itemToAdd, InventoryMoveItemEvent.Action.SLOT_CHANGE);
-                this.server.getPluginManager().callEvent(ev);
-
-                if (ev.isCancelled()) {
-                    return false;
-                }
-
-                Item[] items = this.inventory.addItem(itemToAdd);
-
-                if (items.length <= 0) {
-                    item.count--;
-                    inv.setFuel(item);
-                    return true;
-                }
-            }
-            item = inv.getResult();
-
-            if (!item.isNull()) {
-                Item itemToAdd = item.clone();
-                itemToAdd.count = 1;
-
-                if (!this.inventory.canAddItem(itemToAdd)) {
-                    return false;
-                }
-
-                InventoryMoveItemEvent ev = new InventoryMoveItemEvent(inv, this.inventory, this, itemToAdd, InventoryMoveItemEvent.Action.SLOT_CHANGE);
-                this.server.getPluginManager().callEvent(ev);
-
-                if (ev.isCancelled()) {
-                    return false;
-                }
-
-                Item[] items = this.inventory.addItem(itemToAdd);
-
-                if (items.length <= 0) {
-                    item.count--;
-                    inv.setResult(item);
-                    return true;
-                }
-            }
-        } else if (blockEntity instanceof InventoryHolder) {
-            Inventory inv = ((InventoryHolder) blockEntity).getInventory();
+        if (blockEntity instanceof InventoryHolder) {
+            Inventory inv = blockEntity instanceof RecipeInventoryHolder recipeInventoryHolder ? recipeInventoryHolder.getProductView() : ((InventoryHolder) blockEntity).getInventory();
 
             int slot = -1;
             if (blockEntity instanceof BlockEntityHopper) {
@@ -665,7 +618,7 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
                 return true;
             }
         } else {
-            Inventory inventory = ((InventoryHolder) be).getInventory();
+            Inventory inventory = be instanceof RecipeInventoryHolder recipeInventoryHolder ? recipeInventoryHolder.getIngredientView() : ((InventoryHolder) be).getInventory();
 
             if (inventory.isFull()) {
                 return false;

@@ -12,10 +12,7 @@ import cn.nukkit.entity.custom.CustomEntityDefinition;
 import cn.nukkit.entity.data.*;
 import cn.nukkit.entity.item.EntityArmorStand;
 import cn.nukkit.entity.item.EntityItem;
-import cn.nukkit.entity.mob.EntityBlaze;
 import cn.nukkit.entity.mob.EntityEnderDragon;
-import cn.nukkit.entity.mob.EntityMagmaCube;
-import cn.nukkit.entity.passive.EntityStrider;
 import cn.nukkit.entity.projectile.EntityProjectile;
 import cn.nukkit.entity.provider.ClassEntityProvider;
 import cn.nukkit.entity.provider.CustomEntityProvider;
@@ -1151,9 +1148,13 @@ public abstract class Entity extends Location implements Metadatable {
         if (effect == null) {
             return; //here add null means add nothing
         }
-
+        Effect oldEffect = this.getEffect(effect.getId());
+        if (oldEffect != null && (Math.abs(effect.getAmplifier()) < Math.abs(oldEffect.getAmplifier()) ||
+                Math.abs(effect.getAmplifier()) == Math.abs(oldEffect.getAmplifier())
+                        && effect.getDuration() < oldEffect.getDuration())) {
+            return;
+        }
         effect.add(this);
-
         this.effects.put(effect.getId(), effect);
 
         this.recalculateEffectColor();
@@ -1931,6 +1932,27 @@ public abstract class Entity extends Location implements Metadatable {
         Server.broadcastPacket(this.hasSpawned.values(), pk);
     }
 
+    @PowerNukkitXOnly
+    @Since("1.19.31-r1")
+    protected void broadcastMovement(boolean teleport) {
+        var pk = new MoveEntityAbsolutePacket();
+        pk.eid = this.getId();
+        pk.x = this.x;
+        /*todo HACK实现
+        当不启用服务器权威移动、玩家游泳时，以玩家当前位置发送MoveEntityAbsolutePacket会导致
+        玩家位置和实际位置不相符，需要+getBaseOffset()*/
+        if (getServer().getServerAuthoritativeMovement() == 0) {
+            pk.y = isSwimming() ? this.y + getBaseOffset() : this.y + this.getEyeHeight();
+        } else pk.y = this.y + this.getEyeHeight();
+        pk.z = this.z;
+        pk.headYaw = yaw;
+        pk.pitch = pitch;
+        pk.yaw = yaw;
+        pk.teleport = teleport;
+        pk.onGround = this.onGround;
+        Server.broadcastPacket(hasSpawned.values(), pk);
+    }
+
     @PowerNukkitXDifference(info = "There is no need to set the temporalVector, because the result is prone to change in an asynchronous environment.")
     @Override
     public Vector3 getDirectionVector() {
@@ -1993,8 +2015,7 @@ public abstract class Entity extends Location implements Metadatable {
             this.updateMovement();
         }
 
-        if (this.getLevelBlock() instanceof BlockBigDripleaf) {
-            BlockBigDripleaf block = (BlockBigDripleaf) this.getLevelBlock();
+        if (this.add(0, -0.1).getTickCachedLevelBlock() instanceof BlockBigDripleaf block) {
             if (block.isHead())
                 block.onUpdate(Level.BLOCK_UPDATE_NORMAL);
         }
@@ -2747,7 +2768,7 @@ public abstract class Entity extends Location implements Metadatable {
         boolean scaffolding = false;
         boolean endPortal = false;
         boolean powderSnow = false;
-        for (Block block : this.getCollisionBlocks()) {
+        for (var block : this.getTickCachedCollisionBlocks()) {
             switch (block.getId()) {
                 case Block.NETHER_PORTAL -> portal = true;
                 case BlockID.SCAFFOLDING -> scaffolding = true;
@@ -2755,7 +2776,7 @@ public abstract class Entity extends Location implements Metadatable {
             }
 
             block.onEntityCollide(this);
-            block.getLevelBlockAtLayer(1).onEntityCollide(this);
+            block.getTickCachedLevelBlockAtLayer(1).onEntityCollide(this);
             if (needsRecalcCurrent)
                 block.addVelocityToEntity(this, vector);
         }
@@ -3428,6 +3449,64 @@ public abstract class Entity extends Location implements Metadatable {
     @Since("1.19.21-r4")
     public void setAmbientSoundEventName(String eventName) {
         this.setDataProperty(new StringEntityData(Entity.DATA_AMBIENT_SOUND_EVENT_NAME, eventName));
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.50-r3")
+    public void playAnimation(AnimateEntityPacket.Animation animation) {
+        var viewers = this.getViewers().values();
+        if (this.isPlayer) viewers.add((Player) this);
+        playAnimation(animation, viewers);
+    }
+
+    /**
+     * Batch play animation on entity groups<br/>
+     * This method is recommended if you need to play the same animation on a large number of entities at the same time, as it only sends packets once for each player, which greatly reduces bandwidth pressure
+     * <p>
+     * 在实体群上批量播放动画<br/>
+     * 若你需要同时在大量实体上播放同一动画，建议使用此方法，因为此方法只会针对每个玩家发送一次包，这能极大地缓解带宽压力
+     *
+     * @param animation 动画对象 Animation objects
+     * @param entities  需要播放动画的实体群 Group of entities that need to play animations
+     * @param players   可视玩家 Visible Player
+     */
+    @PowerNukkitXOnly
+    @Since("1.19.50-r3")
+    public static void playAnimationOnEntities(AnimateEntityPacket.Animation animation, Collection<Entity> entities, Collection<Player> players) {
+        var pk = new AnimateEntityPacket();
+        pk.parseFromAnimation(animation);
+        entities.forEach(entity -> pk.getEntityRuntimeIds().add(entity.getId()));
+        pk.encode();
+        Server.broadcastPacket(players, pk);
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.50-r3")
+    public static void playAnimationOnEntities(AnimateEntityPacket.Animation animation, Collection<Entity> entities) {
+        var viewers = new HashSet<Player>();
+        entities.forEach(entity -> {
+            viewers.addAll(entity.getViewers().values());
+            if (entity.isPlayer) viewers.add((Player) entity);
+        });
+        playAnimationOnEntities(animation, entities, viewers);
+    }
+
+    /**
+     * Play the animation of this entity to a specified group of players
+     * <p>
+     * 向指定玩家群体播放此实体的动画
+     *
+     * @param animation 动画对象 Animation objects
+     * @param players   可视玩家 Visible Player
+     */
+    @PowerNukkitXOnly
+    @Since("1.19.50-r3")
+    public void playAnimation(AnimateEntityPacket.Animation animation, Collection<Player> players) {
+        var pk = new AnimateEntityPacket();
+        pk.parseFromAnimation(animation);
+        pk.getEntityRuntimeIds().add(this.getId());
+        pk.encode();
+        Server.broadcastPacket(players, pk);
     }
 
     private record OldStringClass(String key, Class<? extends Entity> value) {
