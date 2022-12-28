@@ -39,7 +39,6 @@ import cn.nukkit.level.format.LevelProviderManager;
 import cn.nukkit.level.format.anvil.Anvil;
 import cn.nukkit.level.generator.*;
 import cn.nukkit.level.terra.PNXPlatform;
-import cn.nukkit.level.terra.TerraGenerator;
 import cn.nukkit.level.tickingarea.manager.SimpleTickingAreaManager;
 import cn.nukkit.level.tickingarea.manager.TickingAreaManager;
 import cn.nukkit.level.tickingarea.storage.JSONTickingAreaStorage;
@@ -177,7 +176,7 @@ public class Server {
 
     /**
      * 负责地形生成，数据压缩等计算任务的FJP线程池<br/>
-     * <br/>
+     * <p>
      * FJP thread pool responsible for terrain generation, data compression and other computing tasks
      */
     public final ForkJoinPool computeThreadPool;
@@ -342,7 +341,7 @@ public class Server {
         launchTime = System.currentTimeMillis();
         BatchPacket batchPacket = new BatchPacket();
         batchPacket.payload = EmptyArrays.EMPTY_BYTES;
-        CraftingManager.packet = batchPacket;
+        CraftingManager.setCraftingPacket(batchPacket);
 
         currentThread = Thread.currentThread();
         File abs = tempDir.getAbsoluteFile();
@@ -363,8 +362,8 @@ public class Server {
 
         console = new NukkitConsole(this);
         consoleThread = new ConsoleThread();
-        this.computeThreadPool = new ForkJoinPool(Math.min(0x7fff, Runtime.getRuntime().availableProcessors()), new ComputeThreadPoolThreadFactory(), null, true);
-        freezableArrayManager = new FreezableArrayManager(32, 32, 0, -256, 1024, 16, 1, 32);
+        this.computeThreadPool = new ForkJoinPool(Math.min(0x7fff, Runtime.getRuntime().availableProcessors()), new ComputeThreadPoolThreadFactory(), null, false);
+        freezableArrayManager = new FreezableArrayManager(true, 32, 32, 0, -256, 1024, 16, 1, 32);
         properties = new Config();
         banByName = new BanList(dataPath + "banned-players.json");
         banByIP = new BanList(dataPath + "banned-ips.json");
@@ -411,7 +410,7 @@ public class Server {
         this.console = new NukkitConsole(this);
         this.consoleThread = new ConsoleThread();
         this.consoleThread.start();
-        this.computeThreadPool = new ForkJoinPool(Math.min(0x7fff, Runtime.getRuntime().availableProcessors()), new ComputeThreadPoolThreadFactory(), null, true);
+        this.computeThreadPool = new ForkJoinPool(Math.min(0x7fff, Runtime.getRuntime().availableProcessors()), new ComputeThreadPoolThreadFactory(), null, false);
 
         this.playerDataSerializer = new DefaultPlayerDataSerializer(this);
 
@@ -633,7 +632,7 @@ public class Server {
                 put("check-login-time", true);
                 put("disable-auto-bug-report", false);
                 put("allow-shaded", false);
-                put("server-authoritative-movement", "client-auth");// Allowed values: "client-auth", "server-auth", "server-auth-with-rewind"
+                put("server-authoritative-movement", "server-auth");// Allowed values: "client-auth", "server-auth", "server-auth-with-rewind"
             }
         });
         // Allow Nether? (determines if we create a nether world if one doesn't exist on startup)
@@ -773,6 +772,7 @@ public class Server {
         this.commandMap = new SimpleCommandMap(this);
 
         freezableArrayManager = new FreezableArrayManager(
+                this.getConfig("memory-compression.enable", true),
                 this.getConfig("memory-compression.slots", 32),
                 this.getConfig("memory-compression.default-temperature", 32),
                 this.getConfig("memory-compression.threshold.freezing-point", 0),
@@ -1233,7 +1233,9 @@ public class Server {
                 nameLookup.close();
             }
             //close watchdog and metrics
-            this.watchdog.running = false;
+            if (this.watchdog != null) {
+                this.watchdog.running = false;
+            }
             NukkitMetrics.closeNow(this);
             //close computeThreadPool
             this.computeThreadPool.shutdownNow();
@@ -2627,6 +2629,9 @@ public class Server {
         Player player = this.getPlayerExact(name);
         if (player != null) {
             player.recalculatePermissions();
+            player.getAdventureSettings().onOpChange(true);
+            player.getAdventureSettings().update();
+            player.sendCommandData();
         }
         this.operators.save(true);
     }
@@ -2636,6 +2641,9 @@ public class Server {
         Player player = this.getPlayerExact(name);
         if (player != null) {
             player.recalculatePermissions();
+            player.getAdventureSettings().onOpChange(false);
+            player.getAdventureSettings().update();
+            player.sendCommandData();
         }
         this.operators.save();
     }
@@ -2975,6 +2983,10 @@ public class Server {
 
     //todo NukkitConsole 会阻塞关不掉
     private class ConsoleThread extends Thread implements InterruptibleThread {
+        public ConsoleThread() {
+            super("Console Thread");
+        }
+
         @Override
         public void run() {
             console.start();

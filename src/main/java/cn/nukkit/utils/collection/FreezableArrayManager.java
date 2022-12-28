@@ -3,23 +3,28 @@ package cn.nukkit.utils.collection;
 import cn.nukkit.Server;
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
+import com.google.common.collect.ConcurrentHashMultiset;
+import io.netty.util.internal.ConcurrentSet;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * EconomicArrayManager负责管理所有AutoFreezable的ByteArrayWrapper<br/>
+ * FreezableArrayManager负责管理所有AutoFreezable的ByteArrayWrapper<br/>
  * 这包括计算温度，冻结和解冻
  */
 @PowerNukkitXOnly
 @Since("1.19.50-r1")
 public class FreezableArrayManager {
-    protected ConcurrentHashMap<Integer, CopyOnWriteArrayList<WeakReference<AutoFreezable>>> tickArrayMap;
+    protected ConcurrentHashMap<Integer, WeakConcurrentSet<AutoFreezable>> tickArrayMap;
+    public final boolean enable;
     public final int cycleTick;
     /**
      * 最大工作时间，如果一直压缩超出这个时间就会放弃接下来其他数组的压缩（冻结）
@@ -72,14 +77,15 @@ public class FreezableArrayManager {
             e.printStackTrace();
         }
         if (fallbackInstance == null) {
-            fallbackInstance = new FreezableArrayManager(32, 32, 0, -256, 1024, 16, 1, 32);
+            fallbackInstance = new FreezableArrayManager(true, 32, 32, 0, -256, 1024, 16, 1, 32);
             System.err.println("Cannot get FreezableArrayManager from Server instance, using a fallback instance!");
         }
         return fallbackInstance;
 
     }
 
-    public FreezableArrayManager(int cycleTick, int defaultTemperature, int freezingPoint, int absoluteZero, int boilingPoint, int meltingHeat, int singleOperationHeat, int batchOperationHeat) {
+    public FreezableArrayManager(boolean enable, int cycleTick, int defaultTemperature, int freezingPoint, int absoluteZero, int boilingPoint, int meltingHeat, int singleOperationHeat, int batchOperationHeat) {
+        this.enable = enable;
         this.cycleTick = cycleTick;
         this.defaultTemperature = defaultTemperature;
         this.freezingPoint = freezingPoint;
@@ -128,55 +134,63 @@ public class FreezableArrayManager {
         return this;
     }
 
-    public FreezableByteArray createByteArray(int length) {
-        var tmp = new FreezableByteArray(length, this);
-        var list = tickArrayMap.computeIfAbsent(currentArrayId.getAndIncrement() % cycleTick, (ignore) -> new CopyOnWriteArrayList<>());
-        list.add(new WeakReference<>(tmp));
-        return tmp;
+    public ByteArrayWrapper createByteArray(int length) {
+        if (enable) {
+            var tmp = new FreezableByteArray(length, this);
+            var set = tickArrayMap.computeIfAbsent(currentArrayId.getAndIncrement() % cycleTick, (ignore) -> new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.MANUAL));
+            set.add(tmp);
+            return tmp;
+        } else {
+            return new PureByteArray(length);
+        }
     }
 
-    public FreezableByteArray wrapByteArray(@NotNull byte[] array) {
-        var tmp = new FreezableByteArray(array, this);
-        var list = tickArrayMap.computeIfAbsent(currentArrayId.getAndIncrement() % cycleTick, (ignore) -> new CopyOnWriteArrayList<>());
-        list.add(new WeakReference<>(tmp));
-        return tmp;
+    public ByteArrayWrapper wrapByteArray(@NotNull byte[] array) {
+        if (enable) {
+            var tmp = new FreezableByteArray(array, this);
+            var set = tickArrayMap.computeIfAbsent(currentArrayId.getAndIncrement() % cycleTick, (ignore) -> new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.MANUAL));
+            set.add(tmp);
+            return tmp;
+        } else {
+            return new PureByteArray(array);
+        }
     }
 
-    public FreezableByteArray cloneByteArray(@NotNull byte[] array) {
-        var tmp = new FreezableByteArray(Arrays.copyOf(array, array.length), this);
-        var list = tickArrayMap.computeIfAbsent(currentArrayId.getAndIncrement() % cycleTick, (ignore) -> new CopyOnWriteArrayList<>());
-        list.add(new WeakReference<>(tmp));
-        return tmp;
+    public ByteArrayWrapper cloneByteArray(@NotNull byte[] array) {
+        if (enable) {
+            var tmp = new FreezableByteArray(Arrays.copyOf(array, array.length), this);
+            var set = tickArrayMap.computeIfAbsent(currentArrayId.getAndIncrement() % cycleTick, (ignore) -> new WeakConcurrentSet<>(WeakConcurrentSet.Cleaner.MANUAL));
+            set.add(tmp);
+            return tmp;
+        } else {
+            return new PureByteArray(Arrays.copyOf(array, array.length));
+        }
     }
 
     public void tick() {
         currentTick++;
+        if (!enable) return;
         var dt = currentTick % cycleTick;
-        var list = tickArrayMap.get(dt);
-        // 定期清理空引用
-        if (dt == 0) {
-            list.removeIf(r -> r.get() == null);
-        }
+        var set = tickArrayMap.get(dt);
+        // 冻结数组
         var start = System.currentTimeMillis();
-        CompletableFuture.runAsync(() -> list.parallelStream().filter(r -> {
-            var e = r.get();
-            if (e == null) return false;
+        // 清理死引用
+        CompletableFuture.runAsync(() -> set.parallelForeach(e -> {
+            if (e == null) return;
             int temp = e.getTemperature();
             e.colder(1);
-            return temp <= getFreezingPoint() + 1;
-        }).forEach(r -> {
-            if (System.currentTimeMillis() - start > maxCompressionTime) {
-                return;
-            }
-            var e = r.get();
-            if (e == null) return;
-            if (e.getFreezeStatus() == AutoFreezable.FreezeStatus.NONE || e.getFreezeStatus() == AutoFreezable.FreezeStatus.FREEZE) {
-                if (e.getTemperature() == absoluteZero) {
-                    e.deepFreeze();
-                } else {
-                    e.freeze();
+            if (temp <= getFreezingPoint() + 1) {
+                if (System.currentTimeMillis() - start > maxCompressionTime) {
+                    return;
+                }
+                if (e.getFreezeStatus() == AutoFreezable.FreezeStatus.NONE || e.getFreezeStatus() == AutoFreezable.FreezeStatus.FREEZE) {
+                    if (e.getTemperature() == absoluteZero) {
+                        e.deepFreeze();
+                    } else {
+                        e.freeze();
+                    }
                 }
             }
-        }), Server.getInstance().computeThreadPool);
+        }), Server.getInstance().computeThreadPool).thenRun(set::clearDeadReferences);
     }
 }
