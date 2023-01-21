@@ -12,6 +12,8 @@ import cn.nukkit.block.BlockRailActivator;
 import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.event.entity.EntityDamageByEntityEvent;
+import cn.nukkit.event.inventory.InventoryMoveItemEvent;
+import cn.nukkit.inventory.Inventory;
 import cn.nukkit.inventory.InventoryHolder;
 import cn.nukkit.inventory.MinecartHopperInventory;
 import cn.nukkit.item.Item;
