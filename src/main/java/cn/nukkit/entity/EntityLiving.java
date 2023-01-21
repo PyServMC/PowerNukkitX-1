@@ -7,7 +7,6 @@ import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockCactus;
 import cn.nukkit.block.BlockMagma;
 import cn.nukkit.entity.data.ShortEntityData;
-import cn.nukkit.entity.passive.EntitySwimmingAnimal;
 import cn.nukkit.entity.projectile.EntityProjectile;
 import cn.nukkit.entity.weather.EntityWeather;
 import cn.nukkit.event.entity.*;
@@ -254,7 +253,7 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
             }
 
             if (!this.hasEffect(Effect.WATER_BREATHING) && !this.hasEffect(Effect.CONDUIT_POWER) && this.isInsideOfWater()) {
-                if (this instanceof EntitySwimmingAnimal || (this instanceof Player && (((Player) this).isCreative() || ((Player) this).isSpectator()))) {
+                if (this instanceof EntitySwimmable || (this instanceof Player && (((Player) this).isCreative() || ((Player) this).isSpectator()))) {
                     this.setAirTicks(400);
                 } else {
                     if (turtleTicks == 0 || turtleTicks == 200) {
@@ -270,7 +269,7 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
                     }
                 }
             } else {
-                if (this instanceof EntitySwimmingAnimal) {
+                if (this instanceof EntitySwimmable) {
                     hasUpdate = true;
                     int airTicks = getAirTicks() - tickDiff;
 
@@ -416,6 +415,13 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
         return this.movementSpeed;
     }
 
+    /**
+     * 设置该有生命实体的移动速度
+     * <p>
+     * Set the movement speed of this Entity.
+     *
+     * @param speed 速度大小<br>Speed value
+     */
     public void setMovementSpeed(float speed) {
         this.movementSpeed = speed;
     }

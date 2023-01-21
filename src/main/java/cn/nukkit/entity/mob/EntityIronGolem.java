@@ -22,6 +22,7 @@ import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.BlockID;
 import cn.nukkit.entity.EntityBalloonable;
+import cn.nukkit.entity.EntityWalkable;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemID;
 import cn.nukkit.level.format.FullChunk;
@@ -35,7 +36,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 @PowerNukkitOnly
 @Since("1.4.0.0-PN")
-public class EntityIronGolem extends EntityWalkingMob implements EntityBalloonable {
+public class EntityIronGolem extends EntityMob implements EntityWalkable, EntityBalloonable {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public static final int NETWORK_ID = 20;

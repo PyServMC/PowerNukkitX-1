@@ -2,6 +2,7 @@ package cn.nukkit.command.utils;
 
 import cn.nukkit.Player;
 import cn.nukkit.Server;
+import cn.nukkit.api.DeprecationDetails;
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.command.Command;
@@ -12,9 +13,9 @@ import cn.nukkit.command.exceptions.CommandSyntaxException;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.Position;
+import cn.nukkit.math.BVector3;
 import cn.nukkit.math.Vector2;
 import cn.nukkit.math.Vector3;
-import cn.nukkit.math.BVector3;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import lombok.Getter;
@@ -28,6 +29,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * 此命令解析器为旧的基于正则表达式的实现，存在性能问题且编写较混乱<p/>
+ * 目前已经重写了解析器，应使用新的ParamTree而不是继续使用此实现
+ */
+@Deprecated
+@DeprecationDetails(since = "1.19.50-r4", reason = "Using the new ParamTree instead", replaceWith = "ParamTree")
 @PowerNukkitXOnly
 @Since("1.6.0.0-PNX")
 @Getter
@@ -44,14 +51,15 @@ public class CommandParser {
     private static final String BLOCK_COORDINATE_PATTERN = "([~^]-?\\d+|-?\\d+|[~^])";//block coordinate part value
 
     //using cache to improve performance
-    private static Cache<String,CommandParser> result_cache = CacheBuilder.newBuilder().maximumSize(65535).expireAfterAccess(1, TimeUnit.MINUTES).build();
-    private static Cache<String,PatternCache> pattern_cache = CacheBuilder.newBuilder().maximumSize(65535).expireAfterAccess(1, TimeUnit.MINUTES).build();
+    private static Cache<String, CommandParser> result_cache = CacheBuilder.newBuilder().maximumSize(65535).expireAfterAccess(1, TimeUnit.MINUTES).build();
+    private static Cache<String, PatternCache> pattern_cache = CacheBuilder.newBuilder().maximumSize(65535).expireAfterAccess(1, TimeUnit.MINUTES).build();
 
-    private record PatternCache(Pattern pattern,int length){}
+    private record PatternCache(Pattern pattern, int length) {
+    }
 
-    private Command command;
-    private CommandSender sender;
-    private String[] args;
+    private final Command command;
+    private final CommandSender sender;
+    private final String[] args;
     private String[] parsedArgs;
     private String matchedCommandForm;
 
@@ -63,7 +71,7 @@ public class CommandParser {
         this(command, sender, args, true);
     }
 
-    public CommandParser(Command command, CommandSender sender, String[] args, boolean useParsedArgs){
+    public CommandParser(Command command, CommandSender sender, String[] args, boolean useParsedArgs) {
         this.command = command;
         this.sender = sender;
         this.args = args;
@@ -72,7 +80,7 @@ public class CommandParser {
     }
 
     public CommandParser(CommandParser parser) {
-        this(parser,parser.getSender());
+        this(parser, parser.getSender());
     }
 
     public CommandParser(CommandParser parser, CommandSender sender) {
@@ -120,7 +128,7 @@ public class CommandParser {
             if (pcache != null) {
                 commandPatterns.put(entry.getKey(), pcache.pattern);
                 commandArgLength.put(entry.getKey(), pcache.length);
-            }else {
+            } else {
                 StringBuilder pattern = new StringBuilder();
                 pattern.append("^");
                 int length = 0;//non-optional args' length
@@ -178,7 +186,7 @@ public class CommandParser {
                             }
                         }
                     } else {
-                        if (parameter.enumData.getName().equals("Block") || parameter.enumData.getName().equals("Item") || !parameter.enumData.isLimited()) {
+                        if (parameter.enumData.getName().equals("Block") || parameter.enumData.getName().equals("Item") || parameter.enumData.isSoft()) {
                             pattern.append(STRING_PATTERN);
                         } else {
                             pattern.append("(");
@@ -210,10 +218,10 @@ public class CommandParser {
 
                 pattern.append("$");
                 Pattern compiled = Pattern.compile(pattern.toString());
-                commandPatterns.put(entry.getKey(),compiled);
+                commandPatterns.put(entry.getKey(), compiled);
                 commandArgLength.put(entry.getKey(), length);
 
-                pattern_cache.put(command.getName() + "_" + entry.getKey(),new PatternCache(compiled, length));//cache the compiled pattern
+                pattern_cache.put(command.getName() + "_" + entry.getKey(), new PatternCache(compiled, length));//cache the compiled pattern
             }
         }
 
@@ -406,7 +414,7 @@ public class CommandParser {
                 return EntitySelector.matchEntities(this.sender, arg);
             } else {
                 Player player = Server.getInstance().getPlayer(arg);
-                return player == null? Collections.emptyList() : Collections.singletonList(player);
+                return player == null ? Collections.emptyList() : Collections.singletonList(player);
             }
         } catch (Exception e) {
             throw new CommandSyntaxException();
@@ -512,9 +520,12 @@ public class CommandParser {
                     return baseVector3;
                 }
                 return switch (type) {
-                    case X -> BVector3.fromLocation(sender.getLocation()).addAngle(-90, 0).setYAngle(0).setLength(Double.parseDouble(relativeAngleCoordinate)).addToPos(baseVector3);
-                    case Y -> BVector3.fromLocation(sender.getLocation()).addAngle(0, 90).setLength(Double.parseDouble(relativeAngleCoordinate)).addToPos(baseVector3);
-                    case Z -> BVector3.fromLocation(sender.getLocation()).setLength(Double.parseDouble(relativeAngleCoordinate)).addToPos(baseVector3);
+                    case X ->
+                            BVector3.fromLocation(sender.getLocation()).rotateYaw(-90).setPitch(0).setLength(Double.parseDouble(relativeAngleCoordinate)).addToPos(baseVector3);
+                    case Y ->
+                            BVector3.fromLocation(sender.getLocation()).rotatePitch(90).setLength(Double.parseDouble(relativeAngleCoordinate)).addToPos(baseVector3);
+                    case Z ->
+                            BVector3.fromLocation(sender.getLocation()).setLength(Double.parseDouble(relativeAngleCoordinate)).addToPos(baseVector3);
                 };
             }
             return switch (type) {

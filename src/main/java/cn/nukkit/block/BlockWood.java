@@ -48,7 +48,7 @@ public class BlockWood extends BlockLog {
 
     @Override
     public int getId() {
-        return WOOD;
+        return LOG;
     }
 
     @Override

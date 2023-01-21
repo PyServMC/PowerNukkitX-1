@@ -3,6 +3,8 @@ package cn.nukkit.inventory;
 import cn.nukkit.Player;
 import cn.nukkit.api.PowerNukkitDifference;
 import cn.nukkit.block.BlockTrappedChest;
+import cn.nukkit.api.PowerNukkitXOnly;
+import cn.nukkit.api.Since;
 import cn.nukkit.blockentity.BlockEntityChest;
 import cn.nukkit.event.redstone.RedstoneUpdateEvent;
 import cn.nukkit.item.Item;
@@ -65,6 +67,13 @@ public class DoubleChestInventory extends ContainerInventory implements Inventor
     @Override
     public Item getItem(int index) {
         return index < this.left.getSize() ? this.left.getItem(index) : this.right.getItem(index - this.right.getSize());
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.50-r4")
+    @Override
+    public Item getUnclonedItem(int index) {
+        return index < this.left.getSize() ? this.left.getUnclonedItem(index) : this.right.getUnclonedItem(index - this.right.getSize());
     }
 
     @Override
@@ -149,16 +158,14 @@ public class DoubleChestInventory extends ContainerInventory implements Inventor
             }
         }
         try {
-            if (this.left.getHolder().getBlock() instanceof BlockTrappedChest) {
-                BlockTrappedChest trappedChest = (BlockTrappedChest) this.left.getHolder().getBlock();
+            if (this.left.getHolder().getBlock() instanceof BlockTrappedChest trappedChest) {
                 RedstoneUpdateEvent event = new RedstoneUpdateEvent(trappedChest);
                 this.getHolder().level.getServer().getPluginManager().callEvent(event);
                 if (!event.isCancelled()) {
                     RedstoneComponent.updateAllAroundRedstone(this.getHolder());
                 }
             }
-            if (this.right.getHolder().getBlock() instanceof BlockTrappedChest) {
-                BlockTrappedChest trappedChest = (BlockTrappedChest) this.right.getHolder().getBlock();
+            if (this.right.getHolder().getBlock() instanceof BlockTrappedChest trappedChest) {
                 RedstoneUpdateEvent event = new RedstoneUpdateEvent(trappedChest);
                 this.getHolder().level.getServer().getPluginManager().callEvent(event);
                 if (!event.isCancelled()) {
@@ -218,7 +225,7 @@ public class DoubleChestInventory extends ContainerInventory implements Inventor
     public void sendSlot(Inventory inv, int index, Player... players) {
         InventorySlotPacket pk = new InventorySlotPacket();
         pk.slot = inv == this.right ? this.left.getSize() + index : index;
-        pk.item = inv.getItem(index).clone();
+        pk.item = inv.getUnclonedItem(index);
 
         for (Player player : players) {
             int id = player.getWindowId(this);

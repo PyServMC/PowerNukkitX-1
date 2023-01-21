@@ -3,6 +3,7 @@ package cn.nukkit.entity.passive;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.entity.EntityBalloonable;
+import cn.nukkit.entity.EntityWalkable;
 import cn.nukkit.item.Item;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.metadata.MetadataValue;
@@ -14,7 +15,7 @@ import java.util.List;
 /**
  * @author PikyCZ
  */
-public class EntityMule extends EntityWalkingAnimal implements EntityBalloonable {
+public class EntityMule extends EntityAnimal implements EntityWalkable, EntityBalloonable {
 
     public static final int NETWORK_ID = 25;
 

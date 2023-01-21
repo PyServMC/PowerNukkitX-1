@@ -3,11 +3,12 @@ package cn.nukkit.entity.mob;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.entity.EntityBalloonable;
+import cn.nukkit.entity.EntityWalkable;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.nbt.tag.CompoundTag;
 
 @Since("1.4.0.0-PN")
-public class EntitySnowGolem extends EntityWalkingMob implements EntityBalloonable {
+public class EntitySnowGolem extends EntityMob implements EntityWalkable, EntityBalloonable {
     @Since("1.4.0.0-PN")
     public static final int NETWORK_ID = 21;
 

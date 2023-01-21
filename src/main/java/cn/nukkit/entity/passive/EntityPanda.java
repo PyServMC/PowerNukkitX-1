@@ -3,6 +3,7 @@ package cn.nukkit.entity.passive;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.entity.EntityBalloonable;
+import cn.nukkit.entity.EntityWalkable;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.metadata.MetadataValue;
 import cn.nukkit.nbt.tag.CompoundTag;
@@ -10,7 +11,7 @@ import cn.nukkit.plugin.Plugin;
 
 import java.util.List;
 
-public class EntityPanda extends EntityWalkingAnimal implements EntityBalloonable {
+public class EntityPanda extends EntityAnimal implements EntityWalkable, EntityBalloonable {
 
     public static final int NETWORK_ID = 113;
 
