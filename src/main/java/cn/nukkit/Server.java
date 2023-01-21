@@ -1357,7 +1357,7 @@ public class Server {
             if (this.watchdog != null) {
                 this.watchdog.running = false;
             }
-            NukkitMetrics.closeNow(this);
+            // NukkitMetrics.closeNow(this);
             //close computeThreadPool
             this.computeThreadPool.shutdownNow();
 
