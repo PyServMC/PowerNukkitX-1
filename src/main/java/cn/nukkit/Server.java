@@ -758,8 +758,8 @@ public class Server {
 
         this.consoleSender = new ConsoleCommandSender();
 
-        // Initialize metrics
-        NukkitMetrics.startNow(this);
+        // Initialize metrics | disabled for privacy concerns and data manipulation
+        // NukkitMetrics.startNow(this);
 
         this.registerEntities();
         this.registerBlockEntities();
