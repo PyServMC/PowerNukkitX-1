@@ -104,16 +104,9 @@ public class VersionCommand extends Command implements CoreCommand {
     }
 
     public VersionCommand(String name) {
-        super(name,
-                "%nukkit.command.version.description",
-                "%nukkit.command.version.usage",
-                new String[]{"ver", "about"}
-        );
+        super(name);
         this.setPermission("nukkit.command.version");
         this.commandParameters.clear();
-        this.commandParameters.put("default", new CommandParameter[]{
-                CommandParameter.newType("pluginName", true, CommandParamType.STRING)
-        });
     }
 
     @Override
