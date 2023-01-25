@@ -1353,10 +1353,10 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
      */
     @PowerNukkitXOnly
     public static void registerCustomBlock(@Nonnull List<Class<? extends CustomBlock>> blockClassList) {
-        if (!Server.getInstance().isEnableExperimentMode() || Server.getInstance().getConfig("settings.waterdogpe", false)) {
+        /*if (!Server.getInstance().isEnableExperimentMode() || Server.getInstance().getConfig("settings.waterdogpe", false)) {
             log.warn("The server does not have the experiment mode feature enabled.Unable to register custom block!");
             return;
-        }
+        }*/
         SortedMap<String, CustomBlock> sortedCustomBlock = new TreeMap<>(MinecraftNamespaceComparator::compareFNV);
 
         for (var each : blockClassList) {
@@ -1395,10 +1395,10 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
      */
     @PowerNukkitXOnly
     public static void registerCustomBlock(@Nonnull Map<String, Class<? extends CustomBlock>> blockNamespaceClassMap) {
-        if (!Server.getInstance().isEnableExperimentMode() || Server.getInstance().getConfig("settings.waterdogpe", false)) {
+        /*if (!Server.getInstance().isEnableExperimentMode() || Server.getInstance().getConfig("settings.waterdogpe", false)) {
             log.warn("The server does not have the experiment mode feature enabled.Unable to register custom block!");
             return;
-        }
+        }*/
         //方块升序排序
         SortedMap<String, Class<? extends CustomBlock>> sortedCustomBlockClasses = new TreeMap<>(MinecraftNamespaceComparator::compareFNV);
         //监测该方块是否已经注册
