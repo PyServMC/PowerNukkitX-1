@@ -3903,6 +3903,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     }
 
                     if (!server.getAllowFlight() && abilityPacket.boolValue && !this.getAdventureSettings().get(Type.ALLOW_FLIGHT)) {
+                        PlayerIllegalFlightEvent pife = new PlayerIllegalFlightEvent(this);
+                        this.server.getPluginManager().callEvent(pife);
+                        if (!pife.isKick())
+                            break;
                         this.kick(PlayerKickEvent.Reason.FLYING_DISABLED, "Flying is not enabled on this server");
                         break;
                     }
