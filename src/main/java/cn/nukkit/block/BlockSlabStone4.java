@@ -10,6 +10,8 @@ import cn.nukkit.utils.BlockColor;
 
 import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
+
 @PowerNukkitOnly
 public class BlockSlabStone4 extends BlockSlab {
     @PowerNukkitOnly
