@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.StringJoiner;
 
 @PowerNukkitXOnly
-@Since("1.19.50-r4")
+@Since("1.19.60-r1")
 public record CommandLogger(Command command,
                             CommandSender sender,
                             String commandLabel,
@@ -57,7 +57,7 @@ public record CommandLogger(Command command,
     }
 
     /**
-     * 添加一条命令成功执行的消息，参数message可以是纯文本，也可以是客戶端的多语言文本key.<br>默认输出颜色白色
+     * 添加一条命令成功执行的消息，参数可以是纯文本，也可以是客戶端的多语言文本key.<br>默认输出颜色白色
      *
      * @param key    the key
      * @param params the params
@@ -73,12 +73,18 @@ public record CommandLogger(Command command,
         return this;
     }
 
+    /**
+     * 添加一条命令错误执行的消息，参数可以是纯文本，也可以是客戶端的多语言文本key.<br>默认输出颜色红色
+     *
+     * @param message the message
+     * @return the command logger
+     */
     public CommandLogger addError(String message) {
         return this.addError(message, CommandOutputContainer.EMPTY_STRING);
     }
 
     /**
-     * 添加一条命令执行失败的错误消息，参数message可以是纯文本，也可以是客戶端的多语言文本key.<br>默认输出颜色红色
+     * 添加一条命令执行失败的错误消息，参数可以是纯文本，也可以是客戶端的多语言文本key.<br>默认输出颜色红色
      *
      * @param key    语言文本key/错误信息
      * @param params 语言文本参数/空
@@ -90,7 +96,7 @@ public record CommandLogger(Command command,
     }
 
     /**
-     * 添加一条信息到{@link #outputContainer}中.
+     * 添加一条消息，参数可以是纯文本，也可以是客户端，服务端，以及{@link cn.nukkit.lang.PluginI18n PluginI18n}中的多语言文本，默认输出颜色红色
      *
      * @param key the key
      * @return the command logger
@@ -128,21 +134,21 @@ public record CommandLogger(Command command,
 
 
     /**
-     * 输出默认的命令格式错误信息,会提示命令发送者在指定索引处发生错误
+     * 添加一条默认的命令格式错误信息,会提示命令发送者在指定索引处发生错误
      *
      * @param errorIndex 发生错误的参数索引
      */
     public CommandLogger addSyntaxErrors(int errorIndex) {
         if (sender instanceof ConsoleCommandSender) {
             this.addMessage("commands.generic.usage", "\n" + command.getCommandFormatTips());
-        } else if (isSend()) {
+        } else if (isSend(sender)) {
             this.addError("commands.generic.syntax", this.syntaxErrorsValue(errorIndex));
         }
         return this;
     }
 
     /**
-     * 输出一个目标选择器没有匹配目标的错误信息
+     * 添加一条目标选择器没有匹配目标的错误信息
      */
     public CommandLogger addNoTargetMatch() {
         this.addError("commands.generic.noTargetMatch", CommandOutputContainer.EMPTY_STRING);
@@ -150,7 +156,7 @@ public record CommandLogger(Command command,
     }
 
     /**
-     * 输出一个目标选择器匹配目标过多的错误信息
+     * 添加一条目标选择器匹配目标过多的错误信息
      */
     public CommandLogger addTooManyTargets() {
         this.addError("commands.generic.tooManyTargets", CommandOutputContainer.EMPTY_STRING);
@@ -158,7 +164,7 @@ public record CommandLogger(Command command,
     }
 
     /**
-     * 输出一个参数过小的错误信息，会提示命令发送者指定位置的参数最小值不能低于minimum
+     * 添加一条参数过小的错误信息，会提示命令发送者指定位置的参数最小值不能低于minimum
      *
      * @param errorIndex 发生错误的参数索引
      * @param minimum    允许的最小值
@@ -169,7 +175,7 @@ public record CommandLogger(Command command,
     }
 
     /**
-     * 输出一个Double参数过大的错误信息，会提示命令发送者指定位置的参数最大值不能超过maximum
+     * 添加一条Double参数过大的错误信息，会提示命令发送者指定位置的参数最大值不能超过maximum
      *
      * @param errorIndex 发生错误的参数索引
      * @param maximum    允许的最大值
@@ -180,7 +186,7 @@ public record CommandLogger(Command command,
     }
 
     /**
-     * 输出一个Double参数过小的错误信息，会提示命令发送者指定位置的参数最小值不能低于minimum
+     * 添加一条Double参数过小的错误信息，会提示命令发送者指定位置的参数最小值不能低于minimum
      *
      * @param errorIndex 发生错误的参数索引
      * @param minimum    允许的最小值
@@ -190,6 +196,11 @@ public record CommandLogger(Command command,
         return this;
     }
 
+    /**
+     * 添加一条无法访问世界外的方块的错误信息
+     *
+     * @return the command logger
+     */
     public CommandLogger addOutOfWorld() {
         this.addError("commands.generic.outOfWorld", CommandOutputContainer.EMPTY_STRING);
         return this;
@@ -209,25 +220,32 @@ public record CommandLogger(Command command,
     /**
      * 输出{@link #outputContainer}中的所有信息.
      *
-     * @param broadcastAdminChannel 是否广播消息给其他在管理员频道的玩家
+     * @param broadcastAdminChannel 在发送命令反馈给玩家时，是否广播消息给其他在管理员频道的玩家
      * @param broadcastConsole      是否广播消息给控制台
      */
     public void output(boolean broadcastAdminChannel, boolean broadcastConsole) {
-        if (sender instanceof ConsoleCommandSender) {
+        if (sender instanceof ICommandBlock || sender instanceof ExecutorCommandSender executorCommandSender && executorCommandSender.getExecutor() instanceof ICommandBlock) {
             this.sender.sendCommandOutput(this.outputContainer);
             this.outputContainer.setSuccessCount(0);
             this.outputContainer.getMessages().clear();
             return;
-        } else if (broadcastConsole) {
-            for (var msg : this.outputContainer.getMessages()) {
-                broadcastConsole(msg.getMessageId(), msg.getParameters());
-            }
-        }
-        if (isSend()) {
-            this.sender.sendCommandOutput(this.outputContainer);
-            if (broadcastAdminChannel) {
+        } else {
+            if (sender instanceof ConsoleCommandSender) {
+                this.sender.sendCommandOutput(this.outputContainer);
+                this.outputContainer.setSuccessCount(0);
+                this.outputContainer.getMessages().clear();
+                return;
+            } else if (broadcastConsole) {
                 for (var msg : this.outputContainer.getMessages()) {
-                    broadcastAdminChannel(msg.getMessageId(), msg.getParameters());
+                    broadcastConsole(msg.getMessageId(), msg.getParameters());
+                }
+            }
+            if (isSend(sender)) {
+                this.sender.sendCommandOutput(this.outputContainer);
+                if (broadcastAdminChannel) {
+                    for (var msg : this.outputContainer.getMessages()) {
+                        broadcastAdminChannel(msg.getMessageId(), msg.getParameters());
+                    }
                 }
             }
         }
@@ -247,27 +265,27 @@ public record CommandLogger(Command command,
     }
 
     /**
-     * 给命令目标的反馈信息
+     * 输出给指定目标一条反馈信息
      *
      * @param receiver 命令目标
      * @param key      the key
      * @param params   给命令目标的反馈信息参数
      */
     public void outputObjectWhisper(Player receiver, String key, String... params) {
-        if (isSend()) {
+        if (isSend(receiver)) {
             receiver.sendMessage(new TranslationContainer(key, params));
         }
     }
 
     /**
-     * 给命令目标的反馈信息
+     * 输出给指定目标一条反馈信息
      *
      * @param rawtext  给命令目标的反馈信息
      * @param receiver 命令目标
      * @param params   给命令目标的反馈信息参数
      */
     public void outputObjectWhisper(Player receiver, String rawtext, Object... params) {
-        if (isSend()) {
+        if (isSend(receiver)) {
             receiver.sendRawTextMessage(RawText.fromRawText(String.format(rawtext, params)));
         }
     }
@@ -334,9 +352,9 @@ public record CommandLogger(Command command,
     }
 
     //only player
-    private boolean isSend() {
-        if (sender instanceof Player || sender instanceof ExecutorCommandSender executorCommandSender && executorCommandSender.getExecutor() instanceof Player) {
-            return sender.getPosition().getLevel().getGameRules().getBoolean(GameRule.SEND_COMMAND_FEEDBACK);
+    private boolean isSend(CommandSender target) {
+        if (target instanceof Player || target instanceof ExecutorCommandSender executorCommandSender && executorCommandSender.getExecutor() instanceof Player) {
+            return target.getPosition().getLevel().getGameRules().getBoolean(GameRule.SEND_COMMAND_FEEDBACK);
         } else return true;
     }
 }

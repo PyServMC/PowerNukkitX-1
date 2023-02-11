@@ -6,6 +6,7 @@ import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.blockentity.BlockEntityTarget;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.entity.projectile.EntityArrow;
+import cn.nukkit.entity.projectile.EntitySmallFireBall;
 import cn.nukkit.entity.projectile.EntityThrownTrident;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.level.Level;
@@ -18,7 +19,8 @@ import cn.nukkit.math.Vector3;
 import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.RedstoneComponent;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,7 +50,7 @@ public class BlockTarget extends BlockTransparent implements RedstoneComponent, 
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public Class<? extends BlockEntityTarget> getBlockEntityClass() {
         return BlockEntityTarget.class;
@@ -56,7 +58,7 @@ public class BlockTarget extends BlockTransparent implements RedstoneComponent, 
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public String getBlockEntityType() {
         return BlockEntity.TARGET;
@@ -130,9 +132,9 @@ public class BlockTarget extends BlockTransparent implements RedstoneComponent, 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
     @Override
-    public boolean onProjectileHit(@Nonnull Entity projectile, @Nonnull Position position, @Nonnull Vector3 motion) {
+    public boolean onProjectileHit(@NotNull Entity projectile, @NotNull Position position, @NotNull Vector3 motion) {
         int ticks = 8;
-        if (projectile instanceof EntityArrow || projectile instanceof EntityThrownTrident) {
+        if (projectile instanceof EntityArrow || projectile instanceof EntityThrownTrident || projectile instanceof EntitySmallFireBall) {
             ticks = 20;
         }
 

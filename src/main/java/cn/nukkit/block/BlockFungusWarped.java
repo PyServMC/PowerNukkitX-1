@@ -1,11 +1,9 @@
 package cn.nukkit.block;
 
 import cn.nukkit.Player;
-import cn.nukkit.Server;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.event.level.StructureGrowEvent;
-import cn.nukkit.level.ChunkManager;
 import cn.nukkit.level.ListChunkManager;
 import cn.nukkit.level.generator.object.tree.ObjectWarpedTree;
 import cn.nukkit.math.NukkitRandom;

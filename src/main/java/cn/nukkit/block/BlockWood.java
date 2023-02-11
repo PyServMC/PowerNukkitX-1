@@ -13,7 +13,7 @@ import cn.nukkit.blockstate.exception.InvalidBlockStateException;
 import cn.nukkit.item.ItemBlock;
 import cn.nukkit.utils.BlockColor;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import static cn.nukkit.blockproperty.CommonBlockProperties.PILLAR_AXIS;
 
@@ -63,7 +63,7 @@ public class BlockWood extends BlockLog {
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -98,9 +98,9 @@ public class BlockWood extends BlockLog {
 
     @Since("1.5.1.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
-    public Block forState(@Nonnull IBlockState state) throws InvalidBlockStateException {
+    public Block forState(@NotNull IBlockState state) throws InvalidBlockStateException {
         int id = getId();
         if (id != LOG && id != LOG2) {
             return super.forState(state);

@@ -7,12 +7,13 @@ import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.tree.ParamList;
 import cn.nukkit.lang.CommandOutputContainer;
 import cn.nukkit.network.protocol.types.CommandOutputMessage;
+import cn.nukkit.utils.OK;
 
 /**
  * 代表一个抽象的命令节点，类型T对应节点解析结果类型<br>
  */
 @PowerNukkitXOnly
-@Since("1.19.50-r4")
+@Since("1.19.60-r1")
 public interface IParamNode<T> {
 
     /**
@@ -51,7 +52,6 @@ public interface IParamNode<T> {
      * @return the parent
      */
     ParamList getParent();
-
 
     /**
      * 标记该节点的{@link #fill(String)}出现错误，输出默认错误信息

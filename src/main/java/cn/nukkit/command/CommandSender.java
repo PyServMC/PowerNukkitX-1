@@ -11,7 +11,8 @@ import cn.nukkit.level.Location;
 import cn.nukkit.level.Position;
 import cn.nukkit.permission.Permissible;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 
 /**
@@ -54,7 +55,7 @@ public interface CommandSender extends Permissible {
      * @param container the container
      */
     @PowerNukkitXOnly
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     void sendCommandOutput(CommandOutputContainer container);
 
     /**
@@ -85,7 +86,7 @@ public interface CommandSender extends Permissible {
      * @see cn.nukkit.plugin.PluginDescription
      * @since Nukkit 1.0 | Nukkit API 1.0.0
      */
-    @Nonnull
+    @NotNull
     String getName();
 
     /**
@@ -142,18 +143,18 @@ public interface CommandSender extends Permissible {
      */
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
-    @Nonnull
+    @NotNull
     default Position getPosition() {
         return new Position(0, 0, 0, Server.getInstance().getDefaultLevel());
     }
 
 
     /**
-     * @return 返回发送者的Location<br>return the sender's location.
+     * @return 返回发送者克隆过的Location<br>return the sender's location.
      */
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
-    @Nonnull
+    @NotNull
     default Location getLocation() {
         return new Location(0, 0, 0, Server.getInstance().getDefaultLevel());
     }

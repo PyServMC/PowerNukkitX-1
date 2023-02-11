@@ -3,6 +3,7 @@ package cn.nukkit.block;
 import cn.nukkit.Player;
 import cn.nukkit.api.PowerNukkitDifference;
 import cn.nukkit.api.PowerNukkitOnly;
+import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.blockentity.BlockEntityChest;
@@ -12,6 +13,7 @@ import cn.nukkit.inventory.ContainerInventory;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemBlock;
 import cn.nukkit.item.ItemTool;
+import cn.nukkit.level.Position;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.ListTag;
@@ -19,8 +21,8 @@ import cn.nukkit.nbt.tag.StringTag;
 import cn.nukkit.nbt.tag.Tag;
 import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
@@ -44,7 +46,7 @@ public class BlockChest extends BlockTransparentMeta implements Faceable, BlockE
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public Class<? extends BlockEntityChest> getBlockEntityClass() {
         return BlockEntityChest.class;
@@ -52,7 +54,7 @@ public class BlockChest extends BlockTransparentMeta implements Faceable, BlockE
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     @Override
     public String getBlockEntityType() {
         return BlockEntity.CHEST;
@@ -70,7 +72,7 @@ public class BlockChest extends BlockTransparentMeta implements Faceable, BlockE
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -134,26 +136,9 @@ public class BlockChest extends BlockTransparentMeta implements Faceable, BlockE
 
 
     @Override
-    public boolean place(@Nonnull Item item, @Nonnull Block block, @Nonnull Block target, @Nonnull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
-        BlockEntityChest chest = null;
+    public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
         int[] faces = {2, 5, 3, 4};
         this.setDamage(faces[player != null ? player.getDirection().getHorizontalIndex() : 0]);
-
-        for (int side = 2; side <= 5; ++side) {
-            if ((this.getDamage() == 4 || this.getDamage() == 5) && (side == 4 || side == 5)) {
-                continue;
-            } else if ((this.getDamage() == 3 || this.getDamage() == 2) && (side == 2 || side == 3)) {
-                continue;
-            }
-            Block c = this.getSide(BlockFace.fromIndex(side));
-            if (c instanceof BlockChest && c.getDamage() == this.getDamage()) {
-                BlockEntity blockEntity = this.getLevel().getBlockEntity(c);
-                if (blockEntity instanceof BlockEntityChest && !((BlockEntityChest) blockEntity).isPaired()) {
-                    chest = (BlockEntityChest) blockEntity;
-                    break;
-                }
-            }
-        }
 
         CompoundTag nbt = new CompoundTag().putList(new ListTag<>("Items"));
 
@@ -167,18 +152,72 @@ public class BlockChest extends BlockTransparentMeta implements Faceable, BlockE
                 nbt.put(tag.getKey(), tag.getValue());
             }
         }
-        
+
         BlockEntityChest blockEntity = BlockEntityHolder.setBlockAndCreateEntity(this, true, true, nbt);
         if (blockEntity == null) {
             return false;
         }
 
-        if (chest != null) {
-            chest.pairWith(blockEntity);
-            blockEntity.pairWith(chest);
-        }
+        tryPair();
 
         return true;
+    }
+
+    /**
+     * 尝试与旁边箱子连接
+     * @return 是否连接成功
+     */
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    protected boolean tryPair() {
+        BlockEntityChest blockEntity = getBlockEntity();
+        if (blockEntity == null)
+            return false;
+
+        BlockEntityChest chest = findPair();
+        if (chest == null)
+            return false;
+
+        chest.pairWith(blockEntity);
+        blockEntity.pairWith(chest);
+        return true;
+    }
+
+    /**
+     * 寻找附近的可配对箱子
+     * @return 找到的可配对箱子。若没找到，则为null
+     */
+    @Nullable
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    protected BlockEntityChest findPair() {
+        for (int side = 2; side <= 5; ++side) {
+            if ((this.getDamage() == 4 || this.getDamage() == 5) && (side == 4 || side == 5)) {
+                continue;
+            } else if ((this.getDamage() == 3 || this.getDamage() == 2) && (side == 2 || side == 3)) {
+                continue;
+            }
+            Block c = this.getSide(BlockFace.fromIndex(side));
+            if (c instanceof BlockChest && c.getDamage() == this.getDamage()) {
+                BlockEntity blockEntity = this.getLevel().getBlockEntity(c);
+                if (blockEntity instanceof BlockEntityChest blockEntityChest && !((BlockEntityChest) blockEntity).isPaired()) {
+                    return blockEntityChest;
+                }
+            }
+        }
+        return null;
+    }
+
+    @Since("1.19.60-r1")
+    @Override
+    public boolean cloneTo(Position pos) {
+        if (!super.cloneTo(pos)) return false;
+        else {
+            var blockEntity = this.getBlockEntity();
+            if (blockEntity != null && blockEntity.isPaired())
+                ((BlockChest) pos.getLevelBlock()).tryPair();
+            return true;
+        }
     }
 
     @Override
@@ -193,17 +232,18 @@ public class BlockChest extends BlockTransparentMeta implements Faceable, BlockE
     }
 
     @Override
-    public boolean onActivate(@Nonnull Item item, Player player) {
+    public boolean onActivate(@NotNull Item item, Player player) {
         if (player == null) {
+            return false;
+        }
+
+        Block top = up();
+        if (!top.isTransparent()) {
             return false;
         }
 
         BlockEntityChest chest = getOrCreateBlockEntity();
         if (!player.isSpectator()) {
-            Block top = up();
-            if (!top.isTransparent()) {
-                return false;
-            }
             if (chest.isPaired()) {
                 top = chest.getPair().getSide(BlockFace.UP).getLevelBlock();
                 if (!top.isTransparent()) {
@@ -250,5 +290,24 @@ public class BlockChest extends BlockTransparentMeta implements Faceable, BlockE
     @Override
     public BlockFace getBlockFace() {
         return BlockFace.fromHorizontalIndex(this.getDamage() & 0x7);
+    }
+
+    @Override
+    public boolean canBePushed() {
+        return canMove();
+    }
+
+    @PowerNukkitOnly
+    @Override
+    public boolean canBePulled() {
+        return canMove();
+    }
+
+    /**
+     * TODO: 大箱子在PNX不能推动
+     */
+    protected boolean canMove() {
+        var blockEntity = this.getBlockEntity();
+        return blockEntity == null || !blockEntity.isPaired();
     }
 }

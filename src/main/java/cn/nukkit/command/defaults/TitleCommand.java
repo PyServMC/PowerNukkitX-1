@@ -7,7 +7,6 @@ import cn.nukkit.command.data.CommandEnum;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.tree.node.PlayersNode;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.utils.TextFormat;
@@ -47,11 +46,15 @@ public class TitleCommand extends VanillaCommand {
         this.enableParamTree();
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
         var list = result.getValue();
         List<Player> players = list.getResult(0);
+        if (players.isEmpty()) {
+            log.addNoTargetMatch().output();
+            return 0;
+        }
         switch (result.getKey()) {
             case "clear" -> {
                 for (Player player : players) {
@@ -71,8 +74,7 @@ public class TitleCommand extends VanillaCommand {
             }
             case "set" -> {
                 String titleLocation = list.getResult(1);
-                String[] message = list.getResult(2);
-                var titleText = String.join(" ", message);
+                String titleText = list.getResult(2);
                 switch (titleLocation) {
                     case "title" -> {
                         for (Player player : players) {

@@ -1,5 +1,7 @@
 package cn.nukkit.block;
 
+import cn.nukkit.nbt.tag.CompoundTag;
+
 /**
  * @author Pub4Game
  * @since 03.01.2015

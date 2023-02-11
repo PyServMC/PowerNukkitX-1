@@ -23,17 +23,16 @@ import cn.nukkit.entity.provider.CustomEntityProvider;
 import cn.nukkit.entity.provider.EntityProvider;
 import cn.nukkit.entity.provider.EntityProviderWithClass;
 import cn.nukkit.event.Event;
+import cn.nukkit.event.block.FarmLandDecayEvent;
 import cn.nukkit.event.entity.*;
 import cn.nukkit.event.entity.EntityDamageEvent.DamageCause;
 import cn.nukkit.event.entity.EntityPortalEnterEvent.PortalType;
-import cn.nukkit.event.player.PlayerFreezeEvent;
 import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.event.player.PlayerInteractEvent.Action;
 import cn.nukkit.event.player.PlayerTeleportEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemID;
 import cn.nukkit.item.enchantment.Enchantment;
-import cn.nukkit.item.enchantment.sideeffect.SideEffect;
 import cn.nukkit.level.*;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.level.particle.ExplodeParticle;
@@ -48,9 +47,7 @@ import cn.nukkit.network.protocol.types.EntityLink;
 import cn.nukkit.plugin.Plugin;
 import cn.nukkit.potion.Effect;
 import cn.nukkit.scheduler.Task;
-import cn.nukkit.utils.ChunkException;
-import cn.nukkit.utils.TextFormat;
-import cn.nukkit.utils.Utils;
+import cn.nukkit.utils.*;
 import co.aikar.timings.Timing;
 import co.aikar.timings.Timings;
 import co.aikar.timings.TimingsHistory;
@@ -59,8 +56,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntCollection;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -462,7 +459,7 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_FLAG_HAS_DASH_COOLDOWN = dynamic(108);
     @Since("1.19.50-r1")
     public static final int DATA_FLAG_PUSH_TOWARDS_CLOSEST_SPACE = dynamic(109);
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     public static final int DATA_FLAG_LARGE = dynamic(110);
     private static final Set<CustomEntityDefinition> entityDefinitions = new HashSet<>();
     private static final Map<String, EntityProvider<? extends Entity>> knownEntities = new HashMap<>();
@@ -565,7 +562,7 @@ public abstract class Entity extends Location implements Metadatable {
     protected Timing timing;
     protected boolean isPlayer = this instanceof Player;
     @PowerNukkitXOnly
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Getter
     protected EntityComponentGroup componentGroup;
     private int maxHealth = 20;
@@ -579,28 +576,49 @@ public abstract class Entity extends Location implements Metadatable {
         this.init(chunk, nbt);
     }
 
+
+    /**
+     * 从mc标准实体标识符创建实体，形如(minecraft:sheep)
+     *
+     * @param identifier the identifier
+     * @param pos        the pos
+     * @param args       the args
+     * @return the entity
+     */
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
     @Nullable
-    public static Entity createEntity(@Nonnull String name, @Nonnull Position pos, @Nullable Object... args) {
-        return createEntity(name, pos.getChunk(), getDefaultNBT(pos), args);
+    public static Entity createEntity(Identifier identifier, @NotNull Position pos, @Nullable Object... args) {
+        Integer id = EntityIds.IDENTIFIER_2_IDS.get(identifier.toString());
+        String name;
+        if (id == null) {
+            name = identifier.toString();
+        } else name = id.toString();
+        return createEntity(name, pos, args);
     }
 
     @Nullable
-    public static Entity createEntity(int type, @Nonnull Position pos, @Nullable Object... args) {
-        return createEntity(String.valueOf(type), pos.getChunk(), getDefaultNBT(pos), args);
+    public static Entity createEntity(@NotNull String name, @NotNull Position pos, @Nullable Object... args) {
+        return createEntity(name, Objects.requireNonNull(pos.getChunk()), getDefaultNBT(pos), args);
     }
 
     @Nullable
-    public static Entity createEntity(@Nonnull String name, @Nonnull FullChunk chunk, @Nonnull CompoundTag nbt, @Nullable Object... args) {
+    public static Entity createEntity(int type, @NotNull Position pos, @Nullable Object... args) {
+        return createEntity(String.valueOf(type), Objects.requireNonNull(pos.getChunk()), getDefaultNBT(pos), args);
+    }
+
+    @Nullable
+    public static Entity createEntity(int type, @NotNull FullChunk chunk, @NotNull CompoundTag nbt, @Nullable Object... args) {
+        return createEntity(String.valueOf(type), chunk, nbt, args);
+    }
+
+    @Nullable
+    public static Entity createEntity(@NotNull String name, @NotNull FullChunk chunk, @NotNull CompoundTag nbt, @Nullable Object... args) {
         var provider = knownEntities.get(name);
         if (provider != null) {
             return provider.provideEntity(chunk, nbt, args);
         }
         return null;
-    }
-
-    @Nullable
-    public static Entity createEntity(int type, @Nonnull FullChunk chunk, @Nonnull CompoundTag nbt, @Nullable Object... args) {
-        return createEntity(String.valueOf(type), chunk, nbt, args);
     }
 
     public static boolean registerEntity(String name, Class<? extends Entity> clazz) {
@@ -663,16 +681,15 @@ public abstract class Entity extends Location implements Metadatable {
 
     @PowerNukkitXOnly
     @Since("1.19.21-r2")
-    public static void registerCustomEntity(CustomEntityProvider customEntityProvider) {
+    public static OK<?> registerCustomEntity(CustomEntityProvider customEntityProvider) {
         if (!Server.getInstance().isEnableExperimentMode() || Server.getInstance().getConfig("settings.waterdogpe", false)) {
-            log.warn("The server does not have the experiment mode feature enabled.Unable to register custom entity!");
-            return;
+            return new OK<>(false, "The server does not have the experiment mode feature enabled.Unable to register custom entity!");
         }
         entityDefinitions.add(customEntityProvider.getCustomEntityDefinition());
-        registerEntity(customEntityProvider, true);
+        return new OK<Void>(registerEntity(customEntityProvider, true));
     }
 
-    @Nonnull
+    @NotNull
     @PowerNukkitOnly
     @Since("1.5.1.0-PN")
     public static IntCollection getKnownEntityIds() {
@@ -682,7 +699,7 @@ public abstract class Entity extends Location implements Metadatable {
                 .collect(IntArrayList::new, IntArrayList::add, IntArrayList::addAll);
     }
 
-    @Nonnull
+    @NotNull
     @PowerNukkitXOnly
     @Since("1.19.20-r4")
     @Deprecated
@@ -693,7 +710,7 @@ public abstract class Entity extends Location implements Metadatable {
                 .collect(Collectors.toMap(OldStringClass::key, OldStringClass::value));
     }
 
-    @Nonnull
+    @NotNull
     @PowerNukkitXOnly
     @Since("1.19.20-r4")
     @Deprecated
@@ -701,14 +718,14 @@ public abstract class Entity extends Location implements Metadatable {
         return Collections.unmodifiableMap(knownEntities);
     }
 
-    @Nonnull
+    @NotNull
     @PowerNukkitOnly
     @Since("1.5.1.0-PN")
     public static List<String> getSaveIds() {
         return new ArrayList<>(shortNames.values());
     }
 
-    @Nonnull
+    @NotNull
     @PowerNukkitOnly
     @Since("1.5.1.0-PN")
     public static OptionalInt getSaveId(String id) {
@@ -735,13 +752,13 @@ public abstract class Entity extends Location implements Metadatable {
         return shortNames.get(entityProvider.getSimpleName());
     }
 
-    @Nonnull
-    public static CompoundTag getDefaultNBT(@Nonnull Vector3 pos) {
+    @NotNull
+    public static CompoundTag getDefaultNBT(@NotNull Vector3 pos) {
         return getDefaultNBT(pos, null);
     }
 
-    @Nonnull
-    public static CompoundTag getDefaultNBT(@Nonnull Vector3 pos, @Nullable Vector3 motion) {
+    @NotNull
+    public static CompoundTag getDefaultNBT(@NotNull Vector3 pos, @Nullable Vector3 motion) {
         Location loc = pos instanceof Location ? (Location) pos : null;
 
         if (loc != null) {
@@ -751,8 +768,8 @@ public abstract class Entity extends Location implements Metadatable {
         return getDefaultNBT(pos, motion, 0, 0);
     }
 
-    @Nonnull
-    public static CompoundTag getDefaultNBT(@Nonnull Vector3 pos, @Nullable Vector3 motion, float yaw, float pitch) {
+    @NotNull
+    public static CompoundTag getDefaultNBT(@NotNull Vector3 pos, @Nullable Vector3 motion, float yaw, float pitch) {
         return new CompoundTag()
                 .putList(new ListTag<DoubleTag>("Pos")
                         .add(new DoubleTag("", pos.x))
@@ -1370,7 +1387,7 @@ public abstract class Entity extends Location implements Metadatable {
     /**
      * The current name used by this entity in the name tag, or the static name if the entity don't have nametag.
      */
-    @Nonnull
+    @NotNull
     public String getName() {
         if (this.hasCustomName()) {
             return this.getNameTag();
@@ -1576,10 +1593,6 @@ public abstract class Entity extends Location implements Metadatable {
 
         Entity attacker = source instanceof EntityDamageByEntityEvent ? ((EntityDamageByEntityEvent) source).getDamager() : null;
 
-        //计算一些反伤之类的附魔
-        for (SideEffect sideEffect : source.getSideEffects()) {
-            sideEffect.doPreHealthChange(this, source, attacker);
-        }
         setHealth(newHealth);
 
         if (!(this instanceof EntityArmorStand)) {
@@ -1874,23 +1887,6 @@ public abstract class Entity extends Location implements Metadatable {
                 }
             }
         }
-
-        if (this.getTickCachedCollisionBlocks().stream().noneMatch(block -> block.getId() == Block.POWDER_SNOW) && this.getFreezingTicks() > 0) {
-            this.addFreezingTicks(-tickDiff);
-        }
-
-        if (this.getFreezingTicks() != 0 && this instanceof Player player) {
-            PlayerFreezeEvent event = new PlayerFreezeEvent(player, 0.05f, 0.1f);
-            this.server.getPluginManager().callEvent(event);
-            if (!event.isCancelled()) {
-                player.setMovementSpeed(event.getBaseSpeed() - event.getSpeedFactor() * (this.getFreezingTicks() / 140f));
-            }
-        }
-
-        if (this.getFreezingTicks() == 140 && this.getServer().getTick() % 40 == 0) {
-            this.attack(new EntityDamageEvent(this, DamageCause.FREEZING, getFrostbiteInjury()));
-        }
-
         this.age += tickDiff;
         this.ticksLived += tickDiff;
         TimingsHistory.activatedEntityTicks++;
@@ -1993,11 +1989,12 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     /*
-     * 请注意此方法仅向客户端发motion包，并不会真正的将motion数值加到实体的motion(x|y|z)上
-     * 如果你想在实体的motion基础上增加，请直接将要添加的motion数值加到实体的motion(x|y|z)上，像这样：
-     * entity.motionX += vector3.x;
-     * entity.motionY += vector3.y;
-     * entity.motionZ += vector3.z;
+     * 请注意此方法仅向客户端发motion包，并不会真正的将motion数值加到实体的motion(x|y|z)上<p/>
+     * 如果你想在实体的motion基础上增加，请直接将要添加的motion数值加到实体的motion(x|y|z)上，像这样：<p/>
+     * entity.motionX += vector3.x;<p/>
+     * entity.motionY += vector3.y;<p/>
+     * entity.motionZ += vector3.z;<p/>
+     * 对于玩家实体，你不应该使用此方法！
      */
     public void addMotion(double motionX, double motionY, double motionZ) {
         SetEntityMotionPacket pk = new SetEntityMotionPacket();
@@ -2017,7 +2014,7 @@ public abstract class Entity extends Location implements Metadatable {
         pk.x = this.x;
         //因为以前处理MOVE_PLAYER_PACKET的时候是y - this.getBaseOffset()
         //现在统一 MOVE_PLAYER_PACKET和PLAYER_AUTH_INPUT_PACKET 均为this.y - this.getEyeHeight()，所以这里不再需要对两种移动方式分别处理
-        pk.y = isSwimming() ? this.y + getSwimmingHeight() : this.y + this.getEyeHeight();
+        pk.y = this.y + this.getBaseOffset();
         pk.z = this.z;
         pk.headYaw = yaw;
         pk.pitch = pitch;
@@ -2087,11 +2084,6 @@ public abstract class Entity extends Location implements Metadatable {
 
         if (!this.isImmobile()) {
             this.updateMovement();
-        }
-
-        if (this.add(0, -0.1).getTickCachedLevelBlock() instanceof BlockBigDripleaf block) {
-            if (block.isHead())
-                block.onUpdate(Level.BLOCK_UPDATE_NORMAL);
         }
 
         return hasUpdate;
@@ -2333,6 +2325,9 @@ public abstract class Entity extends Location implements Metadatable {
                 if (onPhysicalInteraction(down, false)) {
                     return;
                 }
+                var farmEvent = new FarmLandDecayEvent(this, down);
+                this.server.getPluginManager().callEvent(farmEvent);
+                if (farmEvent.isCancelled()) return;
                 this.level.setBlock(down, new BlockDirt(), false, true);
                 return;
             }
@@ -2475,7 +2470,7 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Location getLocation() {
         return new Location(this.x, this.y, this.z, this.yaw, this.pitch, this.headYaw, this.level);
     }
@@ -2501,13 +2496,13 @@ public abstract class Entity extends Location implements Metadatable {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @PowerNukkitXDifference(info = "Make as public method", since = "1.19.50-r4")
+    @PowerNukkitXDifference(info = "Make as public method", since = "1.19.60-r1")
     public boolean hasWaterAt(float height) {
         return hasWaterAt(height, false);
     }
 
     @PowerNukkitXOnly
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     protected boolean hasWaterAt(float height, boolean tickCached) {
         double y = this.y + height;
         Block block = tickCached ?
@@ -2615,7 +2610,7 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     //Player do not use
-    @PowerNukkitXDifference(since = "1.19.50-r4", info = "The onGround is updated when the entity motion is 0")
+    @PowerNukkitXDifference(since = "1.19.60-r1", info = "The onGround is updated when the entity motion is 0")
     public boolean move(double dx, double dy, double dz) {
         if (dx == 0 && dz == 0 && dy == 0) {
             this.onGround = !this.getPosition().setComponents(this.down()).getTickCachedLevelBlock().canPassThrough();
@@ -2979,16 +2974,22 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     public boolean setPositionAndRotation(Vector3 pos, double yaw, double pitch) {
-        this.setPosition(pos);
         this.setRotation(yaw, pitch);
-        return true;
+        return this.setPosition(pos);
     }
 
-    @Since("1.6.0.0-PN")
+    /**
+     * Sets position and rotation.
+     *
+     * @param pos     the pos
+     * @param yaw     the yaw
+     * @param pitch   the pitch
+     * @param headYaw the head yaw
+     * @return 切换地图失败会返回false
+     */
     public boolean setPositionAndRotation(Vector3 pos, double yaw, double pitch, double headYaw) {
-        this.setPosition(pos);
         this.setRotation(yaw, pitch, headYaw);
-        return true;
+        return this.setPosition(pos);
     }
 
     public void setRotation(double yaw, double pitch) {
@@ -3076,7 +3077,7 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     /**
-     * 设置一个运动向量(会使得实体移动这个向量的距离，非精准移动)
+     * 设置一个运动向量(会使得实体移动这个向量的距离，非精准移动)<p/>
      * <p>
      * Set a motion vector (will make the entity move the distance of this vector, not move precisely)
      *
@@ -3495,18 +3496,18 @@ public abstract class Entity extends Location implements Metadatable {
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
     public void setFreezingTicks(int ticks) {
-        if (ticks < 0 || ticks > 140)
-            throw new IllegalArgumentException("Freezing ticks must be between 0 and 140");
-        this.freezingTicks = ticks;
+        if (ticks < 0) this.freezingTicks = 0;
+        else if (ticks > 140) this.freezingTicks = 140;
+        else this.freezingTicks = ticks;
         setFreezingEffectStrength(ticks / 140f);
     }
 
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
     public void addFreezingTicks(int increments) {
-        if (freezingTicks + increments < 0 || freezingTicks + increments > 140)
-            throw new IllegalArgumentException("Freezing ticks must be between 0 and 140");
-        this.freezingTicks += increments;
+        if (freezingTicks + increments < 0) this.freezingTicks = 0;
+        else if (freezingTicks + increments > 140) this.freezingTicks = 140;
+        else this.freezingTicks += increments;
         setFreezingEffectStrength(this.freezingTicks / 140f);
     }
 
@@ -3537,7 +3538,7 @@ public abstract class Entity extends Location implements Metadatable {
     @PowerNukkitXOnly
     @Since("1.19.50-r3")
     public void playAnimation(AnimateEntityPacket.Animation animation) {
-        var viewers = this.getViewers().values();
+        var viewers = new HashSet<>(this.getViewers().values());
         if (this.isPlayer) viewers.add((Player) this);
         playAnimation(animation, viewers);
     }
@@ -3560,11 +3561,39 @@ public abstract class Entity extends Location implements Metadatable {
         Server.broadcastPacket(players, pk);
     }
 
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public void playActionAnimation(AnimatePacket.Action action, float rowingTime) {
+        var viewers = new HashSet<>(this.getViewers().values());
+        if (this.isPlayer) viewers.add((Player) this);
+        playActionAnimation(action, rowingTime, viewers);
+    }
+
+    /**
+     * Play the action animation of this entity to a specified group of players
+     * <p>
+     * 向指定玩家群体播放此实体的action动画
+     *
+     * @param action     the action
+     * @param rowingTime the rowing time
+     * @param players    可视玩家 Visible Player
+     */
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public void playActionAnimation(AnimatePacket.Action action, float rowingTime, Collection<Player> players) {
+        var pk = new AnimatePacket();
+        pk.action = action;
+        pk.rowingTime = rowingTime;
+        pk.eid = this.getId();
+        pk.encode();
+        Server.broadcastPacket(players, pk);
+    }
+
     /**
      * 通过反射获取类实现的接口并查询{@link cn.nukkit.entity.component.EntityComponentRegistery}创建对应组件
      */
     @PowerNukkitXOnly
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     protected EntityComponentGroup requireEntityComponentGroup() throws InvocationTargetException, InstantiationException, IllegalAccessException {
         var components = new HashSet<EntityComponent>();
 

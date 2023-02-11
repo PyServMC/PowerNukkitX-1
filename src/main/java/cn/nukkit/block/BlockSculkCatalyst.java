@@ -7,8 +7,9 @@ import cn.nukkit.blockentity.BlockEntitySculkCatalyst;
 import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.blockproperty.BooleanBlockProperty;
 import cn.nukkit.item.ItemTool;
+import cn.nukkit.utils.BlockColor;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 @PowerNukkitXOnly
 @Since("1.6.0.0-PNX")
@@ -62,16 +63,20 @@ public class BlockSculkCatalyst extends BlockSolid implements BlockEntityHolder<
         return ItemTool.TYPE_HOE;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Class<? extends BlockEntitySculkCatalyst> getBlockEntityClass() {
         return BlockEntitySculkCatalyst.class;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getBlockEntityType() {
         return BlockEntity.SCULK_CATALYST;
     }
 
+    @Override
+    public BlockColor getColor() {
+        return BlockColor.SCULK_BLOCK_COLOR;
+    }
 }

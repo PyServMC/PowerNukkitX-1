@@ -17,7 +17,8 @@ import cn.nukkit.math.Vector3;
 import cn.nukkit.network.protocol.LevelSoundEventPacket;
 import cn.nukkit.utils.RedstoneComponent;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 
 import static cn.nukkit.block.BlockTripWire.ATTACHED;
@@ -54,7 +55,7 @@ public class BlockTripWireHook extends BlockTransparentMeta implements RedstoneC
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -67,7 +68,8 @@ public class BlockTripWireHook extends BlockTransparentMeta implements RedstoneC
     @Override
     public int onUpdate(int type) {
         if (type == Level.BLOCK_UPDATE_NORMAL) {
-            if (!this.getSide(this.getFacing().getOpposite()).isNormalBlock()) {
+            var supportBlock = this.getSide(this.getFacing().getOpposite());
+            if (!supportBlock.isNormalBlock() && !(supportBlock instanceof BlockGlass)) {
                 this.level.useBreakOn(this);
             }
 
@@ -81,8 +83,9 @@ public class BlockTripWireHook extends BlockTransparentMeta implements RedstoneC
     }
 
     @Override
-    public boolean place(@Nonnull Item item, @Nonnull Block block, @Nonnull Block target, @Nonnull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
-        if (!this.getSide(face.getOpposite()).isNormalBlock() || face == BlockFace.DOWN || face == BlockFace.UP) {
+    public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
+        var supportBlock = this.getSide(face.getOpposite());
+        if (face == BlockFace.DOWN || face == BlockFace.UP || (!supportBlock.isNormalBlock() && !(supportBlock instanceof BlockGlass))) {
             return false;
         }
 
@@ -175,7 +178,7 @@ public class BlockTripWireHook extends BlockTransparentMeta implements RedstoneC
             Position p = position.getSide(facing, distance);
             BlockFace face = facing.getOpposite();
             hook.setFace(face);
-            this.level.setBlock(p, hook, true, false);
+            this.level.setBlock(p, hook, true, true);
             RedstoneComponent.updateAroundRedstone(p);
             RedstoneComponent.updateAroundRedstone(p.getSide(face.getOpposite()));
             this.addSound(p, canConnect, nextPowered, attached, powered);
@@ -185,7 +188,7 @@ public class BlockTripWireHook extends BlockTransparentMeta implements RedstoneC
 
         if (!onBreak) {
             hook.setFace(facing);
-            this.level.setBlock(position, hook, true, false);
+            this.level.setBlock(position, hook, true, true);
 
             if (updateAround) {
                 updateAroundRedstone();
@@ -203,7 +206,7 @@ public class BlockTripWireHook extends BlockTransparentMeta implements RedstoneC
                         block.setDamage(block.getDamage() ^ 0x04);
                     }
 
-                    this.level.setBlock(vc, block, true, false);
+                    this.level.setBlock(vc, block, true, true);
                 }
             }
         }
@@ -289,5 +292,22 @@ public class BlockTripWireHook extends BlockTransparentMeta implements RedstoneC
     @Override
     public Item toItem() {
         return new ItemBlock(this, 0);
+    }
+
+    @Override
+    public boolean isSolid() {
+        return false;
+    }
+
+    @Since("1.3.0.0-PN")
+    @PowerNukkitOnly
+    @Override
+    public boolean isSolid(BlockFace side) {
+        return false;
+    }
+
+    @Override
+    public boolean canPassThrough() {
+        return false;
     }
 }

@@ -3,11 +3,13 @@ package cn.nukkit.entity;
 import cn.nukkit.Player;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
+import cn.nukkit.block.Block;
 import cn.nukkit.entity.data.IntPositionEntityData;
 import cn.nukkit.entity.data.Skin;
 import cn.nukkit.event.entity.EntityDamageEvent;
+import cn.nukkit.event.player.EntityFreezeEvent;
 import cn.nukkit.item.Item;
-import cn.nukkit.item.ItemID;
+import cn.nukkit.item.ItemShield;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.ListTag;
@@ -70,6 +72,11 @@ public class EntityHuman extends EntityHumanType {
         return (float) (boundingBox.getMaxY() - boundingBox.getMinY() - 0.18);
     }
 
+    /**
+     * 偏移客户端传输玩家位置的y轴误差
+     *
+     * @return the base offset
+     */
     @Override
     protected float getBaseOffset() {
         return 1.62f;
@@ -308,6 +315,36 @@ public class EntityHuman extends EntityHumanType {
     }
 
     @Override
+    public boolean entityBaseTick() {
+        return this.entityBaseTick(1);
+    }
+
+    @Override
+    public boolean entityBaseTick(int tickDiff) {
+        boolean hasUpdate = super.entityBaseTick(tickDiff);
+        //handle human entity freeze
+        var collidedWithPowderSnow = this.getTickCachedCollisionBlocks().stream().anyMatch(block -> block.getId() == Block.POWDER_SNOW);
+        if (this.getFreezingTicks() < 140 && collidedWithPowderSnow) {
+            if (getFreezingTicks() == 0) {//玩家疾跑进来要设置为非疾跑，统一为默认速度0.1
+                this.setSprinting(false);
+            }
+            this.addFreezingTicks(1);
+            EntityFreezeEvent event = new EntityFreezeEvent(this);
+            this.server.getPluginManager().callEvent(event);
+            if (!event.isCancelled()) {
+                this.setMovementSpeed((float) Math.max(0.05, getMovementSpeed() - 3.58e-4));
+            }
+        } else if (this.getFreezingTicks() > 0 && !collidedWithPowderSnow) {
+            this.addFreezingTicks(-1);
+            this.setMovementSpeed((float) Math.min(Player.DEFAULT_SPEED, getMovementSpeed() + 3.58e-4));//This magic number is to change the player's 0.05 speed within 140tick
+        }
+        if (this.getFreezingTicks() == 140 && this.getServer().getTick() % 40 == 0) {
+            this.attack(new EntityDamageEvent(this, EntityDamageEvent.DamageCause.FREEZING, getFrostbiteInjury()));
+        }
+        return hasUpdate;
+    }
+
+    @Override
     public void addMovement(double x, double y, double z, double yaw, double pitch, double headYaw) {
         this.level.addPlayerMovement(this, x, y, z, yaw, pitch, headYaw);
     }
@@ -392,10 +429,10 @@ public class EntityHuman extends EntityHumanType {
         super.onBlock(entity, event, animate);
         Item shield = getInventory().getItemInHand();
         Item shieldOffhand = getOffhandInventory().getItem(0);
-        if (shield.getId() == ItemID.SHIELD) {
+        if (shield instanceof ItemShield) {
             shield = damageArmor(shield, entity, event);
             getInventory().setItemInHand(shield);
-        } else if (shieldOffhand.getId() == ItemID.SHIELD) {
+        } else if (shieldOffhand instanceof ItemShield) {
             shieldOffhand = damageArmor(shieldOffhand, entity, event);
             getOffhandInventory().setItem(0, shieldOffhand);
         }

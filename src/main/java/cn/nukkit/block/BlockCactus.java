@@ -16,15 +16,16 @@ import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.SimpleAxisAlignedBB;
 import cn.nukkit.math.Vector3;
+import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.utils.BlockColor;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
  * @author Nukkit Project Team
  */
-public class BlockCactus extends BlockTransparentMeta {
+public class BlockCactus extends BlockTransparentMeta implements BlockFlowerPot.FlowerPotBlock {
     @PowerNukkitOnly
     @Since("1.5.0.0-PN")
     public static final BlockProperties PROPERTIES = new BlockProperties(CommonBlockProperties.AGE_15);
@@ -44,7 +45,7 @@ public class BlockCactus extends BlockTransparentMeta {
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -136,14 +137,14 @@ public class BlockCactus extends BlockTransparentMeta {
                             if (!event.isCancelled()) {
                                 this.getLevel().setBlock(b, event.getNewState(), true);
                             }
+                            break;
                         }
                     }
                     this.setDamage(0);
-                    this.getLevel().setBlock(this, this);
                 } else {
                     this.setDamage(this.getDamage() + 1);
-                    this.getLevel().setBlock(this, this);
                 }
+                this.getLevel().setBlock(this, this);
             }
         }
 
@@ -151,7 +152,7 @@ public class BlockCactus extends BlockTransparentMeta {
     }
 
     @Override
-    public boolean place(@Nonnull Item item, @Nonnull Block block, @Nonnull Block target, @Nonnull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
+    public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
         Block down = this.down();
         if (down.getId() == SAND || down.getId() == CACTUS) {
             Block block0 = north();

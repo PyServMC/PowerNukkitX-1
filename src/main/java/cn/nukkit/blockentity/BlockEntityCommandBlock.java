@@ -9,6 +9,8 @@ import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockCommandBlock;
 import cn.nukkit.block.BlockCommandBlockChain;
 import cn.nukkit.block.BlockID;
+import cn.nukkit.command.CommandSender;
+import cn.nukkit.command.ConsoleCommandSender;
 import cn.nukkit.event.command.CommandBlockExecuteEvent;
 import cn.nukkit.inventory.CommandBlockInventory;
 import cn.nukkit.inventory.Inventory;
@@ -66,6 +68,16 @@ public class BlockEntityCommandBlock extends BlockEntitySpawnable implements ICo
 
     @Override
     protected void initBlockEntity() {
+        super.initBlockEntity();
+        if (this.getMode() == MODE_REPEATING) {
+            this.scheduleUpdate();
+        }
+    }
+
+    @Since("1.19.60-r1")
+    @Override
+    public void loadNBT() {
+        super.loadNBT();
         this.perm = new PermissibleBase(this);
         this.currentTick = 0;
 
@@ -158,12 +170,6 @@ public class BlockEntityCommandBlock extends BlockEntitySpawnable implements ICo
         } else {
             this.executingOnFirstTick = false;
         }
-
-        super.initBlockEntity();
-
-        if (this.getMode() == MODE_REPEATING) {
-            this.scheduleUpdate();
-        }
     }
 
     @Override
@@ -191,27 +197,6 @@ public class BlockEntityCommandBlock extends BlockEntitySpawnable implements ICo
         this.namedTag.putInt(TAG_VERSION, CURRENT_VERSION);
         this.namedTag.putInt(TAG_TICK_DELAY, this.tickDelay);
         this.namedTag.putBoolean(TAG_EXECUTE_ON_FIRST_TICK, this.executingOnFirstTick);
-    }
-
-    @Since("1.6.0.0-PNX")
-    @Override
-    public void loadNBT() {
-        super.loadNBT();
-        this.powered = this.namedTag.getBoolean(TAG_POWERED);
-        this.conditionalMode = this.namedTag.getBoolean(TAG_CONDITIONAL_MODE);
-        this.auto = this.namedTag.getBoolean(TAG_AUTO);
-        this.command = this.namedTag.getString(TAG_COMMAND);
-        this.lastExecution = this.namedTag.getLong(TAG_LAST_EXECUTION);
-        this.trackOutput = this.namedTag.getBoolean(TAG_TRACK_OUTPUT);
-        this.lastOutput = this.namedTag.getString(TAG_LAST_OUTPUT);
-        this.lastOutputParams = (ListTag<StringTag>) this.namedTag.getList(TAG_LAST_OUTPUT_PARAMS);
-        this.lastOutputCommandMode = this.namedTag.getInt(TAG_LP_COMMAND_MODE);
-        this.lastOutputCondionalMode = this.namedTag.getBoolean(TAG_LP_CONDIONAL_MODE);
-        this.lastOutputRedstoneMode = this.namedTag.getBoolean(TAG_LP_REDSTONE_MODE);
-        this.successCount = this.namedTag.getInt(TAG_SUCCESS_COUNT);
-        this.conditionMet = this.namedTag.getBoolean(TAG_CONDITION_MET);
-        this.tickDelay = this.namedTag.getInt(TAG_TICK_DELAY);
-        this.executingOnFirstTick = this.namedTag.getBoolean(TAG_EXECUTE_ON_FIRST_TICK);
     }
 
     @Override
@@ -322,11 +307,6 @@ public class BlockEntityCommandBlock extends BlockEntitySpawnable implements ICo
                         this.successCount = 1;
                     } else {
                         this.lastOutput = null;
-
-                        while (cmd.startsWith("/") || cmd.startsWith("\n") || cmd.startsWith(" ")) {
-                            cmd = cmd.substring(1);
-                        }
-
                         CommandBlockExecuteEvent event = new CommandBlockExecuteEvent(this.getLevelBlock(), cmd);
                         Server.getInstance().getPluginManager().callEvent(event);
                         if (event.isCancelled()) {
@@ -587,7 +567,7 @@ public class BlockEntityCommandBlock extends BlockEntitySpawnable implements ICo
         return this;
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @NotNull
     @Override
     public Location getLocation() {
@@ -621,8 +601,8 @@ public class BlockEntityCommandBlock extends BlockEntitySpawnable implements ICo
                     (!message.getText().equals(this.getServer().getLanguage().get(message.getText())) ? "%" : "") + message.getText() + "]");
             Set<Permissible> users = this.getServer().getPluginManager().getPermissionSubscriptions(Server.BROADCAST_CHANNEL_ADMINISTRATIVE);
             for (var user : users) {
-                if (user instanceof Player player) {
-                    player.sendMessage(message);
+                if (user instanceof Player || user instanceof ConsoleCommandSender) {
+                    ((CommandSender) user).sendMessage(message);
                 }
             }
         }

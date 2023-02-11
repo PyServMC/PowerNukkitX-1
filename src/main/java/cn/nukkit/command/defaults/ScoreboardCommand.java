@@ -9,15 +9,15 @@ import cn.nukkit.command.data.CommandEnum;
 import cn.nukkit.command.data.CommandParamOption;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
+import cn.nukkit.command.exceptions.SelectorSyntaxException;
+import cn.nukkit.command.selector.EntitySelectorAPI;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.tree.node.WildcardIntNode;
 import cn.nukkit.command.utils.CommandLogger;
-import cn.nukkit.command.utils.EntitySelector;
-import cn.nukkit.network.protocol.UpdateSoftEnumPacket;
 import cn.nukkit.scoreboard.data.DisplaySlot;
 import cn.nukkit.scoreboard.data.SortOrder;
 import cn.nukkit.scoreboard.manager.IScoreboardManager;
+import cn.nukkit.scoreboard.scoreboard.IScoreboard;
 import cn.nukkit.scoreboard.scoreboard.Scoreboard;
 import cn.nukkit.scoreboard.scoreboard.ScoreboardLine;
 import cn.nukkit.scoreboard.scorer.EntityScorer;
@@ -26,6 +26,7 @@ import cn.nukkit.scoreboard.scorer.IScorer;
 import cn.nukkit.scoreboard.scorer.PlayerScorer;
 import cn.nukkit.utils.TextFormat;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -115,298 +116,259 @@ public class ScoreboardCommand extends VanillaCommand {
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
         var list = result.getValue();
         var manager = Server.getInstance().getScoreboardManager();
-        switch (result.getKey()) {
-            case "objectives-add" -> {
-                String objectiveName = list.getResult(2);
-                if (manager.containScoreboard(objectiveName)) {
-                    log.addError("commands.scoreboard.objectives.add.alreadyExists", objectiveName).output();
-                    return 0;
-                }
-                String criteriaName = list.getResult(3);
-                if (list.hasResult(4)) {
-                    manager.addScoreboard(new Scoreboard(objectiveName, list.getResult(4), criteriaName, SortOrder.ASCENDING));
-                } else {
-                    manager.addScoreboard(new Scoreboard(objectiveName, objectiveName, criteriaName, SortOrder.ASCENDING));
-                }
-                log.addSuccess("commands.scoreboard.objectives.add.success", objectiveName).output();
-                CommandEnum.SCOREBOARD_OBJECTIVES.updateSoftEnum(UpdateSoftEnumPacket.Type.ADD, objectiveName);
-                return 1;
-            }
-            case "objectives-list" -> {
-                log.addSuccess(TextFormat.GREEN + "%commands.scoreboard.objectives.list.count", String.valueOf(manager.getScoreboards().size()));
-                for (var scoreboard : manager.getScoreboards().values()) {
-                    log.addSuccess("commands.scoreboard.objectives.list.entry", scoreboard.getObjectiveName(), scoreboard.getDisplayName(), scoreboard.getCriteriaName());
-                }
-                log.output(true);
-                return 1;
-            }
-            case "objectives-remove" -> {
-                String objectiveName = list.getResult(2);
-                if (!manager.containScoreboard(objectiveName)) {
-                    log.addError("commands.scoreboard.objectiveNotFound", objectiveName).output();
-                    return 0;
-                }
-                if (manager.removeScoreboard(objectiveName)) {
-                    log.addSuccess("commands.scoreboard.objectives.remove.success", objectiveName).output();
-                }
-                CommandEnum.SCOREBOARD_OBJECTIVES.updateSoftEnum(UpdateSoftEnumPacket.Type.REMOVE, objectiveName);
-                return 1;
-            }
-            case "objectives-setdisplay-list-sidebar" -> {
-                String slotName = list.getResult(2);
-                DisplaySlot slot = switch (slotName) {
-                    case "sidebar" -> DisplaySlot.SIDEBAR;
-                    case "list" -> DisplaySlot.LIST;
-                    default -> DisplaySlot.SIDEBAR;
-                };
-
-                if (!list.hasResult(3)) {
-                    manager.setDisplay(slot, null);
-                    log.addSuccess("commands.scoreboard.objectives.setdisplay.successCleared", slot.getSlotName()).output();
-                } else {
-                    String objectiveName = list.getResult(3);
-                    if (!manager.containScoreboard(objectiveName)) {
-                        log.addError("commands.scoreboard.objectiveNotFound", objectiveName).output();
+        try {
+            switch (result.getKey()) {
+                case "objectives-add" -> {
+                    String objectiveName = list.getResult(2);
+                    if (manager.containScoreboard(objectiveName)) {
+                        log.addError("commands.scoreboard.objectives.add.alreadyExists", objectiveName).output();
                         return 0;
                     }
-                    var scoreboard = manager.getScoreboards().get(objectiveName);
-                    String orderName = list.getResult(4);
-                    SortOrder order = list.hasResult(4) ? switch (orderName) {
-                        case "ascending" -> SortOrder.ASCENDING;
-                        case "descending" -> SortOrder.DESCENDING;
-                        default -> SortOrder.ASCENDING;
-                    } : SortOrder.ASCENDING;
-                    scoreboard.setSortOrder(order);
-                    manager.setDisplay(slot, scoreboard);
-                    log.addSuccess("commands.scoreboard.objectives.setdisplay.successSet", slot.getSlotName(), objectiveName).output();
-                }
-                return 1;
-            }
-            case "objectives-setdisplay-belowname" -> {
-                if (!list.hasResult(3)) {
-                    manager.setDisplay(DisplaySlot.BELOW_NAME, null);
-                    log.addSuccess("commands.scoreboard.objectives.setdisplay.successCleared", DisplaySlot.BELOW_NAME.getSlotName()).output();
-                    return 1;
-                } else {
-                    String objectiveName = list.getResult(3);
-                    if (!manager.containScoreboard(objectiveName)) {
-                        log.addError("commands.scoreboard.objectiveNotFound", objectiveName).output();
-                        return 0;
-                    }
-                    manager.setDisplay(DisplaySlot.BELOW_NAME, manager.getScoreboard(objectiveName));
-                    log.addSuccess("commands.scoreboard.objectives.setdisplay.successSet", DisplaySlot.BELOW_NAME.getSlotName(), objectiveName).output();
-                    return 1;
-                }
-            }
-            case "players-add-remove-set" -> {
-                return this.playersCRUD(list, sender, manager, log);
-            }
-            case "players-list" -> {
-                if (manager.getScoreboards().isEmpty()) {
-                    log.addError("commands.scoreboard.players.list.empty").output();
-                    return 0;
-                }
-                if (list.hasResult(2)) {
-                    String wildcard_target_str = list.getResult(2);
-                    Set<IScorer> scorers = new HashSet<>();
-                    if (wildcard_target_str.equals("*")) {
-                        for (var scoreboard : manager.getScoreboards().values()) {
-                            scorers.addAll(scoreboard.getLines().keySet());
-                        }
-                    } else if (EntitySelector.hasArguments(wildcard_target_str)) {
-                        scorers = EntitySelector.matchEntities(sender, wildcard_target_str).stream().map(t -> t instanceof Player ? new PlayerScorer((Player) t) : new EntityScorer(t)).collect(Collectors.toSet());
-                    } else if (Server.getInstance().getPlayer(wildcard_target_str) != null) {
-                        scorers.add(new PlayerScorer(Server.getInstance().getPlayer(wildcard_target_str)));
+                    String criteriaName = list.getResult(3);
+                    if (list.hasResult(4)) {
+                        manager.addScoreboard(new Scoreboard(objectiveName, list.getResult(4), criteriaName, SortOrder.ASCENDING));
                     } else {
-                        scorers.add(new FakeScorer(wildcard_target_str));
+                        manager.addScoreboard(new Scoreboard(objectiveName, objectiveName, criteriaName, SortOrder.ASCENDING));
                     }
-                    for (IScorer scorer : scorers) {
-                        boolean find = false;
-                        int count = 0;
-                        for (var scoreboard : manager.getScoreboards().values()) {
-                            if (scoreboard.getLines().containsKey(scorer)) {
-                                find = true;
-                                count++;
-                            }
-                        }
-                        if (!find) {
-                            log.addError("commands.scoreboard.players.list.player.empty", scorer.getName()).output();
+                    log.addSuccess("commands.scoreboard.objectives.add.success", objectiveName).output();
+                    return 1;
+                }
+                case "objectives-list" -> {
+                    log.addSuccess(TextFormat.GREEN + "%commands.scoreboard.objectives.list.count", String.valueOf(manager.getScoreboards().size()));
+                    for (var scoreboard : manager.getScoreboards().values()) {
+                        log.addSuccess("commands.scoreboard.objectives.list.entry", scoreboard.getObjectiveName(), scoreboard.getDisplayName(), scoreboard.getCriteriaName());
+                    }
+                    log.output(true);
+                    return 1;
+                }
+                case "objectives-remove" -> {
+                    String objectiveName = list.getResult(2);
+                    if (!manager.containScoreboard(objectiveName)) {
+                        log.addError("commands.scoreboard.objectiveNotFound", objectiveName).output();
+                        return 0;
+                    }
+                    if (manager.removeScoreboard(objectiveName)) {
+                        log.addSuccess("commands.scoreboard.objectives.remove.success", objectiveName).output();
+                    }
+                    return 1;
+                }
+                case "objectives-setdisplay-list-sidebar" -> {
+                    String slotName = list.getResult(2);
+                    DisplaySlot slot = switch (slotName) {
+                        case "sidebar" -> DisplaySlot.SIDEBAR;
+                        case "list" -> DisplaySlot.LIST;
+                        default -> DisplaySlot.SIDEBAR;
+                    };
+
+                    if (!list.hasResult(3)) {
+                        manager.setDisplay(slot, null);
+                        log.addSuccess("commands.scoreboard.objectives.setdisplay.successCleared", slot.getSlotName()).output();
+                    } else {
+                        String objectiveName = list.getResult(3);
+                        if (!manager.containScoreboard(objectiveName)) {
+                            log.addError("commands.scoreboard.objectiveNotFound", objectiveName).output();
                             return 0;
                         }
-                        log.addSuccess(TextFormat.GREEN + "%commands.scoreboard.players.list.player.count", String.valueOf(count), scorer.getName());
-                        for (var scoreboard : manager.getScoreboards().values()) {
-                            if (scoreboard.getLines().containsKey(scorer)) {
-                                log.addSuccess("commands.scoreboard.players.list.player.entry", String.valueOf(scoreboard.getLines().get(scorer).getScore()), scoreboard.getDisplayName(), scoreboard.getObjectiveName());
-                            }
-                        }
-                        log.output();
+                        var scoreboard = manager.getScoreboards().get(objectiveName);
+                        String orderName = list.getResult(4);
+                        SortOrder order = list.hasResult(4) ? switch (orderName) {
+                            case "ascending" -> SortOrder.ASCENDING;
+                            case "descending" -> SortOrder.DESCENDING;
+                            default -> SortOrder.ASCENDING;
+                        } : SortOrder.ASCENDING;
+                        scoreboard.setSortOrder(order);
+                        manager.setDisplay(slot, scoreboard);
+                        log.addSuccess("commands.scoreboard.objectives.setdisplay.successSet", slot.getSlotName(), objectiveName).output();
                     }
                     return 1;
-                } else {
-                    Set<String> playerNames = new LinkedHashSet<>();
-                    for (var display : manager.getDisplay().values()) {
-                        if (display != null) {
-                            for (var line : display.getLines().values()) {
-                                playerNames.add(TextFormat.WHITE + line.getScorer().getName());
-                            }
+                }
+                case "objectives-setdisplay-belowname" -> {
+                    if (!list.hasResult(3)) {
+                        manager.setDisplay(DisplaySlot.BELOW_NAME, null);
+                        log.addSuccess("commands.scoreboard.objectives.setdisplay.successCleared", DisplaySlot.BELOW_NAME.getSlotName()).output();
+                        return 1;
+                    } else {
+                        String objectiveName = list.getResult(3);
+                        if (!manager.containScoreboard(objectiveName)) {
+                            log.addError("commands.scoreboard.objectiveNotFound", objectiveName).output();
+                            return 0;
                         }
+                        manager.setDisplay(DisplaySlot.BELOW_NAME, manager.getScoreboard(objectiveName));
+                        log.addSuccess("commands.scoreboard.objectives.setdisplay.successSet", DisplaySlot.BELOW_NAME.getSlotName(), objectiveName).output();
+                        return 1;
                     }
-                    log.addSuccess(TextFormat.GREEN + "%commands.scoreboard.players.list.count", String.valueOf(playerNames.size()));
-                    var join = new StringJoiner(",");
-                    playerNames.forEach(join::add);
-                    log.addSuccess(join.toString()).output();
                 }
-            }
-            case "players-operation" -> {
-                return this.playersOperate(list, sender, manager, log);
-            }
-            case "players-random" -> {
-                String wildcard_target_str = list.getResult(2);
-                Set<IScorer> scorers = new HashSet<>();
-                if (wildcard_target_str.equals("*")) {
-                    for (var scoreboard : manager.getScoreboards().values()) {
-                        scorers.addAll(scoreboard.getLines().keySet());
+                case "players-add-remove-set" -> {
+                    return this.playersCRUD(list, sender, manager, log);
+                }
+                case "players-list" -> {
+                    if (manager.getScoreboards().isEmpty()) {
+                        log.addError("commands.scoreboard.players.list.empty").output();
+                        return 0;
                     }
-                } else if (EntitySelector.hasArguments(wildcard_target_str)) {
-                    scorers = EntitySelector.matchEntities(sender, wildcard_target_str).stream().map(t -> t instanceof Player ? new PlayerScorer((Player) t) : new EntityScorer(t)).collect(Collectors.toSet());
-                } else if (Server.getInstance().getPlayer(wildcard_target_str) != null) {
-                    scorers.add(new PlayerScorer(Server.getInstance().getPlayer(wildcard_target_str)));
-                } else {
-                    scorers.add(new FakeScorer(wildcard_target_str));
-                }
-                String objectiveName = list.getResult(3);
-                if (!manager.containScoreboard(objectiveName)) {
-                    log.addError("commands.scoreboard.objectiveNotFound", objectiveName).output();
-                    return 0;
-                }
-                var scoreboard = manager.getScoreboards().get(objectiveName);
-                long min = list.getResult(4);
-                long max = list.getResult(5);
-                if (min > max) {
-                    log.addError("commands.scoreboard.players.random.invalidRange", String.valueOf(min), String.valueOf(max)).output();
-                    return 0;
-                }
-                Random random = new Random();
-                for (IScorer scorer : scorers) {
-                    int score = (int) (min + random.nextLong(max - min + 1));//avoid "java.lang.IllegalArgumentException: bound must be positive"
-                    if (!scoreboard.getLines().containsKey(scorer)) {
-                        scoreboard.addLine(new ScoreboardLine(scoreboard, scorer, score));
+                    if (list.hasResult(2)) {
+                        String wildcard_target_str = list.getResult(2);
+                        Set<IScorer> scorers = parseScorers(sender, wildcard_target_str);
+                        if (scorers.isEmpty()) {
+                            log.addError("commands.scoreboard.players.list.empty").output();
+                            return 0;
+                        }
+                        for (IScorer scorer : scorers) {
+                            boolean find = false;
+                            int count = 0;
+                            for (var scoreboard : manager.getScoreboards().values()) {
+                                if (scoreboard.getLines().containsKey(scorer)) {
+                                    find = true;
+                                    count++;
+                                }
+                            }
+                            if (!find) {
+                                log.addError("commands.scoreboard.players.list.player.empty", scorer.getName()).output();
+                                return 0;
+                            }
+                            log.addSuccess(TextFormat.GREEN + "%commands.scoreboard.players.list.player.count", String.valueOf(count), scorer.getName());
+                            for (var scoreboard : manager.getScoreboards().values()) {
+                                if (scoreboard.getLines().containsKey(scorer)) {
+                                    log.addSuccess("commands.scoreboard.players.list.player.entry", String.valueOf(scoreboard.getLines().get(scorer).getScore()), scoreboard.getDisplayName(), scoreboard.getObjectiveName());
+                                }
+                            }
+                            log.output();
+                        }
+                        return 1;
+                    } else {
+                        Set<String> scorerNames = new LinkedHashSet<>();
+                        manager.getScoreboards().values().forEach(
+                                scoreboard -> scoreboard.getLines().values().forEach(
+                                        line -> scorerNames.add(TextFormat.WHITE + line.getScorer().getName())
+                                )
+                        );
+                        log.addSuccess(TextFormat.GREEN + "%commands.scoreboard.players.list.count", String.valueOf(scorerNames.size()));
+                        var join = new StringJoiner(",");
+                        scorerNames.forEach(join::add);
+                        log.addSuccess(join.toString()).output();
                     }
-                    scoreboard.getLines().get(scorer).setScore(score);
-                    log.addMessage("commands.scoreboard.players.set.success", objectiveName, scorer.getName(), String.valueOf(score));
                 }
-                log.output();
-                return 1;
-            }
-            case "players-reset" -> {
-                String wildcard_target_str = list.getResult(2);
-                Set<IScorer> scorers = new HashSet<>();
-                if (wildcard_target_str.equals("*")) {
-                    for (var scoreboard : manager.getScoreboards().values()) {
-                        scorers.addAll(scoreboard.getLines().keySet());
+                case "players-operation" -> {
+                    return this.playersOperate(list, sender, manager, log);
+                }
+                case "players-random" -> {
+                    String wildcard_target_str = list.getResult(2);
+                    Set<IScorer> scorers = parseScorers(sender, wildcard_target_str);
+                    if (scorers.isEmpty()) {
+                        log.addNoTargetMatch().output();
+                        return 0;
                     }
-                } else if (EntitySelector.hasArguments(wildcard_target_str)) {
-                    scorers = EntitySelector.matchEntities(sender, wildcard_target_str).stream().map(t -> t instanceof Player ? new PlayerScorer((Player) t) : new EntityScorer(t)).collect(Collectors.toSet());
-                } else if (Server.getInstance().getPlayer(wildcard_target_str) != null) {
-                    scorers.add(new PlayerScorer(Server.getInstance().getPlayer(wildcard_target_str)));
-                } else {
-                    scorers.add(new FakeScorer(wildcard_target_str));
-                }
-                if (list.hasResult(3)) {
                     String objectiveName = list.getResult(3);
                     if (!manager.containScoreboard(objectiveName)) {
                         log.addError("commands.scoreboard.objectiveNotFound", objectiveName).output();
                         return 0;
                     }
                     var scoreboard = manager.getScoreboards().get(objectiveName);
+                    long min = list.getResult(4);
+                    long max = list.getResult(5);
+                    if (min > max) {
+                        log.addError("commands.scoreboard.players.random.invalidRange", String.valueOf(min), String.valueOf(max)).output();
+                        return 0;
+                    }
+                    Random random = new Random();
                     for (IScorer scorer : scorers) {
-                        if (scoreboard.containLine(scorer)) {
-                            scoreboard.removeLine(scorer);
-                            log.addMessage("commands.scoreboard.players.resetscore.success", scoreboard.getObjectiveName(), scorer.getName());
+                        int score = (int) (min + random.nextLong(max - min + 1));//avoid "java.lang.IllegalArgumentException: bound must be positive"
+                        if (!scoreboard.getLines().containsKey(scorer)) {
+                            scoreboard.addLine(new ScoreboardLine(scoreboard, scorer, score));
                         }
+                        scoreboard.getLines().get(scorer).setScore(score);
+                        log.addMessage("commands.scoreboard.players.set.success", objectiveName, scorer.getName(), String.valueOf(score));
                     }
                     log.output();
                     return 1;
-                } else {
-                    for (var scoreboard : manager.getScoreboards().values()) {
+                }
+                case "players-reset" -> {
+                    String wildcard_target_str = list.getResult(2);
+                    Set<IScorer> scorers = parseScorers(sender, wildcard_target_str);
+                    if (scorers.isEmpty()) {
+                        log.addNoTargetMatch().output();
+                        return 0;
+                    }
+                    if (list.hasResult(3)) {
+                        String objectiveName = list.getResult(3);
+                        if (!manager.containScoreboard(objectiveName)) {
+                            log.addError("commands.scoreboard.objectiveNotFound", objectiveName).output();
+                            return 0;
+                        }
+                        var scoreboard = manager.getScoreboards().get(objectiveName);
                         for (IScorer scorer : scorers) {
                             if (scoreboard.containLine(scorer)) {
                                 scoreboard.removeLine(scorer);
                                 log.addMessage("commands.scoreboard.players.resetscore.success", scoreboard.getObjectiveName(), scorer.getName());
                             }
                         }
+                        log.output();
+                        return 1;
+                    } else {
+                        for (var scoreboard : manager.getScoreboards().values()) {
+                            for (IScorer scorer : scorers) {
+                                if (scoreboard.containLine(scorer)) {
+                                    scoreboard.removeLine(scorer);
+                                    log.addMessage("commands.scoreboard.players.resetscore.success", scoreboard.getObjectiveName(), scorer.getName());
+                                }
+                            }
+                        }
+                        log.output();
+                        return 1;
+                    }
+                }
+                case "players-test" -> {
+                    String wildcard_target_str = list.getResult(2);
+                    Set<IScorer> scorers = parseScorers(sender, wildcard_target_str);
+                    if (scorers.isEmpty()) {
+                        log.addNoTargetMatch().output();
+                        return 0;
+                    }
+                    String objectiveName = list.getResult(3);
+                    if (!manager.containScoreboard(objectiveName)) {
+                        log.addError("commands.scoreboard.objectiveNotFound", objectiveName).output();
+                        return 0;
+                    }
+                    var scoreboard = manager.getScoreboards().get(objectiveName);
+                    int min = list.getResult(4);
+                    int max = Integer.MAX_VALUE;
+                    if (list.hasResult(5)) {
+                        max = list.getResult(5);
+                    }
+                    for (IScorer scorer : scorers) {
+                        var line = scoreboard.getLine(scorer);
+                        if (line == null) {
+                            log.addError("commands.scoreboard.players.score.notFound", objectiveName, scorer.getName()).output();
+                            return 0;
+                        }
+                        int score = line.getScore();
+                        if (score < min || score > max) {
+                            log.addError("commands.scoreboard.players.test.failed", String.valueOf(score), String.valueOf(min), String.valueOf(max)).output();
+                            return 0;
+                        }
+                        log.addMessage("commands.scoreboard.players.test.success", String.valueOf(score), String.valueOf(min), String.valueOf(max));
                     }
                     log.output();
                     return 1;
                 }
             }
-            case "players-test" -> {
-                String wildcard_target_str = list.getResult(2);
-                Set<IScorer> scorers = new HashSet<>();
-                if (wildcard_target_str.equals("*")) {
-                    for (var scoreboard : manager.getScoreboards().values()) {
-                        scorers.addAll(scoreboard.getLines().keySet());
-                    }
-                } else if (EntitySelector.hasArguments(wildcard_target_str)) {
-                    scorers = EntitySelector.matchEntities(sender, wildcard_target_str).stream().map(t -> t instanceof Player ? new PlayerScorer((Player) t) : new EntityScorer(t)).collect(Collectors.toSet());
-                } else if (Server.getInstance().getPlayer(wildcard_target_str) != null) {
-                    scorers.add(new PlayerScorer(Server.getInstance().getPlayer(wildcard_target_str)));
-                } else {
-                    scorers.add(new FakeScorer(wildcard_target_str));
-                }
-                String objectiveName = list.getResult(3);
-                if (!manager.containScoreboard(objectiveName)) {
-                    log.addError("commands.scoreboard.objectiveNotFound", objectiveName).output();
-                    return 0;
-                }
-                var scoreboard = manager.getScoreboards().get(objectiveName);
-                int min = list.getResult(4);
-                int max = Integer.MAX_VALUE;
-                if (list.hasResult(5)) {
-                    max = list.getResult(5);
-                }
-                for (IScorer scorer : scorers) {
-                    var line = scoreboard.getLine(scorer);
-                    if (line == null) {
-                        log.addError("commands.scoreboard.players.score.notFound", objectiveName, scorer.getName()).output();
-                        return 0;
-                    }
-                    int score = line.getScore();
-                    if (score < min || score > max) {
-                        log.addError("commands.scoreboard.players.test.failed", String.valueOf(score), String.valueOf(min), String.valueOf(max)).output();
-                        return 0;
-                    }
-                    log.addMessage("commands.scoreboard.players.test.success", String.valueOf(score), String.valueOf(min), String.valueOf(max));
-                }
-                log.output();
-                return 1;
-            }
+        } catch (SelectorSyntaxException e) {
+            log.addError(e.getMessage());
+            log.output();
         }
         return 0;
     }
 
-    private int playersCRUD(ParamList list, CommandSender sender, IScoreboardManager manager, CommandLogger log) {
+    private int playersCRUD(ParamList list, CommandSender sender, IScoreboardManager manager, CommandLogger log) throws SelectorSyntaxException {
         String ars = list.getResult(1);
-        String wildcard_target_str = list.getResult(2);
-        List<IScorer> scorers = new ArrayList<>();
-        boolean wildcard = false;
-        if (wildcard_target_str.equals("*")) {
-            wildcard = true;
-        } else if (EntitySelector.hasArguments(wildcard_target_str)) {
-            scorers = EntitySelector.matchEntities(sender, wildcard_target_str).stream().map(t -> t instanceof Player ? new PlayerScorer((Player) t) : new EntityScorer(t)).collect(Collectors.toList());
-        } else if (Server.getInstance().getPlayer(wildcard_target_str) != null) {
-            scorers.add(new PlayerScorer(Server.getInstance().getPlayer(wildcard_target_str)));
-        } else {
-            scorers.add(new FakeScorer(wildcard_target_str));
-        }
         String objectiveName = list.getResult(3);
         if (!manager.containScoreboard(objectiveName)) {
             log.addError("commands.scoreboard.objectiveNotFound", objectiveName).output();
             return 0;
         }
         var scoreboard = manager.getScoreboards().get(objectiveName);
-        if (wildcard)
-            scorers.addAll(scoreboard.getLines().keySet());
+        String wildcard_target_str = list.getResult(2);
+        Set<IScorer> scorers = parseScorers(sender, wildcard_target_str, scoreboard);
         if (scorers.isEmpty()) {
             log.addError("commands.scoreboard.players.list.empty").output();
             return 0;
@@ -423,7 +385,8 @@ public class ScoreboardCommand extends VanillaCommand {
                     }
                 }
                 if (count == 1) {
-                    log.addSuccess("commands.scoreboard.players.add.success", String.valueOf(score), objectiveName, scorers.get(0).getName(), String.valueOf(scoreboard.getLines().get(scorers.get(0)).getScore()));
+                    var scorer = scorers.iterator().next();
+                    log.addSuccess("commands.scoreboard.players.add.success", String.valueOf(score), objectiveName, scorer.getName(), String.valueOf(scoreboard.getLines().get(scorer).getScore()));
                 } else {
                     log.addSuccess("commands.scoreboard.players.add.multiple.success", String.valueOf(score), objectiveName, String.valueOf(count));
                 }
@@ -438,7 +401,8 @@ public class ScoreboardCommand extends VanillaCommand {
                     scoreboard.getLines().get(scorer).removeScore(score);
                 }
                 if (count == 1) {
-                    log.addSuccess("commands.scoreboard.players.remove.success", String.valueOf(score), objectiveName, scorers.get(0).getName(), String.valueOf(scoreboard.getLines().get(scorers.get(0)).getScore()));
+                    var scorer = scorers.iterator().next();
+                    log.addSuccess("commands.scoreboard.players.remove.success", String.valueOf(score), objectiveName, scorer.getName(), String.valueOf(scoreboard.getLines().get(scorer).getScore()));
                 } else {
                     log.addSuccess("commands.scoreboard.players.remove.multiple.success", String.valueOf(score), objectiveName, String.valueOf(count));
                 }
@@ -453,7 +417,8 @@ public class ScoreboardCommand extends VanillaCommand {
                     scoreboard.getLines().get(scorer).setScore(score);
                 }
                 if (count == 1) {
-                    log.addSuccess("commands.scoreboard.players.set.success", objectiveName, scorers.get(0).getName(), String.valueOf(score));
+                    var scorer = scorers.iterator().next();
+                    log.addSuccess("commands.scoreboard.players.set.success", objectiveName, scorer.getName(), String.valueOf(score));
                 } else {
                     log.addSuccess("commands.scoreboard.players.set.multiple.success", objectiveName, String.valueOf(count), String.valueOf(score));
                 }
@@ -464,21 +429,7 @@ public class ScoreboardCommand extends VanillaCommand {
         return 0;
     }
 
-    private int playersOperate(ParamList list, CommandSender sender, IScoreboardManager manager, CommandLogger log) {
-        String wildcard_target_str = list.getResult(2);
-        Set<IScorer> targetScorers = new HashSet<>();
-        if (wildcard_target_str.equals("*")) {
-            for (var scoreboard : manager.getScoreboards().values()) {
-                targetScorers.addAll(scoreboard.getLines().keySet());
-            }
-        } else if (EntitySelector.hasArguments(wildcard_target_str)) {
-            targetScorers = EntitySelector.matchEntities(sender, wildcard_target_str).stream().map(t -> t instanceof Player ? new PlayerScorer((Player) t) : new EntityScorer(t)).collect(Collectors.toSet());
-        } else if (Server.getInstance().getPlayer(wildcard_target_str) != null) {
-            targetScorers.add(new PlayerScorer(Server.getInstance().getPlayer(wildcard_target_str)));
-        } else {
-            targetScorers.add(new FakeScorer(wildcard_target_str));
-        }
-
+    private int playersOperate(ParamList list, CommandSender sender, IScoreboardManager manager, CommandLogger log) throws SelectorSyntaxException {
         String targetObjectiveName = list.getResult(3);
         if (!manager.containScoreboard(targetObjectiveName)) {
             log.addError("commands.scoreboard.objectiveNotFound", targetObjectiveName).output();
@@ -486,90 +437,111 @@ public class ScoreboardCommand extends VanillaCommand {
         }
         var targetScoreboard = manager.getScoreboards().get(targetObjectiveName);
 
-        String operation = list.getResult(4);
-        String selector_str = list.getResult(5);
-
-        Set<IScorer> selectorScorers = new HashSet<>();
-        if (wildcard_target_str.equals("*")) {
-            for (var scoreboard : manager.getScoreboards().values()) {
-                selectorScorers.addAll(scoreboard.getLines().keySet());
-            }
-        } else if (EntitySelector.hasArguments(wildcard_target_str)) {
-            selectorScorers = EntitySelector.matchEntities(sender, wildcard_target_str).stream().map(t -> t instanceof Player ? new PlayerScorer((Player) t) : new EntityScorer(t)).collect(Collectors.toSet());
-        } else if (Server.getInstance().getPlayer(wildcard_target_str) != null) {
-            selectorScorers.add(new PlayerScorer(Server.getInstance().getPlayer(wildcard_target_str)));
-        } else {
-            selectorScorers.add(new FakeScorer(wildcard_target_str));
-        }
-
-        if (selectorScorers.size() > 1) {
-            log.addError("commands.generic.tooManyTargets").output();
+        String wildcard_target_str = list.getResult(2);
+        Set<IScorer> targetScorers = parseScorers(sender, wildcard_target_str, targetScoreboard);
+        if (targetScorers.isEmpty()) {
+            log.addNoTargetMatch().output();
             return 0;
         }
-        if (selectorScorers.size() == 0) {
-            selectorScorers.add(new FakeScorer(selector_str));
-        }
-        IScorer seletorScorer = selectorScorers.iterator().next();
+
+        String operation = list.getResult(4);
+
+
         String selectorObjectiveName = list.getResult(6);
         if (!manager.containScoreboard(selectorObjectiveName)) {
             log.addError("commands.scoreboard.objectiveNotFound", selectorObjectiveName).output();
             return 0;
         }
         var selectorScoreboard = manager.getScoreboards().get(targetObjectiveName);
-        if (!selectorScoreboard.getLines().containsKey(seletorScorer)) {
-            log.addError("commands.scoreboard.players.operation.notFound", selectorObjectiveName, seletorScorer.getName()).output();
+
+        String selector_str = list.getResult(5);
+        Set<IScorer> selectorScorers = parseScorers(sender, selector_str, selectorScoreboard);
+        if (selectorScorers.isEmpty()) {
+            log.addNoTargetMatch().output();
             return 0;
         }
+
         for (IScorer targetScorer : targetScorers) {
-            if (!targetScoreboard.getLines().containsKey(targetScorer)) {
-                log.addError("commands.scoreboard.players.operation.notFound", targetObjectiveName, targetScorer.getName()).output();
-                return 0;
+            for (IScorer selectorScorer : selectorScorers) {
+                if (!targetScoreboard.getLines().containsKey(targetScorer)) {
+                    log.addError("commands.scoreboard.players.operation.notFound", targetObjectiveName, targetScorer.getName()).output();
+                    return 0;
+                }
+                if (!selectorScoreboard.getLines().containsKey(selectorScorer)) {
+                    log.addError("commands.scoreboard.players.operation.notFound", selectorObjectiveName, selectorScorer.getName()).output();
+                    return 0;
+                }
+                int targetScore = targetScoreboard.getLines().get(targetScorer).getScore();
+                int selectorScore = selectorScoreboard.getLines().get(selectorScorer).getScore();
+                int changedScore = -1;
+                switch (operation) {
+                    case "+=" -> {
+                        changedScore = targetScore + selectorScore;
+                        targetScoreboard.getLines().get(targetScorer).setScore(changedScore);
+                    }
+                    case "-=" -> {
+                        changedScore = targetScore - selectorScore;
+                        targetScoreboard.getLines().get(targetScorer).setScore(changedScore);
+                    }
+                    case "*=" -> {
+                        changedScore = targetScore * selectorScore;
+                        targetScoreboard.getLines().get(targetScorer).setScore(changedScore);
+                    }
+                    case "/=" -> {
+                        changedScore = targetScore / selectorScore;
+                        targetScoreboard.getLines().get(targetScorer).setScore(changedScore);
+                    }
+                    case "%=" -> {
+                        changedScore = targetScore % selectorScore;
+                        targetScoreboard.getLines().get(targetScorer).setScore(changedScore);
+                    }
+                    case "=" -> {
+                        changedScore = selectorScore;
+                        targetScoreboard.getLines().get(targetScorer).setScore(changedScore);
+                    }
+                    case "<" -> {
+                        changedScore = Math.min(targetScore, selectorScore);
+                        targetScoreboard.getLines().get(targetScorer).setScore(changedScore);
+                    }
+                    case ">" -> {
+                        changedScore = Math.max(targetScore, selectorScore);
+                        targetScoreboard.getLines().get(targetScorer).setScore(changedScore);
+                    }
+                    case "><" -> {
+                        changedScore = selectorScore;
+                        targetScoreboard.getLines().get(targetScorer).setScore(changedScore);
+                        selectorScoreboard.getLines().get(selectorScorer).setScore(targetScore);
+                    }
+                }
+                log.addMessage("commands.scoreboard.players.operation.success", String.valueOf(changedScore), targetObjectiveName);
             }
-            int targetScore = targetScoreboard.getLines().get(targetScorer).getScore();
-            int selectorScore = selectorScoreboard.getLines().get(seletorScorer).getScore();
-            int changeScore = -1;
-            switch (operation) {
-                case "+=" -> {
-                    changeScore = targetScore + selectorScore;
-                    targetScoreboard.getLines().get(targetScorer).setScore(changeScore);
-                }
-                case "-=" -> {
-                    changeScore = targetScore - selectorScore;
-                    targetScoreboard.getLines().get(targetScorer).setScore(changeScore);
-                }
-                case "*=" -> {
-                    changeScore = targetScore * selectorScore;
-                    targetScoreboard.getLines().get(targetScorer).setScore(changeScore);
-                }
-                case "/=" -> {
-                    changeScore = targetScore / selectorScore;
-                    targetScoreboard.getLines().get(targetScorer).setScore(changeScore);
-                }
-                case "%=" -> {
-                    changeScore = targetScore % selectorScore;
-                    targetScoreboard.getLines().get(targetScorer).setScore(changeScore);
-                }
-                case "=" -> {
-                    changeScore = selectorScore;
-                    targetScoreboard.getLines().get(targetScorer).setScore(changeScore);
-                }
-                case "<" -> {
-                    changeScore = Math.min(targetScore, selectorScore);
-                    targetScoreboard.getLines().get(targetScorer).setScore(changeScore);
-                }
-                case ">" -> {
-                    changeScore = Math.max(targetScore, selectorScore);
-                    targetScoreboard.getLines().get(targetScorer).setScore(changeScore);
-                }
-                case "><" -> {
-                    changeScore = selectorScore;
-                    targetScoreboard.getLines().get(targetScorer).setScore(changeScore);
-                    selectorScoreboard.getLines().get(seletorScorer).setScore(targetScore);
-                }
-            }
-            log.addMessage("commands.scoreboard.players.operation.success", String.valueOf(changeScore), targetObjectiveName);
         }
         log.output();
         return 1;
+    }
+
+    private Set<IScorer> parseScorers(CommandSender sender, String wildcardTargetStr) throws SelectorSyntaxException {
+        return parseScorers(sender, wildcardTargetStr, null);
+    }
+
+    private Set<IScorer> parseScorers(CommandSender sender, String wildcardTargetStr, @Nullable IScoreboard wildcardScoreboard) throws SelectorSyntaxException {
+        var manager = Server.getInstance().getScoreboardManager();
+        Set<IScorer> scorers = new HashSet<>();
+        if (wildcardTargetStr.equals("*")) {
+            if (wildcardScoreboard != null) {
+                scorers.addAll(wildcardScoreboard.getLines().keySet());
+            } else {
+                for (var scoreboard : manager.getScoreboards().values()) {
+                    scorers.addAll(scoreboard.getLines().keySet());
+                }
+            }
+        } else if (EntitySelectorAPI.getAPI().checkValid(wildcardTargetStr)) {
+            scorers = EntitySelectorAPI.getAPI().matchEntities(sender, wildcardTargetStr).stream().map(t -> t instanceof Player ? new PlayerScorer((Player) t) : new EntityScorer(t)).collect(Collectors.toSet());
+        } else if (Server.getInstance().getPlayer(wildcardTargetStr) != null) {
+            scorers.add(new PlayerScorer(Server.getInstance().getPlayer(wildcardTargetStr)));
+        } else {
+            scorers.add(new FakeScorer(wildcardTargetStr));
+        }
+        return scorers;
     }
 }

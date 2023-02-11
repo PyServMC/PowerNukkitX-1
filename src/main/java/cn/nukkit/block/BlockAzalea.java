@@ -17,8 +17,9 @@ import cn.nukkit.level.particle.BoneMealParticle;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.NukkitRandom;
 import cn.nukkit.math.Vector3;
+import cn.nukkit.nbt.tag.CompoundTag;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -28,7 +29,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @PowerNukkitOnly
 @Since("FUTURE")
-public class BlockAzalea extends BlockFlowable {
+public class BlockAzalea extends BlockFlowable implements BlockFlowerPot.FlowerPotBlock {
 
 
     public static final BlockProperties PROPERTIES = CommonBlockProperties.EMPTY_PROPERTIES;
@@ -47,7 +48,7 @@ public class BlockAzalea extends BlockFlowable {
 
     @PowerNukkitOnly
     @Since("FUTURE")
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -91,7 +92,7 @@ public class BlockAzalea extends BlockFlowable {
 
 
     @Override
-    public boolean onActivate(@Nonnull Item item, Player player) {
+    public boolean onActivate(@NotNull Item item, Player player) {
         if (item.isFertilizer()) { // BoneMeal
             if (player != null && !player.isCreative()) {
                 item.count--;
@@ -131,7 +132,7 @@ public class BlockAzalea extends BlockFlowable {
     }
 
     @Override
-    public boolean place(@Nonnull Item item, @Nonnull Block block, @Nonnull Block target, @Nonnull BlockFace face, double fx, double fy, double fz, Player player) {
+    public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, Player player) {
         if (BlockFlower.isSupportValid(down())) {
             this.getLevel().setBlock(block, this, true, true);
             return true;

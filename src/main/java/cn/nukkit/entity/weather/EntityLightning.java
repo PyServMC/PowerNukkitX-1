@@ -24,7 +24,8 @@ import cn.nukkit.metadata.MetadataValue;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.plugin.Plugin;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class EntityLightning extends Entity implements EntityLightningStrike {
         super(chunk, nbt);
     }
 
-    private static boolean isVulnerableOxidizable(@Nonnull Block block) {
+    private static boolean isVulnerableOxidizable(@NotNull Block block) {
         return block instanceof Oxidizable && (!(block instanceof Waxable) || !((Waxable) block).isWaxed());
     }
 
@@ -94,7 +95,7 @@ public class EntityLightning extends Entity implements EntityLightningStrike {
                 fire.y = block.y;
                 fire.z = block.z;
                 fire.level = level;
-                this.getLevel().setBlock(fire, fire, true);
+//                this.getLevel().setBlock(fire, fire, true); WTF???
                 if (fire.isBlockTopFacingSurfaceSolid(fire.down()) || fire.canNeighborBurn()) {
 
                     BlockIgniteEvent e = new BlockIgniteEvent(block, null, this, BlockIgniteEvent.BlockIgniteCause.LIGHTNING);

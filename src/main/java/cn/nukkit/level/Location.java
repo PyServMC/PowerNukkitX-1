@@ -6,7 +6,7 @@ import cn.nukkit.api.Since;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.utils.LevelException;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author MagicDroidX (Nukkit Project)
@@ -122,21 +122,21 @@ public class Location extends Position {
         return this;
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public Location setX(double x) {
         super.setX(x);
         return this;
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public Location setY(double y) {
         super.setY(y);
         return this;
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public Location setZ(double z) {
         super.setZ(z);
@@ -148,7 +148,7 @@ public class Location extends Position {
         return "Location (level=" + (this.isValid() ? this.getLevel().getName() : "null") + ", x=" + this.x + ", y=" + this.y + ", z=" + this.z + ", yaw=" + this.yaw + ", pitch=" + this.pitch + ", headYaw=" + this.headYaw + ")";
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Location getLocation() {
         if (this.isValid()) return new Location(this.x, this.y, this.z, this.yaw, this.pitch, this.headYaw, this.level);

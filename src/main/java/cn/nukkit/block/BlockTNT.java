@@ -8,6 +8,7 @@ import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.blockproperty.BooleanBlockProperty;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.entity.projectile.EntityArrow;
+import cn.nukkit.entity.projectile.EntitySmallFireBall;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.level.Level;
@@ -23,7 +24,8 @@ import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.RedstoneComponent;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 
 /**
@@ -61,7 +63,7 @@ public class BlockTNT extends BlockSolidMeta implements RedstoneComponent {
   
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -149,11 +151,7 @@ public class BlockTNT extends BlockSolidMeta implements RedstoneComponent {
     }
     
     @Override
-    public boolean onActivate(@Nonnull Item item, @Nullable Player player) {
-        if (player == null) {
-            return false;
-        }
-
+    public boolean onActivate(@NotNull Item item, @Nullable Player player) {
         if (item.getId() == Item.FLINT_STEEL) {
             item.useOn(this);
             this.prime(80, player);
@@ -197,8 +195,8 @@ public class BlockTNT extends BlockSolidMeta implements RedstoneComponent {
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
     @Override
-    public boolean onProjectileHit(@Nonnull Entity projectile, @Nonnull Position position, @Nonnull Vector3 motion) {
-        if (projectile.isOnFire() && projectile instanceof EntityArrow) {
+    public boolean onProjectileHit(@NotNull Entity projectile, @NotNull Position position, @NotNull Vector3 motion) {
+        if (projectile instanceof EntitySmallFireBall || (projectile.isOnFire() && projectile instanceof EntityArrow)) {
             prime(80, projectile);
             return true;
         }

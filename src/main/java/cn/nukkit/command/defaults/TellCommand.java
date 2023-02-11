@@ -6,7 +6,6 @@ import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.tree.node.PlayersNode;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.lang.TranslationContainer;
@@ -31,23 +30,23 @@ public class TellCommand extends VanillaCommand {
         this.enableParamTree();
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
         var list = result.getValue();
         List<Player> players = list.getResult(0);
-        StringBuilder msg = new StringBuilder();
-        String[] args = list.getResult(1);
-        for (int i = 0; i < args.length; i++) {
-            msg.append(args[i]).append(" ");
+        if (players.isEmpty()) {
+            log.addNoTargetMatch().output();
+            return 0;
         }
-        if (msg.length() > 0) {
-            msg = new StringBuilder(msg.substring(0, msg.length() - 1));
-        }
+        String msg = list.getResult(1);
         for (Player player : players) {
-            if (player == sender) continue;
-            log.addSuccess("commands.message.display.outgoing", player.getName(), msg.toString());
-            player.sendMessage(new TranslationContainer("commands.message.display.incoming", sender.getName(), msg.toString()));
+            if (player == sender) {
+                log.addError("commands.message.sameTarget").output();
+                continue;
+            }
+            log.addSuccess("commands.message.display.outgoing", player.getName(), msg);
+            player.sendMessage(new TranslationContainer("commands.message.display.incoming", sender.getName(), msg));
         }
         log.output();
         return 1;

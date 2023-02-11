@@ -16,7 +16,8 @@ import cn.nukkit.plugin.PluginManager;
 import cn.nukkit.utils.Faceable;
 import cn.nukkit.utils.RedstoneComponent;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 
 import static cn.nukkit.blockproperty.CommonBlockProperties.FACING_DIRECTION;
@@ -52,14 +53,14 @@ public class BlockObserver extends BlockSolidMeta implements RedstoneComponent, 
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
     }
 
     @Override
-    public boolean place(@Nonnull Item item, @Nonnull Block block, @Nonnull Block target, @Nonnull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
+    public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
         if (player != null) {
             if (Math.abs(player.getFloorX() - this.x) <= 1 && Math.abs(player.getFloorZ() - this.z) <= 1) {
                 double y = player.y + player.getEyeHeight();
@@ -88,7 +89,7 @@ public class BlockObserver extends BlockSolidMeta implements RedstoneComponent, 
     @PowerNukkitDifference(since = "1.4.0.0-PN", info = "Implemented")
     @Override
     public int getStrongPower(BlockFace side) {
-        return isPowered() && side == getBlockFace()? 15 : 0;
+        return isPowered() && side == getBlockFace() ? 15 : 0;
     }
 
     @PowerNukkitDifference(since = "1.4.0.0-PN", info = "Implemented")
@@ -100,7 +101,7 @@ public class BlockObserver extends BlockSolidMeta implements RedstoneComponent, 
     @PowerNukkitDifference(since = "1.4.0.0-PN", info = "Implemented")
     @Override
     public int onUpdate(int type) {
-        if (type == Level.BLOCK_UPDATE_SCHEDULED) {
+        if (type == Level.BLOCK_UPDATE_SCHEDULED || type == Level.BLOCK_UPDATE_MOVED) {
             RedstoneUpdateEvent ev = new RedstoneUpdateEvent(this);
             PluginManager pluginManager = level.getServer().getPluginManager();
             pluginManager.callEvent(ev);
@@ -125,9 +126,6 @@ public class BlockObserver extends BlockSolidMeta implements RedstoneComponent, 
                 getSide(getBlockFace().getOpposite()).onUpdate(Level.BLOCK_UPDATE_REDSTONE);
                 RedstoneComponent.updateAroundRedstone(getSide(getBlockFace().getOpposite()));
             }
-            return Level.BLOCK_UPDATE_SCHEDULED;
-        } else if (type == Level.BLOCK_UPDATE_MOVED) {
-            onNeighborChange(getBlockFace());
             return type;
         }
         return 0;
@@ -136,10 +134,10 @@ public class BlockObserver extends BlockSolidMeta implements RedstoneComponent, 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
     @Override
-    public void onNeighborChange(@Nonnull BlockFace side) {
+    public void onNeighborChange(@NotNull BlockFace side) {
         Server server = level.getServer();
         BlockFace blockFace = getBlockFace();
-        if (!server.isRedstoneEnabled() || isPowered() || side != blockFace || level.isUpdateScheduled(this, this)) {
+        if (!server.isRedstoneEnabled() || side != blockFace || level.isUpdateScheduled(this, this)) {
             return;
         }
 
@@ -149,7 +147,7 @@ public class BlockObserver extends BlockSolidMeta implements RedstoneComponent, 
             return;
         }
 
-        level.scheduleUpdate(this, 5);
+        level.scheduleUpdate(this, 1);
     }
 
     @Override
@@ -183,13 +181,13 @@ public class BlockObserver extends BlockSolidMeta implements RedstoneComponent, 
     public boolean isPowered() {
         return getBooleanValue(POWERED);
     }
-    
+
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public void setPowered(boolean powered) {
         setBooleanValue(POWERED, powered);
     }
-    
+
     @Override
     public BlockFace getBlockFace() {
         return getPropertyValue(FACING_DIRECTION);

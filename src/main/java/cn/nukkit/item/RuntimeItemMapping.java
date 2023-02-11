@@ -5,8 +5,8 @@ import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.customblock.CustomBlock;
+import cn.nukkit.item.customitem.CustomItem;
 import cn.nukkit.item.customitem.CustomItemDefinition;
-import cn.nukkit.item.customitem.ItemCustom;
 import cn.nukkit.utils.BinaryStream;
 import com.google.common.base.Preconditions;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
@@ -16,7 +16,8 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 import java.lang.reflect.Constructor;
 import java.util.*;
@@ -149,32 +150,32 @@ public class RuntimeItemMapping {
 
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
-    public synchronized void registerCustomItem(ItemCustom itemCustom) {
-        var runtimeId = CustomItemDefinition.getRuntimeId(itemCustom.getNamespaceId());
+    public synchronized void registerCustomItem(CustomItem customItem, Supplier<Item> constructor) {
+        var runtimeId = CustomItemDefinition.getRuntimeId(customItem.getNamespaceId());
         RuntimeItems.Entry entry = new RuntimeItems.Entry(
-                itemCustom.getNamespaceId(),
+                customItem.getNamespaceId(),
                 runtimeId,
                 null,
                 null,
                 false,
                 true
         );
-        this.customItemEntries.put(itemCustom.getNamespaceId(), entry);
+        this.customItemEntries.put(customItem.getNamespaceId(), entry);
         this.entries.add(entry);
-        this.registerNamespacedIdItem(itemCustom);
-        this.namespaceNetworkMap.put(itemCustom.getNamespaceId(), OptionalInt.of(runtimeId));
-        this.networkNamespaceMap.put(runtimeId, itemCustom.getNamespaceId());
+        this.registerNamespacedIdItem(customItem.getNamespaceId(), constructor);
+        this.namespaceNetworkMap.put(customItem.getNamespaceId(), OptionalInt.of(runtimeId));
+        this.networkNamespaceMap.put(runtimeId, customItem.getNamespaceId());
         this.generatePalette();
     }
 
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
-    public synchronized void deleteCustomItem(ItemCustom itemCustom) {
-        RuntimeItems.Entry entry = this.customItemEntries.remove(itemCustom.getNamespaceId());
+    public synchronized void deleteCustomItem(CustomItem customItem) {
+        RuntimeItems.Entry entry = this.customItemEntries.remove(customItem.getNamespaceId());
         if (entry != null) {
             this.entries.remove(entry);
-            this.namespaceNetworkMap.remove(itemCustom.getNamespaceId());
-            this.networkNamespaceMap.remove(CustomItemDefinition.getRuntimeId(itemCustom.getNamespaceId()));
+            this.namespaceNetworkMap.remove(customItem.getNamespaceId());
+            this.networkNamespaceMap.remove(CustomItemDefinition.getRuntimeId(customItem.getNamespaceId()));
             this.generatePalette();
         }
     }
@@ -229,8 +230,7 @@ public class RuntimeItemMapping {
     @Since("1.4.0.0-PN")
     public int getNetworkFullId(Item item) {
         if (item instanceof StringItem) {
-            return namespaceNetworkMap.getOrDefault(item.getNamespaceId(), OptionalInt.empty())
-                    .orElseThrow(() -> new IllegalArgumentException("Unknown item mapping " + item)) << 1;
+            return namespaceNetworkMap.getOrDefault(item.getNamespaceId(), OptionalInt.empty()).orElseThrow(() -> new IllegalArgumentException("Unknown item mapping " + item)) << 1;
         }
 
         int fullId = RuntimeItems.getFullId(item.getId(), item.hasMeta() ? item.getDamage() : -1);
@@ -292,8 +292,8 @@ public class RuntimeItemMapping {
      */
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
-    public OptionalInt getNetworkIdByNamespaceId(@Nonnull String namespaceId) {
+    @NotNull
+    public OptionalInt getNetworkIdByNamespaceId(@NotNull String namespaceId) {
         return namespaceNetworkMap.getOrDefault(namespaceId, OptionalInt.empty());
     }
 
@@ -307,8 +307,8 @@ public class RuntimeItemMapping {
      */
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
-    public Item getItemByNamespaceId(@Nonnull String namespaceId, int amount) {
+    @NotNull
+    public Item getItemByNamespaceId(@NotNull String namespaceId, int amount) {
         Supplier<Item> constructor = this.namespacedIdItem.get(namespaceId.toLowerCase(Locale.ENGLISH));
         if (constructor != null) {
             try {
@@ -328,7 +328,7 @@ public class RuntimeItemMapping {
             );
         } catch (IllegalArgumentException e) {
             log.debug("Found an unknown item {}", namespaceId, e);
-            Item item = new StringItem(namespaceId, Item.UNKNOWN_STR);
+            Item item = new StringItemUnknown(namespaceId);
             item.setCount(amount);
             return item;
         }
@@ -342,9 +342,17 @@ public class RuntimeItemMapping {
         }
     }
 
+
+    @SneakyThrows
     @PowerNukkitOnly
-    @Since("FUTURE")
-    public void registerNamespacedIdItem(@Nonnull String namespacedId, @Nonnull Constructor<? extends Item> constructor) {
+    public void registerNamespacedIdItem(@NotNull Class<? extends StringItem> item) {
+        Constructor<? extends StringItem> declaredConstructor = item.getDeclaredConstructor();
+        var Item = declaredConstructor.newInstance();
+        registerNamespacedIdItem(Item.getNamespaceId(), stritemSupplier(declaredConstructor));
+    }
+
+    @PowerNukkitOnly
+    public void registerNamespacedIdItem(@NotNull String namespacedId, @NotNull Constructor<? extends Item> constructor) {
         Preconditions.checkNotNull(namespacedId, "namespacedId is null");
         Preconditions.checkNotNull(constructor, "constructor is null");
         this.namespacedIdItem.put(namespacedId.toLowerCase(Locale.ENGLISH), itemSupplier(constructor));
@@ -352,23 +360,30 @@ public class RuntimeItemMapping {
 
     @SneakyThrows
     @PowerNukkitOnly
-    @Since("FUTURE")
-    public void registerNamespacedIdItem(@Nonnull StringItem item) {
-        registerNamespacedIdItem(item.getNamespaceId(), item.getClass().getConstructor());
+    public void registerNamespacedIdItem(@NotNull String namespacedId, @NotNull Supplier<Item> constructor) {
+        Preconditions.checkNotNull(namespacedId, "namespacedId is null");
+        Preconditions.checkNotNull(constructor, "constructor is null");
+        this.namespacedIdItem.put(namespacedId.toLowerCase(Locale.ENGLISH), constructor);
     }
 
-    @SneakyThrows
-    @PowerNukkitOnly
-    @Since("FUTURE")
-    public void registerNamespacedIdItem(@Nonnull Class<? extends StringItem> item) {
-        registerNamespacedIdItem(item.getDeclaredConstructor().newInstance());
-    }
-
-    @Nonnull
-    private static Supplier<Item> itemSupplier(@Nonnull Constructor<? extends Item> constructor) {
+    @NotNull
+    private static Supplier<Item> itemSupplier(@NotNull Constructor<? extends Item> constructor) {
         return () -> {
             try {
                 return constructor.newInstance();
+            } catch (ReflectiveOperationException e) {
+                throw new UnsupportedOperationException(e);
+            }
+        };
+    }
+
+    @Since("1.19.60-r1")
+    @PowerNukkitXOnly
+    @NotNull
+    private static Supplier<Item> stritemSupplier(@NotNull Constructor<? extends StringItem> constructor) {
+        return () -> {
+            try {
+                return (Item) constructor.newInstance();
             } catch (ReflectiveOperationException e) {
                 throw new UnsupportedOperationException(e);
             }

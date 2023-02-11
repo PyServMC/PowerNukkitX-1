@@ -3,10 +3,10 @@ package cn.nukkit.command.defaults;
 import cn.nukkit.Player;
 import cn.nukkit.api.Since;
 import cn.nukkit.command.CommandSender;
+import cn.nukkit.command.data.CommandEnum;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.inventory.PlayerInventory;
@@ -34,17 +34,21 @@ public class EnchantCommand extends VanillaCommand {
         });
         this.commandParameters.put("byName", new CommandParameter[]{
                 CommandParameter.newType("player", CommandParamType.TARGET),
-                CommandParameter.newEnum("enchantmentName", Enchantment.getEnchantmentName2IDMap() != null ? Enchantment.getEnchantmentName2IDMap().keySet().toArray(String[]::new) : null),
+                CommandParameter.newEnum("enchantmentName", CommandEnum.ENUM_ENCHANTMENT),
                 CommandParameter.newType("level", true, CommandParamType.INT)
         });
         this.enableParamTree();
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
         var list = result.getValue();
         List<Entity> entities = list.getResult(0);
+        if (entities.isEmpty()) {
+            log.addNoTargetMatch().output();
+            return 0;
+        }
         Enchantment enchantment;
         int enchantLevel = 1;
         switch (result.getKey()) {

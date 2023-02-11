@@ -2,7 +2,7 @@
 
 <h2>🌐Need to switch languages?&ensp;/&ensp;多语言文档</h2>
 
-[![Discord](https://img.shields.io/discord/944227466912870410?style=flat-square)](https://discord.gg/BcPhZCVJHJ)
+[![Discord](https://img.shields.io/discord/944227466912870410?color=7289da&logo=discord&logoColor=white&style=flat-square)](https://discord.gg/BcPhZCVJHJ)
 [![English](https://img.shields.io/badge/English-100%25-green?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/README.md)
 [![简体中文](https://img.shields.io/badge/简体中文-100%25-green?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/blob/zh-hans/README.md)
 [![繁體中文](https://img.shields.io/badge/繁體中文-100%25-green?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/blob/zh-hant/README.md)
@@ -11,6 +11,7 @@
 [![FAQ](https://img.shields.io/badge/FAQ-blue?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/wiki/FAQ)
 [![PNX-DOC](https://img.shields.io/badge/PNX-DOC-blue?style=flat-square)](https://doc.powernukkitx.cn)
 [![Maven Central](https://img.shields.io/maven-central/v/cn.powernukkitx/powernukkitx.svg?label=Maven%20Central&style=flat-square)](https://search.maven.org/search?q=g:%22cn.powernukkitx%22%20AND%20a:%22powernukkitx%22)
+[![](https://www.jitpack.io/v/PowerNukkitX/PowerNukkitX.svg)](https://www.jitpack.io/#PowerNukkitX/PowerNukkitX)
 
 🤔What is PowerNukkitX ?
 ---
@@ -23,7 +24,7 @@ Join US:
 
 What's new in PowerNukkitX? Let's See：
 
-1. Support for 1.19.50 protocol.
+1. Support for 1.19.60 protocol.
 2. Support for 384 world height.
 3. Support for The Nether world, no need to install additional plugin.
 4. Support 3D biomes.<!--Custom dimension interface TODO-->
@@ -134,7 +135,7 @@ few key advantages over other server software:
 🛠 Creating Plugins
 ---
 
-* Add PowerNukkit to your dependencies (it is hosted by Maven Central, so you don't need to specify a custom repository)
+* Add PowerNukkitX to your dependencies (it is hosted by Maven Central, so you don't need to specify a custom repository)
   .
 
 [Click here to see full Gradle Example](https://github.com/PowerNukkitX/ExamplePlugin-Gradle)
@@ -145,7 +146,7 @@ repositories {
 }
 
 dependencies {
-    compile group: 'cn.powernukkitx', name: 'powernukkitx', version: '1.19.50-r3'
+    compile group: 'cn.powernukkitx', name: 'powernukkitx', version: '1.19.60-r1'
 }
 ```
 
@@ -155,7 +156,7 @@ dependencies {
     <dependency>
         <groupId>cn.powernukkitx</groupId>
         <artifactId>powernukkitx</artifactId>
-        <version>1.19.50-r3</version>
+        <version>1.19.60-r1</version>
     </dependency>
 </dependencies>
 ```
@@ -196,4 +197,4 @@ Please read the [CONTRIBUTING](https://github.com/PowerNukkitX/PowerNukkitX/blob
 [![Pull-pr](https://img.shields.io/github/issues-pr/PowerNukkitX/PowerNukkitX?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/pulls)
 [![Pull-pr-closed](https://img.shields.io/github/issues-pr-closed/PowerNukkitX/PowerNukkitX?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/pulls?q=is%3Apr+is%3Aclosed)
 
-2019 - 2022 © [BlocklyNukkit](https://wiki.blocklynukkit.com) | [PowerNukkitX](https://www.powernukkitx.com)
+2019 - 2023 © [BlocklyNukkit](https://wiki.blocklynukkit.com) | [PowerNukkitX](https://www.powernukkitx.com)

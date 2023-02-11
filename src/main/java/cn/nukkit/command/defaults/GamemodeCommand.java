@@ -8,7 +8,6 @@ import cn.nukkit.command.data.CommandEnum;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.tree.node.PlayersNode;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.utils.TextFormat;
@@ -42,7 +41,7 @@ public class GamemodeCommand extends VanillaCommand {
         this.enableParamTree();
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
         var list = result.getValue();
@@ -68,6 +67,11 @@ public class GamemodeCommand extends VanillaCommand {
             }
         } else {
             players = sender.isPlayer() ? List.of(sender.asPlayer()) : List.of();
+        }
+
+        if (players.isEmpty()) {
+            log.addNoTargetMatch().output();
+            return 0;
         }
 
         if ((gameMode == 0 && !sender.hasPermission("nukkit.command.gamemode.survival")) ||

@@ -1,11 +1,11 @@
 package cn.nukkit.command.defaults;
 
 import cn.nukkit.Player;
+import cn.nukkit.Server;
 import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.event.entity.EntityDamageEvent;
@@ -43,6 +43,11 @@ public class KillCommand extends VanillaCommand {
                 }
 
                 List<Entity> entities = result.getValue().getResult(0);
+                entities.removeIf(entity -> !entity.isAlive());
+                if (entities.isEmpty()) {
+                    log.addNoTargetMatch().output();
+                    return 0;
+                }
                 AtomicBoolean creativePlayer = new AtomicBoolean(false);
                 entities = entities.stream().filter(entity -> {
                     if (entity instanceof Player player)

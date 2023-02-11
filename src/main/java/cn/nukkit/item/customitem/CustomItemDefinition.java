@@ -2,20 +2,23 @@ package cn.nukkit.item.customitem;
 
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
-import cn.nukkit.block.Block;
+import cn.nukkit.inventory.ItemTag;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.RuntimeItems;
+import cn.nukkit.item.customitem.data.DigProperty;
 import cn.nukkit.item.customitem.data.ItemCreativeCategory;
 import cn.nukkit.item.customitem.data.RenderOffsets;
+import cn.nukkit.item.food.Food;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.nbt.tag.StringTag;
-import com.google.gson.Gson;
+import cn.nukkit.utils.Identifier;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.NonNull;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import javax.annotation.Nullable;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -30,6 +33,21 @@ import java.util.function.Consumer;
 public record CustomItemDefinition(String identifier, CompoundTag nbt) {
     private static final ConcurrentHashMap<String, Integer> INTERNAL_ALLOCATION_ID_MAP = new ConcurrentHashMap<>();
     private static final AtomicInteger nextRuntimeId = new AtomicInteger(10000);
+
+    /**
+     * 自定义物品的定义构造器
+     * <p>
+     * Definition builder for custom simple item
+     *
+     * @param item             the item
+     * @param creativeCategory the creative category
+     * @return the custom item definition . simple builder
+     */
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public static CustomItemDefinition.SimpleBuilder customBuilder(CustomItem item, ItemCreativeCategory creativeCategory) {
+        return new CustomItemDefinition.SimpleBuilder(item, creativeCategory);
+    }
 
     /**
      * 简单物品的定义构造器
@@ -79,7 +97,9 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
         return new CustomItemDefinition.EdibleBuilder(item, creativeCategory);
     }
 
+    @Nullable
     public String getDisplayName() {
+        if (!this.nbt.getCompound("components").contains("minecraft:display_name")) return null;
         return this.nbt.getCompound("components").getCompound("minecraft:display_name").getString("value");
     }
 
@@ -101,17 +121,19 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
                 .putCompound("components", new CompoundTag()
                         .putCompound("item_properties", new CompoundTag()
                                 .putCompound("minecraft:icon", new CompoundTag())));
+        private final Item item;
 
-
-        protected SimpleBuilder(ItemCustom item, ItemCreativeCategory creativeCategory) {
-            this.identifier = item.getNamespaceId();
+        protected SimpleBuilder(CustomItem customItem, ItemCreativeCategory creativeCategory) {
+            this.item = (Item) customItem;
+            this.identifier = customItem.getNamespaceId();
             //定义材质
             this.nbt.getCompound("components")
                     .getCompound("item_properties")
                     .getCompound("minecraft:icon")
-                    .putString("texture", item.getTextureName());
+                    .putString("texture", customItem.getTextureName());
+
             //定义显示名
-            if (item.getName() != null) {
+            if (item.getName() != null && !item.getName().equals(Item.UNKNOWN_STR)) {
                 this.nbt.getCompound("components")
                         .putCompound("minecraft:display_name", new CompoundTag().putString("value", item.getName()));
             }
@@ -120,10 +142,11 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
             this.nbt.getCompound("components")
                     .getCompound("item_properties")
                     .putInt("max_stack_size", item.getMaxStackSize());
-            //定义在创造栏的大分类
+            //定义在创造栏的分类
             this.nbt.getCompound("components")
                     .getCompound("item_properties")//1 none
-                    .putInt("creative_category", creativeCategory.ordinal() + 1);
+                    .putInt("creative_category", creativeCategory.ordinal() + 1)
+                    .putString("creative_group", "none");
         }
 
         /**
@@ -183,7 +206,7 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
          * <p>
          * Control rendering offsets of custom items at different viewpoints
          */
-        public SimpleBuilder renderOffsets(@NonNull RenderOffsets renderOffsets) {
+        public SimpleBuilder renderOffsets(@NotNull RenderOffsets renderOffsets) {
             this.nbt.getCompound("components")
                     .putCompound("minecraft:render_offsets", renderOffsets.nbt);
             return this;
@@ -195,17 +218,34 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
          * Add a tag to a custom item, usually used for crafting, etc.
          * todo: 2022/12/13  检查是否真的在客户端起作用
          *
-         * @param tag the tag
+         * @param tags the tags
+         * @return the simple builder
          */
-        public SimpleBuilder tag(String... tag) {
+        public SimpleBuilder tag(String... tags) {
+            Arrays.stream(tags).forEach(Identifier::assertValid);
             var list = this.nbt.getCompound("components").getList("item_tags", StringTag.class);
             if (list == null) {
                 list = new ListTag<>("item_tags");
                 this.nbt.getCompound("components").putList(list);
             }
-            for (var s : tag) {
+            for (var s : tags) {
                 list.add(new StringTag("", s));
             }
+            return this;
+        }
+
+        /**
+         * 控制拿该物品的玩家是否可以在创造模式挖掘方块
+         * <p>
+         * Control whether the player with the item can dig the block in creation mode
+         *
+         * @param value the value
+         * @return the simple builder
+         */
+        public SimpleBuilder canDestroyInCreative(boolean value) {
+            this.nbt.getCompound("components")
+                    .getCompound("item_properties")
+                    .putBoolean("can_destroy_in_creative", value);
             return this;
         }
 
@@ -235,7 +275,7 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
         }
 
         @Since("1.19.40-r1")
-        protected SimpleBuilder addRepairItems(@NonNull List<Item> repairItems, String molang) {
+        protected SimpleBuilder addRepairs(@NotNull List<String> repairItemNames, String molang) {
             if (molang.isBlank()) {
                 System.out.println("repairAmount has an invalid value!");
                 return this;
@@ -248,8 +288,8 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
                         .getList("repair_items", CompoundTag.class);
 
                 var items = new ListTag<CompoundTag>("items");
-                for (var item : repairItems) {
-                    items.add(new CompoundTag().putString("name", item.getNamespaceId()));
+                for (var name : repairItemNames) {
+                    items.add(new CompoundTag().putString("name", name));
                 }
 
                 repair_items.add(new CompoundTag()
@@ -260,8 +300,8 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
             } else {
                 var repair_items = new ListTag<CompoundTag>("repair_items");
                 var items = new ListTag<CompoundTag>("items");
-                for (var item : repairItems) {
-                    items.add(new CompoundTag().putString("name", item.getNamespaceId()));
+                for (var name : repairItemNames) {
+                    items.add(new CompoundTag().putString("name", name));
                 }
                 repair_items.add(new CompoundTag()
                         .putList(items)
@@ -279,10 +319,45 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
     public static class ToolBuilder extends SimpleBuilder {
         private final ItemCustomTool item;
         private Integer speed = null;
-        private final Map<String, Integer> blockTags = new HashMap<>();
-        private final CompoundTag diggerRoot = new CompoundTag()
+        private final List<CompoundTag> blocks = new ArrayList<>();
+        private final List<String> blockTags = new ArrayList<>();
+        private final CompoundTag diggerRoot = new CompoundTag("minecraft:digger")
                 .putBoolean("use_efficiency", true)
                 .putList(new ListTag<>("destroy_speeds"));
+
+        public static Map<Identifier, Map<String, DigProperty>> toolBlocks = new HashMap<>();
+
+        static {
+            var pickaxeBlocks = new Object2ObjectOpenHashMap<String, DigProperty>();
+            var axeBlocks = new Object2ObjectOpenHashMap<String, DigProperty>();
+            var shovelBlocks = new Object2ObjectOpenHashMap<String, DigProperty>();
+            var hoeBlocks = new Object2ObjectOpenHashMap<String, DigProperty>();
+            var swordBlocks = new Object2ObjectOpenHashMap<String, DigProperty>();
+            for (var name : List.of("minecraft:ice", "minecraft:undyed_shulker_box", "minecraft:shulker_box", "minecraft:prismarine", "minecraft:stone_slab4", "minecraft:prismarine_bricks_stairs", "minecraft:prismarine_stairs", "minecraft:dark_prismarine_stairs", "minecraft:anvil", "minecraft:bone_block", "minecraft:iron_trapdoor", "minecraft:nether_brick_fence", "minecraft:crying_obsidian", "minecraft:magma", "minecraft:smoker", "minecraft:lit_smoker", "minecraft:hopper", "minecraft:redstone_block", "minecraft:mob_spawner", "minecraft:netherite_block", "minecraft:smooth_stone", "minecraft:diamond_block", "minecraft:lapis_block", "minecraft:emerald_block", "minecraft:enchanting_table", "minecraft:end_bricks", "minecraft:cracked_polished_blackstone_bricks", "minecraft:nether_brick", "minecraft:cracked_nether_bricks", "minecraft:purpur_block", "minecraft:purpur_stairs", "minecraft:end_brick_stairs", "minecraft:stone_slab", "minecraft:stone_slab2", "minecraft:stone_slab3", "minecraft:stone_brick_stairs", "minecraft:mossy_stone_brick_stairs", "minecraft:polished_blackstone_bricks", "minecraft:polished_blackstone_stairs", "minecraft:blackstone_wall", "minecraft:blackstone_wall", "minecraft:polished_blackstone_wall", "minecraft:sandstone", "minecraft:grindstone", "minecraft:smooth_stone", "minecraft:brewing_stand", "minecraft:chain", "minecraft:lantern", "minecraft:soul_lantern", "minecraft:ancient_debris", "minecraft:quartz_ore", "minecraft:netherrack", "minecraft:basalt", "minecraft:polished_basalt", "minecraft:stonebrick", "minecraft:warped_nylium", "minecraft:crimson_nylium", "minecraft:end_stone", "minecraft:ender_chest", "minecraft:quartz_block", "minecraft:quartz_stairs", "minecraft:quartz_bricks", "minecraft:quartz_stairs", "minecraft:nether_gold_ore", "minecraft:furnace", "minecraft:blast_furnace", "minecraft:lit_furnace", "minecraft:blast_furnace", "minecraft:blackstone", "minecraft:concrete", "minecraft:deepslate_copper_ore", "minecraft:deepslate_lapis_ore", "minecraft:chiseled_deepslate", "minecraft:cobbled_deepslate", "minecraft:cobbled_deepslate_double_slab", "minecraft:cobbled_deepslate_slab", "minecraft:cobbled_deepslate_stairs", "minecraft:cobbled_deepslate_wall", "minecraft:cracked_deepslate_bricks", "minecraft:cracked_deepslate_tiles", "minecraft:deepslate", "minecraft:deepslate_brick_double_slab", "minecraft:deepslate_brick_slab", "minecraft:deepslate_brick_stairs", "minecraft:deepslate_brick_wall", "minecraft:deepslate_bricks", "minecraft:deepslate_tile_double_slab", "minecraft:deepslate_tile_slab", "minecraft:deepslate_tile_stairs", "minecraft:deepslate_tile_wall", "minecraft:deepslate_tiles", "minecraft:infested_deepslate", "minecraft:polished_deepslate", "minecraft:polished_deepslate_double_slab", "minecraft:polished_deepslate_slab", "minecraft:polished_deepslate_stairs", "minecraft:polished_deepslate_wall", "minecraft:calcite", "minecraft:amethyst_block", "minecraft:amethyst_cluster", "minecraft:budding_amethyst", "minecraft:raw_copper_block", "minecraft:raw_gold_block", "minecraft:raw_iron_block", "minecraft:copper_ore", "minecraft:copper_block", "minecraft:cut_copper", "minecraft:cut_copper_slab", "minecraft:cut_copper_stairs", "minecraft:double_cut_copper_slab", "minecraft:exposed_copper", "minecraft:exposed_cut_copper", "minecraft:exposed_cut_copper_slab", "minecraft:exposed_cut_copper_stairs", "minecraft:exposed_double_cut_copper_slab", "minecraft:oxidized_copper", "minecraft:oxidized_cut_copper", "minecraft:oxidized_cut_copper_slab", "minecraft:oxidized_cut_copper_stairs", "minecraft:oxidized_double_cut_copper_slab", "minecraft:weathered_copper", "minecraft:weathered_cut_copper", "minecraft:weathered_cut_copper_slab", "minecraft:weathered_cut_copper_stairs", "minecraft:weathered_double_cut_copper_slab", "minecraft:waxed_copper", "minecraft:waxed_cut_copper", "minecraft:waxed_cut_copper_slab", "minecraft:waxed_cut_copper_stairs", "minecraft:waxed_double_cut_copper_slab", "minecraft:waxed_exposed_copper", "minecraft:waxed_exposed_cut_copper", "minecraft:waxed_exposed_cut_copper_slab", "minecraft:waxed_exposed_cut_copper_stairs", "minecraft:waxed_exposed_double_cut_copper_slab", "minecraft:waxed_oxidized_copper", "minecraft:waxed_oxidized_cut_copper", "minecraft:waxed_oxidized_cut_copper_slab", "minecraft:waxed_oxidized_cut_copper_stairs", "minecraft:waxed_oxidized_double_cut_copper_slab", "minecraft:waxed_weathered_copper", "minecraft:waxed_weathered_cut_copper", "minecraft:waxed_weathered_cut_copper_slab", "minecraft:waxed_weathered_cut_copper_stairs", "minecraft:waxed_weathered_double_cut_copper_slab", "minecraft:dripstone_block", "minecraft:pointed_dripstone", "minecraft:lightning_rod", "minecraft:basalt", "minecraft:tuff", "minecraft:double_stone_slab", "minecraft:double_stone_slab2", "minecraft:double_stone_slab3", "minecraft:double_stone_slab4", "minecraft:blackstone_double_slab", "minecraft:polished_blackstone_brick_double_slab", "minecraft:polished_blackstone_double_slab", "minecraft:mossy_cobblestone_stairs", "minecraft:stonecutter", "minecraft:stonecutter_block", "minecraft:red_nether_brick", "minecraft:red_nether_brick_stairs", "minecraft:normal_stone_stairs", "minecraft:smooth_basalt", "minecraft:stone", "minecraft:cobblestone", "minecraft:mossy_cobblestone", "minecraft:dripstone_block", "minecraft:brick_block", "minecraft:stone_stairs", "minecraft:stone_block_slab", "minecraft:stone_block_slab2", "minecraft:stone_block_slab3", "minecraft:stone_block_slab4", "minecraft:cobblestone_wall", "minecraft:gold_block", "minecraft:iron_block", "minecraft:cauldron", "minecraft:iron_bars", "minecraft:obsidian", "minecraft:coal_ore", "minecraft:deepslate_coal_ore", "minecraft:deepslate_diamond_ore", "minecraft:deepslate_emerald_ore", "minecraft:deepslate_gold_ore", "minecraft:deepslate_iron_ore", "minecraft:deepslate_redstone_ore", "minecraft:lit_deepslate_redstone_ore", "minecraft:diamond_ore", "minecraft:emerald_ore", "minecraft:gold_ore", "minecraft:iron_ore", "minecraft:lapis_ore", "minecraft:redstone_ore", "minecraft:lit_redstone_ore", "minecraft:raw_iron_block", "minecraft:raw_gold_block", "minecraft:raw_copper_block", "minecraft:mud_brick_double_slab", "minecraft:mud_brick_slab", "minecraft:mud_brick_stairs", "minecraft:mud_brick_wall", "minecraft:mud_bricks", "minecraft:hardened_clay", "minecraft:stained_hardened_clay", "minecraft:polished_diorite_stairs", "minecraft:andesite_stairs", "minecraft:polished_andesite_stairs", "minecraft:granite_stairs", "minecraft:polished_granite_stairs", "minecraft:polished_blackstone", "minecraft:chiseled_polished_blackstone", "minecraft:polished_blackstone_brick_stairs", "minecraft:blackstone_stairs", "minecraft:polished_blackstone_brick_wall", "minecraft:gilded_blackstone", "minecraft:coal_block")) {
+                pickaxeBlocks.put(name, new DigProperty());
+            }
+            toolBlocks.put(ItemTag.IS_PICKAXE, pickaxeBlocks);
+
+            for (var name : List.of("minecraft:chest", "minecraft:bookshelf", "minecraft:melon_block", "minecraft:warped_stem", "minecraft:crimson_stem", "minecraft:warped_stem", "minecraft:crimson_stem", "minecraft:crafting_table", "minecraft:crimson_planks", "minecraft:warped_planks", "minecraft:warped_stairs", "minecraft:warped_trapdoor", "minecraft:crimson_stairs", "minecraft:crimson_trapdoor", "minecraft:crimson_door", "minecraft:crimson_double_slab", "minecraft:warped_door", "minecraft:warped_double_slab", "minecraft:crafting_table", "minecraft:composter", "minecraft:cartography_table", "minecraft:lectern", "minecraft:stripped_crimson_stem", "minecraft:stripped_warped_stem", "minecraft:trapdoor", "minecraft:spruce_trapdoor", "minecraft:birch_trapdoor", "minecraft:jungle_trapdoor", "minecraft:acacia_trapdoor", "minecraft:dark_oak_trapdoor", "minecraft:wooden_door", "minecraft:spruce_door", "minecraft:birch_door", "minecraft:jungle_door", "minecraft:acacia_door", "minecraft:dark_oak_door", "minecraft:fence", "minecraft:fence_gate", "minecraft:spruce_fence_gate", "minecraft:birch_fence_gate", "minecraft:jungle_fence_gate", "minecraft:acacia_fence_gate", "minecraft:dark_oak_fence_gate", "minecraft:log", "minecraft:log2", "minecraft:wood", "minecraft:planks", "minecraft:wooden_slab", "minecraft:double_wooden_slab", "minecraft:oak_stairs", "minecraft:spruce_stairs", "minecraft:birch_stairs", "minecraft:jungle_stairs", "minecraft:acacia_stairs", "minecraft:dark_oak_stairs", "minecraft:wall_sign", "minecraft:spruce_wall_sign", "minecraft:birch_wall_sign", "minecraft:jungle_wall_sign", "minecraft:acacia_wall_sign", "minecraft:darkoak_wall_sign", "minecraft:wooden_pressure_plate", "minecraft:spruce_pressure_plate", "minecraft:birch_pressure_plate", "minecraft:jungle_pressure_plate", "minecraft:acacia_pressure_plate", "minecraft:dark_oak_pressure_plate", "minecraft:smithing_table", "minecraft:fletching_table", "minecraft:barrel", "minecraft:beehive", "minecraft:bee_nest", "minecraft:ladder", "minecraft:pumpkin", "minecraft:carved_pumpkin", "minecraft:lit_pumpkin", "minecraft:mangrove_door", "minecraft:mangrove_double_slab", "minecraft:mangrove_fence", "minecraft:mangrove_fence_gate", "minecraft:mangrove_log", "minecraft:mangrove_planks", "minecraft:mangrove_pressure_plate", "minecraft:mangrove_slab", "minecraft:mangrove_stairs", "minecraft:mangrove_wall_sign", "minecraft:mangrove_wood", "minecraft:wooden_button", "minecraft:spruce_button", "minecraft:birch_button", "minecraft:jungle_button", "minecraft:acacia_button", "minecraft:dark_oak_button", "minecraft:mangrove_button", "minecraft:stripped_oak_wood", "minecraft:stripped_spruce_wood", "minecraft:stripped_birch_wood", "minecraft:stripped_jungle_wood", "minecraft:stripped_acacia_wood", "minecraft:stripped_dark_oak_wood", "minecraft:stripped_mangrove_wood", "minecraft:stripped_oak_log", "minecraft:stripped_spruce_log", "minecraft:stripped_birch_log", "minecraft:stripped_jungle_log", "minecraft:stripped_acacia_log", "minecraft:stripped_dark_oak_log", "minecraft:stripped_mangrove_log", "minecraft:standing_sign", "minecraft:spruce_standing_sign", "minecraft:birch_standing_sign", "minecraft:jungle_standing_sign", "minecraft:acacia_standing_sign", "minecraft:darkoak_standing_sign", "minecraft:mangrove_standing_sign", "minecraft:mangrove_trapdoor", "minecraft:warped_standing_sign", "minecraft:warped_wall_sign", "minecraft:crimson_standing_sign", "minecraft:crimson_wall_sign", "minecraft:mangrove_roots")) {
+                axeBlocks.put(name, new DigProperty());
+            }
+            toolBlocks.put(ItemTag.IS_AXE, axeBlocks);
+
+            for (var name : List.of("minecraft:soul_sand", "minecraft:soul_soil", "minecraft:dirt_with_roots", "minecraft:mycelium", "minecraft:podzol", "minecraft:dirt", "minecraft:farmland", "minecraft:sand", "minecraft:gravel", "minecraft:grass", "minecraft:grass_path", "minecraft:snow", "minecraft:mud", "minecraft:packed_mud", "minecraft:clay")) {
+                shovelBlocks.put(name, new DigProperty());
+            }
+            toolBlocks.put(ItemTag.IS_SHOVEL, shovelBlocks);
+
+            for (var name : List.of("minecraft:nether_wart_block", "minecraft:hay_block", "minecraft:target", "minecraft:shroomlight", "minecraft:leaves", "minecraft:leaves2", "minecraft:azalea_leaves_flowered", "minecraft:azalea_leaves", "minecraft:warped_wart_block")) {
+                hoeBlocks.put(name, new DigProperty());
+            }
+            toolBlocks.put(ItemTag.IS_HOE, hoeBlocks);
+
+            for (var name : List.of("minecraft:web", "minecraft:bamboo")) {
+                swordBlocks.put(name, new DigProperty());
+            }
+            toolBlocks.put(ItemTag.IS_SWORD, swordBlocks);
+        }
 
         private ToolBuilder(ItemCustomTool item, ItemCreativeCategory creativeCategory) {
             super(item, creativeCategory);
@@ -293,18 +368,31 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
 
             this.nbt.getCompound("components")
                     .getCompound("item_properties")
-                    .putFloat("mining_speed", 1f);
+                    .putFloat("mining_speed", 1f)
+                    .putBoolean("can_destroy_in_creative", true);
         }
 
-        @Since("1.19.40-r1")
-        public ToolBuilder addRepairItems(@NonNull List<Item> repairItems, String molang) {
-            super.addRepairItems(repairItems, molang);
+        @Since("1.19.60-r1")
+        public ToolBuilder addRepairItemName(@NonNull String repairItemName, String molang) {
+            super.addRepairs(List.of(repairItemName), molang);
+            return this;
+        }
+
+        @Since("1.19.60-r1")
+        public ToolBuilder addRepairItemName(@NonNull String repairItemName, int repairAmount) {
+            super.addRepairs(List.of(repairItemName), String.valueOf(repairAmount));
             return this;
         }
 
         @Since("1.19.40-r1")
-        public ToolBuilder addRepairItems(@NonNull List<Item> repairItems, int repairAmount) {
-            super.addRepairItems(repairItems, String.valueOf(repairAmount));
+        public ToolBuilder addRepairItems(@NotNull List<Item> repairItems, String molang) {
+            super.addRepairs(repairItems.stream().map(Item::getNamespaceId).toList(), molang);
+            return this;
+        }
+
+        @Since("1.19.40-r1")
+        public ToolBuilder addRepairItems(@NotNull List<Item> repairItems, int repairAmount) {
+            super.addRepairs(repairItems.stream().map(Item::getNamespaceId).toList(), String.valueOf(repairAmount));
             return this;
         }
 
@@ -325,38 +413,93 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
         }
 
         /**
-         * 给采集类工具添加额外的方块tag,即可挖掘的方块
+         * 给工具添加可挖掘的方块，及挖掘它的速度
+         * <p>
+         * Add a diggable block to the tool and define dig speed
          *
-         * @param block the block
-         * @param speed 挖掘速度
+         * @param blockName the block name
+         * @param speed     挖掘速度
          * @return the tool builder
          */
-        public ToolBuilder addExtraBlockTag(@NonNull Block block, int speed) {
+        @Since("1.19.60-r1")
+        public ToolBuilder addExtraBlock(@NotNull String blockName, int speed) {
             if (speed < 0) {
                 System.out.println("speed has an invalid value!");
                 return this;
             }
-            if (item.isPickaxe() || item.isShovel() || item.isHoe() || item.isAxe() || item.isShears()) {
-                blockTags.put(block.getPersistenceName(), speed);
-            }
+            this.blocks.add(new CompoundTag()
+                    .putCompound("block", new CompoundTag()
+                            .putString("name", blockName)
+                            .putCompound("states", new CompoundTag())
+                            .putString("tags", "")
+                    )
+                    .putInt("speed", speed));
             return this;
         }
 
         /**
-         * 给采集类工具添加额外的方块tag,即可挖掘的方块
+         * 给工具添加可挖掘的方块，及挖掘它的速度
+         * <p>
+         * Add a diggable block to the tool and define dig speed
+         *
+         * @param blocks the blocks
+         * @return the tool builder
+         */
+        @Since("1.19.60-r1")
+        public ToolBuilder addExtraBlocks(@NotNull Map<String, Integer> blocks) {
+            blocks.forEach((blockName, speed) -> {
+                if (speed < 0) {
+                    System.out.println("speed has an invalid value!");
+                    return;
+                }
+                this.blocks.add(new CompoundTag()
+                        .putCompound("block", new CompoundTag()
+                                .putString("name", blockName)
+                                .putCompound("states", new CompoundTag())
+                                .putString("tags", "")
+                        )
+                        .putInt("speed", speed));
+            });
+            return this;
+        }
+
+        /**
+         * 给工具添加可挖掘的方块，及挖掘它的速度
+         * <p>
+         * Add a diggable block to the tool and define dig speed
+         *
+         * @param blockName the block name
+         * @param property  the property
+         * @return the tool builder
+         */
+        @Since("1.19.60-r1")
+        public ToolBuilder addExtraBlocks(@NotNull String blockName, DigProperty property) {
+            if (property.getSpeed() != null && property.getSpeed() < 0) {
+                System.out.println("speed has an invalid value!");
+                return this;
+            }
+            this.blocks.add(new CompoundTag()
+                    .putCompound("block", new CompoundTag()
+                            .putString("name", blockName)
+                            .putCompound("states", property.getStates())
+                            .putString("tags", "")
+                    )
+                    .putInt("speed", property.getSpeed()));
+            return this;
+        }
+
+        /**
+         * 给工具添加可挖掘的一类方块，用blockTag描述，挖掘它们的速度为{@link #speed(int)}的速度，如果没定义则为工具TIER对应的速度
+         * <p>
+         * Add a class of block to the tool that can be mined, described by blockTag, and the speed to mine them is the speed of {@link #speed(int)}, or the speed corresponding to the tool TIER if it is not defined
          *
          * @param blockTags 挖掘速度
          * @return the tool builder
          */
-        public ToolBuilder addExtraBlockTags(@NonNull Map<Block, Integer> blockTags) {
-            if (item.isPickaxe() || item.isShovel() || item.isHoe() || item.isAxe() || item.isShears()) {
-                blockTags.forEach((block, speed) -> {
-                    if (speed < 0) {
-                        System.out.println("speed has an invalid value!");
-                        return;
-                    }
-                    this.blockTags.put(block.getPersistenceName(), speed);
-                });
+        @Since("1.19.60-r1")
+        public ToolBuilder addExtraBlockTags(@NotNull List<String> blockTags) {
+            if (!blockTags.isEmpty()) {
+                this.blockTags.addAll(blockTags);
             }
             return this;
         }
@@ -380,81 +523,80 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
                     default -> 1;
                 };
             }
-            if (item.isShears() || item.isPickaxe() || item.isHoe() || item.isAxe() || item.isShovel()) {
-                var cmp = new CompoundTag();
-                var gson = new Gson();
-
-                if (item.isPickaxe()) {
-                    cmp.putCompound("block", new CompoundTag()
-                                    .putString("tags", "q.any_tag('stone', 'metal', 'diamond_pick_diggable', 'mob_spawner', 'rail', 'slab_block', 'stair_block', 'smooth stone slab', 'sandstone slab', 'cobblestone slab', 'brick slab', 'stone bricks slab', 'quartz slab', 'nether brick slab')")
-                            )
-                            .putInt("speed", speed);
-
-                    this.diggerRoot.getList("destroy_speeds", CompoundTag.class).add(cmp);
-
-                    //附加附魔信息
-                    this.nbt.getCompound("components").getCompound("item_properties")
-                            .putString("enchantable_slot", "pickaxe");
-                    //附加挖掘速度和挖掘tags
-                    this.nbt.getCompound("components")
-                            .putCompound("minecraft:digger", this.diggerRoot);
-                    for (var name : gson.fromJson("""
-                            ["minecraft:ice","minecraft:undyed_shulker_box","minecraft:shulker_box","minecraft:prismarine","minecraft:stone_slab4","minecraft:prismarine_bricks_stairs","minecraft:prismarine_stairs","minecraft:dark_prismarine_stairs","minecraft:anvil","minecraft:bone_block","minecraft:iron_trapdoor","minecraft:nether_brick_fence","minecraft:crying_obsidian","minecraft:magma","minecraft:smoker","minecraft:lit_smoker","minecraft:hopper","minecraft:redstone_block","minecraft:mob_spawner","minecraft:netherite_block","minecraft:smooth_stone","minecraft:diamond_block","minecraft:lapis_block","minecraft:emerald_block","minecraft:enchanting_table","minecraft:end_bricks","minecraft:cracked_polished_blackstone_bricks","minecraft:nether_brick","minecraft:cracked_nether_bricks","minecraft:purpur_block","minecraft:purpur_stairs","minecraft:end_brick_stairs","minecraft:stone_slab","minecraft:stone_slab2","minecraft:stone_slab3","minecraft:stone_brick_stairs","minecraft:mossy_stone_brick_stairs","minecraft:polished_blackstone_bricks","minecraft:polished_blackstone_stairs","minecraft:blackstone_wall","minecraft:blackstone_wall","minecraft:polished_blackstone_wall","minecraft:sandstone","minecraft:grindstone","minecraft:smooth_stone","minecraft:brewing_stand","minecraft:chain","minecraft:lantern","minecraft:soul_lantern","minecraft:ancient_debris","minecraft:quartz_ore","minecraft:netherrack","minecraft:basalt","minecraft:polished_basalt","minecraft:stonebrick","minecraft:warped_nylium","minecraft:crimson_nylium","minecraft:end_stone","minecraft:ender_chest","minecraft:quartz_block","minecraft:quartz_stairs","minecraft:quartz_bricks","minecraft:quartz_stairs","minecraft:nether_gold_ore","minecraft:furnace","minecraft:blast_furnace","minecraft:lit_furnace","minecraft:blast_furnace","minecraft:blackstone","minecraft:concrete","minecraft:deepslate_copper_ore","minecraft:deepslate_lapis_ore","minecraft:chiseled_deepslate","minecraft:cobbled_deepslate","minecraft:cobbled_deepslate_double_slab","minecraft:cobbled_deepslate_slab","minecraft:cobbled_deepslate_stairs","minecraft:cobbled_deepslate_wall","minecraft:cracked_deepslate_bricks","minecraft:cracked_deepslate_tiles","minecraft:deepslate","minecraft:deepslate_brick_double_slab","minecraft:deepslate_brick_slab","minecraft:deepslate_brick_stairs","minecraft:deepslate_brick_wall","minecraft:deepslate_bricks","minecraft:deepslate_tile_double_slab","minecraft:deepslate_tile_slab","minecraft:deepslate_tile_stairs","minecraft:deepslate_tile_wall","minecraft:deepslate_tiles","minecraft:infested_deepslate","minecraft:polished_deepslate","minecraft:polished_deepslate_double_slab","minecraft:polished_deepslate_slab","minecraft:polished_deepslate_stairs","minecraft:polished_deepslate_wall","minecraft:calcite","minecraft:amethyst_block","minecraft:amethyst_cluster","minecraft:budding_amethyst","minecraft:raw_copper_block","minecraft:raw_gold_block","minecraft:raw_iron_block","minecraft:copper_ore","minecraft:copper_block","minecraft:cut_copper","minecraft:cut_copper_slab","minecraft:cut_copper_stairs","minecraft:double_cut_copper_slab","minecraft:exposed_copper","minecraft:exposed_cut_copper","minecraft:exposed_cut_copper_slab","minecraft:exposed_cut_copper_stairs","minecraft:exposed_double_cut_copper_slab","minecraft:oxidized_copper","minecraft:oxidized_cut_copper","minecraft:oxidized_cut_copper_slab","minecraft:oxidized_cut_copper_stairs","minecraft:oxidized_double_cut_copper_slab","minecraft:weathered_copper","minecraft:weathered_cut_copper","minecraft:weathered_cut_copper_slab","minecraft:weathered_cut_copper_stairs","minecraft:weathered_double_cut_copper_slab","minecraft:waxed_copper","minecraft:waxed_cut_copper","minecraft:waxed_cut_copper_slab","minecraft:waxed_cut_copper_stairs","minecraft:waxed_double_cut_copper_slab","minecraft:waxed_exposed_copper","minecraft:waxed_exposed_cut_copper","minecraft:waxed_exposed_cut_copper_slab","minecraft:waxed_exposed_cut_copper_stairs","minecraft:waxed_exposed_double_cut_copper_slab","minecraft:waxed_oxidized_copper","minecraft:waxed_oxidized_cut_copper","minecraft:waxed_oxidized_cut_copper_slab","minecraft:waxed_oxidized_cut_copper_stairs","minecraft:waxed_oxidized_double_cut_copper_slab","minecraft:waxed_weathered_copper","minecraft:waxed_weathered_cut_copper","minecraft:waxed_weathered_cut_copper_slab","minecraft:waxed_weathered_cut_copper_stairs","minecraft:waxed_weathered_double_cut_copper_slab","minecraft:dripstone_block","minecraft:pointed_dripstone","minecraft:lightning_rod","minecraft:basalt","minecraft:tuff","minecraft:double_stone_slab","minecraft:double_stone_slab2","minecraft:double_stone_slab3","minecraft:double_stone_slab4","minecraft:blackstone_double_slab","minecraft:polished_blackstone_brick_double_slab","minecraft:polished_blackstone_double_slab","minecraft:mossy_cobblestone_stairs","minecraft:stonecutter","minecraft:stonecutter_block","minecraft:red_nether_brick","minecraft:red_nether_brick_stairs","minecraft:normal_stone_stairs","minecraft:smooth_basalt","minecraft:stone","minecraft:cobblestone","minecraft:mossy_cobblestone","minecraft:dripstone_block","minecraft:brick_block","minecraft:stone_stairs","minecraft:stone_block_slab","minecraft:stone_block_slab2","minecraft:stone_block_slab3","minecraft:stone_block_slab4","minecraft:cobblestone_wall","minecraft:gold_block","minecraft:iron_block","minecraft:cauldron","minecraft:iron_bars","minecraft:obsidian","minecraft:coal_ore","minecraft:deepslate_coal_ore","minecraft:deepslate_diamond_ore","minecraft:deepslate_emerald_ore","minecraft:deepslate_gold_ore","minecraft:deepslate_iron_ore","minecraft:deepslate_redstone_ore","minecraft:lit_deepslate_redstone_ore","minecraft:diamond_ore","minecraft:emerald_ore","minecraft:gold_ore","minecraft:iron_ore","minecraft:lapis_ore","minecraft:redstone_ore","minecraft:lit_redstone_ore","minecraft:raw_iron_block","minecraft:raw_gold_block","minecraft:raw_copper_block","minecraft:mud_brick_double_slab","minecraft:mud_brick_slab","minecraft:mud_brick_stairs","minecraft:mud_brick_wall","minecraft:mud_bricks","minecraft:hardened_clay","minecraft:stained_hardened_clay","minecraft:polished_diorite_stairs","minecraft:andesite_stairs","minecraft:polished_andesite_stairs","minecraft:granite_stairs","minecraft:polished_granite_stairs","minecraft:polished_blackstone","minecraft:chiseled_polished_blackstone","minecraft:polished_blackstone_brick_stairs","minecraft:blackstone_stairs","minecraft:polished_blackstone_brick_wall","minecraft:gilded_blackstone","minecraft:coal_block"]
-                            """, List.class)) {
-                        this.blockTags.put((String) name, speed);
-                    }
-                } else if (item.isAxe()) {
-                    cmp.putCompound("block",
-                                    new CompoundTag()
-                                            .putString("tags", "q.any_tag('wood', 'pumpkin', 'plant')"))
-                            .putInt("speed", speed);
-                    this.diggerRoot.getList("destroy_speeds", CompoundTag.class).add(cmp);
-                    this.nbt.getCompound("components").getCompound("item_properties")
-                            .putString("enchantable_slot", "axe");
-                    this.nbt.getCompound("components")
-                            .putCompound("minecraft:digger", this.diggerRoot);
-
-                    for (var name : gson.fromJson("""
-                            ["minecraft:chest","minecraft:bookshelf","minecraft:melon_block","minecraft:warped_stem","minecraft:crimson_stem","minecraft:warped_stem","minecraft:crimson_stem","minecraft:crafting_table","minecraft:crimson_planks","minecraft:warped_planks","minecraft:warped_stairs","minecraft:warped_trapdoor","minecraft:crimson_stairs","minecraft:crimson_trapdoor","minecraft:crimson_door","minecraft:crimson_double_slab","minecraft:warped_door","minecraft:warped_double_slab","minecraft:crafting_table","minecraft:composter","minecraft:cartography_table","minecraft:lectern","minecraft:stripped_crimson_stem","minecraft:stripped_warped_stem","minecraft:trapdoor","minecraft:spruce_trapdoor","minecraft:birch_trapdoor","minecraft:jungle_trapdoor","minecraft:acacia_trapdoor","minecraft:dark_oak_trapdoor","minecraft:wooden_door","minecraft:spruce_door","minecraft:birch_door","minecraft:jungle_door","minecraft:acacia_door","minecraft:dark_oak_door","minecraft:fence","minecraft:fence_gate","minecraft:spruce_fence_gate","minecraft:birch_fence_gate","minecraft:jungle_fence_gate","minecraft:acacia_fence_gate","minecraft:dark_oak_fence_gate","minecraft:log","minecraft:log2","minecraft:wood","minecraft:planks","minecraft:wooden_slab","minecraft:double_wooden_slab","minecraft:oak_stairs","minecraft:spruce_stairs","minecraft:birch_stairs","minecraft:jungle_stairs","minecraft:acacia_stairs","minecraft:dark_oak_stairs","minecraft:wall_sign","minecraft:spruce_wall_sign","minecraft:birch_wall_sign","minecraft:jungle_wall_sign","minecraft:acacia_wall_sign","minecraft:darkoak_wall_sign","minecraft:wooden_pressure_plate","minecraft:spruce_pressure_plate","minecraft:birch_pressure_plate","minecraft:jungle_pressure_plate","minecraft:acacia_pressure_plate","minecraft:dark_oak_pressure_plate","minecraft:smithing_table","minecraft:fletching_table","minecraft:barrel","minecraft:beehive","minecraft:bee_nest","minecraft:ladder","minecraft:pumpkin","minecraft:carved_pumpkin","minecraft:lit_pumpkin","minecraft:mangrove_door","minecraft:mangrove_double_slab","minecraft:mangrove_fence","minecraft:mangrove_fence_gate","minecraft:mangrove_log","minecraft:mangrove_planks","minecraft:mangrove_pressure_plate","minecraft:mangrove_slab","minecraft:mangrove_stairs","minecraft:mangrove_wall_sign","minecraft:mangrove_wood","minecraft:wooden_button","minecraft:spruce_button","minecraft:birch_button","minecraft:jungle_button","minecraft:acacia_button","minecraft:dark_oak_button","minecraft:mangrove_button","minecraft:stripped_oak_wood","minecraft:stripped_spruce_wood","minecraft:stripped_birch_wood","minecraft:stripped_jungle_wood","minecraft:stripped_acacia_wood","minecraft:stripped_dark_oak_wood","minecraft:stripped_mangrove_wood","minecraft:stripped_oak_log","minecraft:stripped_spruce_log","minecraft:stripped_birch_log","minecraft:stripped_jungle_log","minecraft:stripped_acacia_log","minecraft:stripped_dark_oak_log","minecraft:stripped_mangrove_log","minecraft:standing_sign","minecraft:spruce_standing_sign","minecraft:birch_standing_sign","minecraft:jungle_standing_sign","minecraft:acacia_standing_sign","minecraft:darkoak_standing_sign","minecraft:mangrove_standing_sign","minecraft:mangrove_trapdoor","minecraft:warped_standing_sign","minecraft:warped_wall_sign","minecraft:crimson_standing_sign","minecraft:crimson_wall_sign","minecraft:mangrove_roots"]
-                            """, List.class)) {
-                        this.blockTags.put((String) name, speed);
-                    }
-                } else if (item.isShovel()) {
-                    cmp.putCompound("block",
-                                    new CompoundTag()
-                                            .putString("tags", "q.any_tag('sand', 'dirt', 'gravel', 'grass', 'snow')"))
-                            .putInt("speed", speed);
-                    this.diggerRoot.getList("destroy_speeds", CompoundTag.class).add(cmp);
-                    this.nbt.getCompound("components").getCompound("item_properties")
-                            .putString("enchantable_slot", "shovel");
-                    this.nbt.getCompound("components")
-                            .putCompound("minecraft:digger", this.diggerRoot);
-
-                    for (var name : gson.fromJson("""
-                            ["minecraft:soul_sand","minecraft:soul_soil","minecraft:dirt_with_roots","minecraft:mycelium","minecraft:podzol","minecraft:dirt","minecraft:farmland","minecraft:sand","minecraft:gravel","minecraft:grass","minecraft:grass_path","minecraft:snow","minecraft:mud","minecraft:packed_mud","minecraft:clay"]
-                            """, List.class)) {
-                        this.blockTags.put((String) name, speed);
-                    }
-                } else if (item.isHoe()) {
-                    this.nbt.getCompound("components").getCompound("item_properties")
-                            .putString("enchantable_slot", "hoe");
-
-                    for (var name : gson.fromJson("""
-                            ["minecraft:nether_wart_block","minecraft:hay_block","minecraft:target","minecraft:shroomlight","minecraft:leaves","minecraft:leaves2","minecraft:azalea_leaves_flowered","minecraft:azalea_leaves","minecraft:warped_wart_block"]
-                            """, List.class)) {
-                        this.blockTags.put((String) name, speed);
-                    }
-                }
-                //添加一些额外的挖掘tags
-                for (var k : this.blockTags.entrySet()) {
-                    this.diggerRoot.getList("destroy_speeds", CompoundTag.class)
-                            .add(new CompoundTag()
-                                    .putString("block", k.getKey())
-                                    .putInt("speed", k.getValue()));
-                }
+            Identifier type = null;
+            if (item.isPickaxe()) {
+                //添加可挖掘方块Tags
+                this.blockTags.addAll(List.of("'stone'", "'metal'", "'diamond_pick_diggable'", "'mob_spawner'", "'rail'", "'slab_block'", "'stair_block'", "'smooth stone slab'", "'sandstone slab'", "'cobblestone slab'", "'brick slab'", "'stone bricks slab'", "'quartz slab'", "'nether brick slab'"));
+                //添加可挖掘方块
+                type = ItemTag.IS_PICKAXE;
+                //附加附魔信息
+                this.nbt.getCompound("components").getCompound("item_properties")
+                        .putString("enchantable_slot", "pickaxe");
+                this.tag("minecraft:is_pickaxe");
+            } else if (item.isAxe()) {
+                this.blockTags.addAll(List.of("'wood'", "'pumpkin'", "'plant'"));
+                type = ItemTag.IS_AXE;
+                this.nbt.getCompound("components").getCompound("item_properties")
+                        .putString("enchantable_slot", "axe");
+                this.tag("minecraft:is_axe");
+            } else if (item.isShovel()) {
+                this.blockTags.addAll(List.of("'sand'", "'dirt'", "'gravel'", "'grass'", "'snow'"));
+                type = ItemTag.IS_SHOVEL;
+                this.nbt.getCompound("components").getCompound("item_properties")
+                        .putString("enchantable_slot", "shovel");
+                this.tag("minecraft:is_shovel");
+            } else if (item.isHoe()) {
+                this.nbt.getCompound("components").getCompound("item_properties")
+                        .putString("enchantable_slot", "hoe");
+                type = ItemTag.IS_HOE;
+                this.tag("minecraft:is_hoe");
             } else if (item.isSword()) {
                 this.nbt.getCompound("components").getCompound("item_properties")
                         .putString("enchantable_slot", "sword");
+                type = ItemTag.IS_SWORD;
+            } else {
+                if (this.nbt.getCompound("components").contains("item_tags")) {
+                    var list = this.nbt.getCompound("components").getList("item_tags", StringTag.class).getAll();
+                    for (var tag : list) {
+                        var id = new Identifier(tag.parseValue());
+                        if (toolBlocks.containsKey(id)) {
+                            type = id;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (type != null) {
+                toolBlocks.get(type).forEach(
+                        (k, v) -> {
+                            if (v.getSpeed() == null) v.setSpeed(speed);
+                            blocks.add(new CompoundTag()
+                                    .putCompound("block", new CompoundTag()
+                                            .putString("name", k)
+                                            .putCompound("states", v.getStates())
+                                            .putString("tags", "")
+                                    )
+                                    .putInt("speed", v.getSpeed()));
+                        }
+                );
+            }
+            //添加可挖掘的方块tags
+            if (!this.blockTags.isEmpty()) {
+                var cmp = new CompoundTag();
+                cmp.putCompound("block", new CompoundTag()
+                                .putString("name", "")
+                                .putCompound("states", new CompoundTag())
+                                .putString("tags", "q.any_tag(" + String.join(", ", this.blockTags) + ")")
+                        )
+                        .putInt("speed", speed);
+                this.diggerRoot.getList("destroy_speeds", CompoundTag.class).add(cmp);
+                this.nbt.getCompound("components")
+                        .putCompound("minecraft:digger", this.diggerRoot);
+            }
+
+            //添加可挖掘的方块
+            for (var k : this.blocks) {
+                this.diggerRoot.getList("destroy_speeds", CompoundTag.class).add(k);
             }
             return calculateID();
         }
@@ -468,18 +610,31 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
             this.item = item;
             this.nbt.getCompound("components")
                     .getCompound("item_properties")
-                    .putInt("enchantable_value", item.getEnchantAbility());
+                    .putInt("enchantable_value", item.getEnchantAbility())
+                    .putBoolean("can_destroy_in_creative", true);
         }
 
-        @Since("1.19.40-r1")
-        public ArmorBuilder addRepairItems(@NonNull List<Item> repairItems, String molang) {
-            super.addRepairItems(repairItems, molang);
+        @Since("1.19.60-r1")
+        public ArmorBuilder addRepairItemName(@NonNull String repairItemName, String molang) {
+            super.addRepairs(List.of(repairItemName), molang);
+            return this;
+        }
+
+        @Since("1.19.60-r1")
+        public ArmorBuilder addRepairItemName(@NonNull String repairItemName, int repairAmount) {
+            super.addRepairs(List.of(repairItemName), String.valueOf(repairAmount));
             return this;
         }
 
         @Since("1.19.40-r1")
-        public ArmorBuilder addRepairItems(@NonNull List<Item> repairItems, int repairAmount) {
-            super.addRepairItems(repairItems, String.valueOf(repairAmount));
+        public ArmorBuilder addRepairItems(@NotNull List<Item> repairItems, String molang) {
+            super.addRepairs(repairItems.stream().map(Item::getNamespaceId).toList(), molang);
+            return this;
+        }
+
+        @Since("1.19.40-r1")
+        public ArmorBuilder addRepairItems(@NotNull List<Item> repairItems, int repairAmount) {
+            super.addRepairs(repairItems.stream().map(Item::getNamespaceId).toList(), String.valueOf(repairAmount));
             return this;
         }
 
@@ -522,17 +677,19 @@ public record CustomItemDefinition(String identifier, CompoundTag nbt) {
     public static class EdibleBuilder extends SimpleBuilder {
         private EdibleBuilder(ItemCustomEdible item, ItemCreativeCategory creativeCategory) {
             super(item, creativeCategory);
+            var food = Food.registerFood(item.getFood().getValue(), item.getFood().getKey());
             if (this.nbt.getCompound("components").contains("minecraft:food")) {
                 this.nbt.getCompound("components").getCompound("minecraft:food").putBoolean("can_always_eat", item.canAlwaysEat());
             } else {
                 this.nbt.getCompound("components").putCompound("minecraft:food", new CompoundTag().putBoolean("can_always_eat", item.canAlwaysEat()));
             }
 
-            this.nbt.getCompound("components").getCompound("item_properties")
-                    .putInt("use_duration", item.getEatTick());
-
-            this.nbt.getCompound("components").getCompound("item_properties")
-                    .putInt("use_animation", item.isDrink() ? 2 : 1);
+            int eatingtick = food.getEatingTickSupplier() == null ? food.getEatingTick() : food.getEatingTickSupplier().getAsInt();
+            this.nbt.getCompound("components")
+                    .getCompound("item_properties")
+                    .putInt("use_duration", eatingtick)
+                    .putInt("use_animation", item.isDrink() ? 2 : 1)
+                    .putBoolean("can_destroy_in_creative", true);
         }
 
         @Override

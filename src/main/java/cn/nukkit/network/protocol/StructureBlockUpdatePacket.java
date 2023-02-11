@@ -1,8 +1,8 @@
 package cn.nukkit.network.protocol;
 
+import cn.nukkit.blockproperty.value.StructureBlockType;
 import cn.nukkit.math.BlockVector3;
-import cn.nukkit.network.protocol.types.structure.StructureEditorData;
-import cn.nukkit.network.protocol.types.structure.StructureSettings;
+import cn.nukkit.network.protocol.types.*;
 import lombok.ToString;
 
 @ToString
@@ -10,117 +10,87 @@ public class StructureBlockUpdatePacket extends DataPacket {
     public BlockVector3 blockPosition;
     public StructureEditorData editorData;
     public boolean powered;
+    public boolean waterlogged;
 
     @Override
     public byte pid() {
         return ProtocolInfo.STRUCTURE_BLOCK_UPDATE_PACKET;
     }
 
-    public BlockVector3 getBlockPosition() {
-        return blockPosition;
-    }
-
-    public StructureEditorData getEditorData() {
-        return editorData;
-    }
-
-    public boolean isPowered() {
-        return powered;
-    }
-
-    public void setBlockPosition(BlockVector3 blockPosition) {
-        this.blockPosition = blockPosition;
-    }
-
-    public void setEditorData(StructureEditorData editorData) {
-        this.editorData = editorData;
-    }
-
-    public void setPowered(boolean powered) {
-        this.powered = powered;
-    }
-
     @Override
     public void decode() {
-
+        this.blockPosition = this.getBlockVector3();
+        this.editorData = readEditorData();
+        this.powered = this.getBoolean();
+        this.waterlogged = this.getBoolean();
     }
 
     @Override
     public void encode() {
         this.reset();
-        this.putBlockVector3(this.getBlockPosition());
+        this.putBlockVector3(blockPosition);
+        this.writeEditorData(editorData);
+        this.putBoolean(powered);
+        this.putBoolean(waterlogged);
     }
 
-    private void writeEditorData() {
-        this.putString(this.editorData.name());
-        this.putString(this.editorData.dataField());
-        this.putBoolean(this.editorData.includingPlayers());
-        this.putBoolean(this.editorData.boundingBoxVisible());
-        this.putVarInt(this.editorData.type().ordinal());
-        this.writeStructureSettings();
+    private StructureEditorData readEditorData() {
+        var name = this.getString();
+        var dataField = this.getString();
+        var isIncludingPlayers = this.getBoolean();
+        var isBoundingBoxVisible = this.getBoolean();
+        var type = this.getVarInt();
+        var structureSettings = readStructureSettings();
+        var redstoneSaveMode = this.getVarInt();
+        return new StructureEditorData(name, dataField, isIncludingPlayers, isBoundingBoxVisible, StructureBlockType.from(type), structureSettings,
+                StructureRedstoneSaveMode.from(redstoneSaveMode));
     }
 
-    private void writeStructureSettings() {
-        StructureSettings settings = this.editorData.settings();
-        this.putString(settings.paletteName());
-        this.putBoolean(settings.ignoringBlocks());
-        this.putBoolean(settings.ignoringEntities());
-        this.putBlockVector3(settings.size());
-        this.putBlockVector3(settings.offset());
-        this.putUnsignedVarInt(settings.lastEditedByEntityId());
-        this.putInt(settings.rotation().ordinal());
-        this.putInt(settings.mirror().ordinal());
-        this.putLFloat(settings.integrityValue());
-        this.putLInt(settings.integritySeed());
-        this.putVector3f(settings.pivot());
+    private StructureSettings readStructureSettings() {
+        var paletteName = this.getString();
+        var isIgnoringEntities = this.getBoolean();
+        var isIgnoringBlocks = this.getBoolean();
+        var isNonTickingPlayersAndTickingAreasEnabled = this.getBoolean();
+        var size = this.getBlockVector3();
+        var offset = this.getBlockVector3();
+        var lastEditedByEntityId = this.getVarLong();
+        var rotation = this.getByte();
+        var mirror = this.getByte();
+        var animationMode = this.getByte();
+        var animationSeconds = this.getLFloat();
+        var integrityValue = this.getLFloat();
+        var integritySeed = this.getLInt();
+        var pivot = this.getVector3f();
+        return new StructureSettings(paletteName, isIgnoringEntities, isIgnoringBlocks, isNonTickingPlayersAndTickingAreasEnabled, size, offset,
+                lastEditedByEntityId, StructureRotation.from(rotation), StructureMirror.from(mirror), StructureAnimationMode.from(animationMode),
+                animationSeconds, integrityValue, integritySeed, pivot
+        );
     }
 
-    public enum SaveMode {
-        SAVE_TO_MEMORY,
-        SAVE_TO_DISK;
-
-        private static final SaveMode[] VALUES = values();
-
-        public static SaveMode get(int id) {
-            return VALUES[id];
-        }
+    private void writeEditorData(StructureEditorData editorData) {
+        this.putString(editorData.getName());
+        this.putString(editorData.getDataField());
+        this.putBoolean(editorData.isIncludingPlayers());
+        this.putBoolean(editorData.isBoundingBoxVisible());
+        this.putVarInt(editorData.getType().ordinal());
+        writeStructureSettings(editorData.getSettings());
+        this.putVarInt(editorData.getRedstoneSaveMode().ordinal());
     }
 
-    public enum Rotation {
-        NONE,
-        ROTATE_90,
-        ROTATE_180,
-        ROTATE_270;
-
-        private static final Rotation[] VALUES = values();
-
-        public static Rotation get(int id) {
-            return VALUES[id];
-        }
-    }
-
-    public enum Mirror {
-        NONE,
-        X,
-        Y,
-        Z;
-
-        private static final Mirror[] VALUES = values();
-
-        public static Mirror get(int id) {
-            return VALUES[id];
-        }
-    }
-
-    public enum AnimationMode {
-        NONE,
-        LAYER,
-        BLOCKS;
-
-        private static final AnimationMode[] VALUES = values();
-
-        public static AnimationMode get(int id) {
-            return VALUES[id];
-        }
+    private void writeStructureSettings(StructureSettings settings) {
+        this.putString(settings.getPaletteName());
+        this.putBoolean(settings.isIgnoringEntities());
+        this.putBoolean(settings.isIgnoringBlocks());
+        this.putBoolean(settings.isNonTickingPlayersAndTickingAreasEnabled());
+        this.putBlockVector3(settings.getSize());
+        this.putBlockVector3(settings.getOffset());
+        this.putVarLong(settings.getLastEditedByEntityId());
+        this.putByte((byte) settings.getRotation().ordinal());
+        this.putByte((byte) settings.getMirror().ordinal());
+        this.putByte((byte) settings.getAnimationMode().ordinal());
+        this.putLFloat(settings.getAnimationSeconds());
+        this.putLFloat(settings.getIntegrityValue());
+        this.putLInt(settings.getIntegritySeed());
+        this.putVector3f(settings.getPivot());
     }
 }

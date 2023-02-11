@@ -7,7 +7,6 @@ import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockID;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.level.format.FullChunk;
-import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.BlockVector3;
 import cn.nukkit.nbt.tag.CompoundTag;
@@ -30,8 +29,10 @@ public class BlockEntityMovingBlock extends BlockEntitySpawnable {
         super(chunk, nbt);
     }
 
+    @Since("1.19.60-r1")
     @Override
-    protected void initBlockEntity() {
+    public void loadNBT() {
+        super.loadNBT();
         if (namedTag.contains("movingBlock")) {
             CompoundTag blockData = namedTag.getCompound("movingBlock");
 
@@ -46,8 +47,6 @@ public class BlockEntityMovingBlock extends BlockEntitySpawnable {
         } else {
             this.piston = new BlockVector3(0, -1, 0);
         }
-
-        super.initBlockEntity();
     }
 
     @PowerNukkitOnly
@@ -79,27 +78,21 @@ public class BlockEntityMovingBlock extends BlockEntitySpawnable {
 
     @PowerNukkitOnly
     public void moveCollidedEntities(BlockEntityPistonArm piston, BlockFace moveDirection) {
-        AxisAlignedBB bb = block.getBoundingBox();
-
-        if (bb == null) {
+        var bb = block.getBoundingBox();
+        if (bb == null)
             return;
-        }
-
         bb = bb.getOffsetBoundingBox(
                 this.x + (piston.progress * moveDirection.getXOffset()) - moveDirection.getXOffset(),
                 this.y + (piston.progress * moveDirection.getYOffset()) - moveDirection.getYOffset(),
                 this.z + (piston.progress * moveDirection.getZOffset()) - moveDirection.getZOffset()
-        );
-
-        Entity[] entities = this.level.getCollidingEntities(bb);
-
-        for (Entity entity : entities) {
+                //带动站在移动方块上的实体
+        ).addCoord(0, moveDirection.getAxis().isHorizontal() ? 0.25 : 0, 0);
+        for (Entity entity : this.level.getCollidingEntities(bb))
             piston.moveEntity(entity, moveDirection);
-        }
     }
 
     @Override
     public boolean isBlockEntityValid() {
-        return this.level.getBlockIdAt(getFloorX(), getFloorY(), getFloorZ()) == BlockID.MOVING_BLOCK;
+        return this.getBlock().getId() == BlockID.MOVING_BLOCK;
     }
 }

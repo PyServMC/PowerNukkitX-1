@@ -525,7 +525,7 @@ public class PluginManager {
     }
 
     @PowerNukkitDifference(info = "Makes sure the PowerNukkitPlugin is never disabled", since = "1.3.0.0-PN")
-    @PowerNukkitXDifference(info = "Makes sure the PowerNukkitX Internal Plugin is never disabled", since = "1.19.50-r4")
+    @PowerNukkitXDifference(info = "Makes sure the PowerNukkitX Internal Plugin is never disabled", since = "1.19.60-r1")
     public void disablePlugins() {
         ListIterator<Plugin> plugins = new ArrayList<>(this.getPlugins().values()).listIterator(this.getPlugins().size());
 
@@ -624,7 +624,7 @@ public class PluginManager {
             for (Class<?> clazz = eventClass; Event.class.isAssignableFrom(clazz); clazz = clazz.getSuperclass()) {
                 // This loop checks for extending deprecated events
                 if (clazz.getAnnotation(Deprecated.class) != null) {
-                    if (Boolean.parseBoolean(String.valueOf(this.server.getConfig("settings.deprecated-verbpse", true)))) {
+                    if (Boolean.parseBoolean(String.valueOf(this.server.getConfig("settings.deprecated-verbose", true)))) {
                         log.warn(this.server.getLanguage().tr("nukkit.plugin.deprecatedEvent", plugin.getName(), clazz.getName(), listener.getClass().getName() + "." + method.getName() + "()"));
                     }
                     break;

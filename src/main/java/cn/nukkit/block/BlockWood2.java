@@ -8,7 +8,7 @@ import cn.nukkit.blockproperty.BlockProperty;
 import cn.nukkit.blockproperty.value.WoodType;
 import cn.nukkit.item.ItemBlock;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import static cn.nukkit.blockproperty.CommonBlockProperties.PILLAR_AXIS;
 
@@ -53,7 +53,7 @@ public class BlockWood2 extends BlockWood {
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
