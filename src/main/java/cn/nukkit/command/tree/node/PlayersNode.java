@@ -4,9 +4,12 @@ import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
-import cn.nukkit.command.utils.EntitySelector;
+import cn.nukkit.command.exceptions.SelectorSyntaxException;
+import cn.nukkit.command.selector.EntitySelectorAPI;
+import cn.nukkit.entity.Entity;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -15,23 +18,26 @@ import java.util.stream.Collectors;
  * 不会默认使用，需要手动指定
  */
 @PowerNukkitXOnly
-@Since("1.19.50-r4")
+@Since("1.19.60-r1")
 public class PlayersNode extends TargetNode<Player> {
     //todo 支持uuid 或者 xuid
     @Override
     public void fill(String arg) {
         if (arg.isBlank()) {
             this.error();
-        } else if (EntitySelector.hasArguments(arg)) {
-            var entities = EntitySelector.matchEntities(this.parent.parent.getSender(), arg);
-            if (entities != null)
-                this.value = entities.stream().filter(entity -> entity instanceof Player).map(entity -> (Player) entity).collect(Collectors.toList());
-            else error("commands.generic.noTargetMatch");
+        } else if (EntitySelectorAPI.getAPI().checkValid(arg)) {
+            List<Entity> entities;
+            List<Player> result;
+            try {
+                entities = EntitySelectorAPI.getAPI().matchEntities(this.parent.parent.getSender(), arg);
+            } catch (SelectorSyntaxException exception) {
+                error(exception.getMessage());
+                return;
+            }
+            result = entities.stream().filter(entity -> entity instanceof Player).map(entity -> (Player) entity).collect(Collectors.toList());
+            this.value = result;
         } else {
-            Player player = Server.getInstance().getPlayer(arg);
-            if (player != null) {
-                this.value = Collections.singletonList(player);
-            } else error("commands.generic.player.notFound");
+            this.value = Collections.singletonList(Server.getInstance().getPlayer(arg));
         }
     }
 }

@@ -6,7 +6,6 @@ import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.entity.Entity;
 
@@ -28,11 +27,20 @@ public class TestForCommand extends VanillaCommand {
         this.enableParamTree();
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
         List<Entity> targets = result.getValue().getResult(0);
-        log.addSuccess("commands.testfor.success", targets.stream().map(Entity::getName).collect(Collectors.joining(","))).output();
-        return 1;
+        if (targets.isEmpty()) {
+            log.addNoTargetMatch().output();
+            return 0;
+        } else {
+            log.addSuccess("commands.testfor.success", targets.stream().map(entity -> {
+                var name = entity.getName();
+                if (name.isBlank()) name = entity.getSaveId();
+                return name;
+            }).collect(Collectors.joining(","))).output();
+            return targets.size();
+        }
     }
 }

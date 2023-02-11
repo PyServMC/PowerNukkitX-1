@@ -5,7 +5,8 @@ import cn.nukkit.nbt.stream.NBTInputStream;
 import cn.nukkit.nbt.stream.NBTOutputStream;
 import com.google.common.base.Preconditions;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.util.Objects;
 
@@ -17,7 +18,7 @@ public class StringTag extends Tag {
     }
 
     @PowerNukkitDifference(since = "1.4.0.0-PN", info = "Throws NullPointerException instead of IllegalArgumentException if data is null")
-    public StringTag(String name, @Nonnull String data) {
+    public StringTag(String name, @NotNull String data) {
         super(name);
         this.data = Preconditions.checkNotNull(data, "Empty string not allowed");
     }
@@ -48,13 +49,13 @@ public class StringTag extends Tag {
     }
 
     @Override
-    public String toSnbt() {
-        return "\"" + this.getName() + "\":\"" + data + "\"";
+    public String toSNBT() {
+        return "\"" + data + "\"";
     }
 
     @Override
-    public String toSnbt(int space) {
-        return "\"" + this.getName() + "\": \"" + data + "\"";
+    public String toSNBT(int space) {
+        return "\"" + data + "\"";
     }
 
     @Override
@@ -70,7 +71,7 @@ public class StringTag extends Tag {
         }
         return false;
     }
-    
+
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), data);

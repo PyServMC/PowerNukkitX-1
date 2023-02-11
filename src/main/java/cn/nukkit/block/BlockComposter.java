@@ -16,8 +16,8 @@ import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Random;
 
@@ -33,7 +33,7 @@ public class BlockComposter extends BlockSolidMeta implements ItemID {
     @Since("1.4.0.0-PN")
     public static final BlockProperties PROPERTIES = new BlockProperties(COMPOSTER_FILL_LEVEL);
     @PowerNukkitXOnly
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     public static final Item OUTPUT_ITEM = new ItemDye(DyeColor.BONE_MEAL, 1);
 
     static {
@@ -42,7 +42,7 @@ public class BlockComposter extends BlockSolidMeta implements ItemID {
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -129,7 +129,7 @@ public class BlockComposter extends BlockSolidMeta implements ItemID {
 
     @PowerNukkitDifference(info = "Player is null when is called from BlockEntityHopper")
     @Override
-    public boolean onActivate(@Nonnull Item item, Player player) {
+    public boolean onActivate(@NotNull Item item, Player player) {
         if (item.getCount() <= 0 || item.getId() == Item.AIR) {
             return false;
         }
@@ -199,20 +199,20 @@ public class BlockComposter extends BlockSolidMeta implements ItemID {
     }
 
     @PowerNukkitXOnly
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     public Item getOutPutItem() {
         return OUTPUT_ITEM.clone();
     }
 
     @PowerNukkitOnly
     @Since("FUTURE")
-    public static void registerItem(int chance, @Nonnull MinecraftItemID itemId) {
+    public static void registerItem(int chance, @NotNull MinecraftItemID itemId) {
         compostableStringItems.put(itemId.getItemFormNamespaceId(), chance);
     }
 
     @PowerNukkitOnly
     @Since("FUTURE")
-    public static void registerItems(int chance, @Nonnull MinecraftItemID... itemId) {
+    public static void registerItems(int chance, @NotNull MinecraftItemID... itemId) {
         for (MinecraftItemID minecraftItemID : itemId) {
             registerItem(chance, minecraftItemID);
         }

@@ -1,8 +1,9 @@
 package cn.nukkit.item;
 
-public class ItemBannerPatternGlobe extends StringItem {
+public class ItemBannerPatternGlobe implements StringItem {
 
-    public ItemBannerPatternGlobe() {
-        super(MinecraftItemID.GLOBE_BANNER_PATTERN.getNamespacedId(), "Globe Banner Pattern");
+    @Override
+    public String getNamespaceId() {
+        return "Globe Banner Pattern";
     }
 }

@@ -4,7 +4,7 @@ import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
 import lombok.RequiredArgsConstructor;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 @Since("1.4.0.0-PN")
 @PowerNukkitOnly
@@ -33,13 +33,19 @@ public enum StructureBlockType {
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
     EXPORT("Export Structure Block");
-    
+
     private final String englishName;
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     public String getEnglishName() {
         return englishName;
+    }
+
+    private static final StructureBlockType[] VALUES = StructureBlockType.values();
+
+    public static StructureBlockType from(int id) {
+        return VALUES[id];
     }
 }

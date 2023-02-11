@@ -15,9 +15,11 @@ import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.particle.BoneMealParticle;
 import cn.nukkit.math.BlockFace;
+import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.utils.BlockColor;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -25,7 +27,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * @author Angelic47 (Nukkit Project)
  */
-public class BlockTallGrass extends BlockFlowable {
+public class BlockTallGrass extends BlockFlowable implements BlockFlowerPot.FlowerPotBlock {
 
     @PowerNukkitOnly
     @Since("1.5.0.0-PN")
@@ -50,7 +52,7 @@ public class BlockTallGrass extends BlockFlowable {
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -88,7 +90,7 @@ public class BlockTallGrass extends BlockFlowable {
     }
 
     @Override
-    public boolean place(@Nonnull Item item, @Nonnull Block block, @Nonnull Block target, @Nonnull BlockFace face, double fx, double fy, double fz, Player player) {
+    public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, Player player) {
         if (BlockSweetBerryBush.isSupportValid(down())) {
             this.getLevel().setBlock(block, this, true);
             return true;
@@ -109,7 +111,7 @@ public class BlockTallGrass extends BlockFlowable {
     }
 
     @Override
-    public boolean onActivate(@Nonnull Item item, Player player) {
+    public boolean onActivate(@NotNull Item item, Player player) {
         if (item.isFertilizer()) {
             Block up = this.up();
 
@@ -180,5 +182,10 @@ public class BlockTallGrass extends BlockFlowable {
     @Override
     public BlockColor getColor() {
         return BlockColor.FOLIAGE_BLOCK_COLOR;
+    }
+
+    @Override
+    public boolean isPotBlockState() {
+        return getPropertyValue(TALL_GRASS_TYPE) == TallGrassType.FERN;
     }
 }

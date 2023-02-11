@@ -6,7 +6,6 @@ import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.tree.node.PlayersNode;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.event.player.PlayerKickEvent;
@@ -31,25 +30,22 @@ public class KickCommand extends VanillaCommand {
         this.enableParamTree();
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
         var list = result.getValue();
         List<Player> players = list.getResult(0);
-        StringBuilder reason = new StringBuilder();
-        if (list.hasResult(1)) {
-            String[] args = list.getResult(1);
-            for (int i = 1; i < args.length; i++) {
-                reason.append(args[i]).append(" ");
-            }
+        if (players.isEmpty()) {
+            log.addNoTargetMatch().output();
+            return 0;
         }
-
-        if (reason.length() > 0) {
-            reason = new StringBuilder(reason.substring(0, reason.length() - 1));
+        String reason = "";
+        if (list.hasResult(1)) {
+            reason = list.getResult(1);
         }
 
         for (Player player : players) {
-            player.kick(PlayerKickEvent.Reason.KICKED_BY_ADMIN, reason.toString());
+            player.kick(PlayerKickEvent.Reason.KICKED_BY_ADMIN, reason);
             if (reason.length() >= 1) {
                 log.addSuccess("commands.kick.success.reason", player.getName(), reason.toString());
             } else {

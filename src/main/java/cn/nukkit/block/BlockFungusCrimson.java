@@ -6,7 +6,6 @@ import cn.nukkit.api.Since;
 import cn.nukkit.event.level.StructureGrowEvent;
 import cn.nukkit.level.ListChunkManager;
 import cn.nukkit.level.generator.object.tree.ObjectCrimsonTree;
-import cn.nukkit.level.generator.object.tree.ObjectWarpedTree;
 import cn.nukkit.math.NukkitRandom;
 import cn.nukkit.utils.BlockColor;
 

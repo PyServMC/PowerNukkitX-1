@@ -5,8 +5,10 @@ import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockID;
+import cn.nukkit.block.BlockItemFrame;
 import cn.nukkit.entity.item.EntityItem;
 import cn.nukkit.event.block.ItemFrameDropItemEvent;
+import cn.nukkit.event.player.PlayerUseItemFrameEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemBlock;
 import cn.nukkit.item.MinecraftItemID;
@@ -30,8 +32,10 @@ public class BlockEntityItemFrame extends BlockEntitySpawnable {
         super(chunk, nbt);
     }
 
+    @Since("1.19.60-r1")
     @Override
-    protected void initBlockEntity() {
+    public void loadNBT() {
+        super.loadNBT();
         if (!namedTag.contains("Item")) {
             namedTag.putCompound("Item", NBTIO.putItemHelper(new ItemBlock(Block.get(BlockID.AIR))));
         }
@@ -41,10 +45,7 @@ public class BlockEntityItemFrame extends BlockEntitySpawnable {
         if (!namedTag.contains("ItemDropChance")) {
             namedTag.putFloat("ItemDropChance", 1.0f);
         }
-
         this.level.updateComparatorOutputLevel(this);
-
-        super.initBlockEntity();
     }
 
     @Override
@@ -54,7 +55,7 @@ public class BlockEntityItemFrame extends BlockEntitySpawnable {
 
     @Override
     public boolean isBlockEntityValid() {
-        return this.getBlock().getId() == Block.ITEM_FRAME_BLOCK;
+        return this.getBlock() instanceof BlockItemFrame;
     }
 
     public int getItemRotation() {
@@ -114,7 +115,7 @@ public class BlockEntityItemFrame extends BlockEntitySpawnable {
         if (!item.isNull()) {
             CompoundTag itemTag = NBTIO.putItemHelper(item);
             int networkFullId = item.getNetworkFullId();
-            int networkDamage = (networkFullId & 0x1) == 0x1? 0 : item.getDamage();
+            int networkDamage = (networkFullId & 0x1) == 0x1 ? 0 : item.getDamage();
             String namespacedId = RuntimeItems.getRuntimeMapping().getNamespacedIdByNetworkId(
                     RuntimeItems.getNetworkId(networkFullId)
             );
@@ -122,6 +123,9 @@ public class BlockEntityItemFrame extends BlockEntitySpawnable {
                 itemTag.remove("id");
                 itemTag.putShort("Damage", networkDamage);
                 itemTag.putString("Name", namespacedId);
+            }
+            if (item instanceof ItemBlock itemBlock) {
+                itemTag.putCompound("Block", NBTIO.putBlockHelper(itemBlock.getBlock()));
             }
             tag.putCompound("Item", itemTag)
                     .putByte("ItemRotation", this.getItemRotation());
@@ -165,12 +169,16 @@ public class BlockEntityItemFrame extends BlockEntitySpawnable {
             return null;
         }
 
-        ItemFrameDropItemEvent event = new ItemFrameDropItemEvent(player, getLevelBlock(), this, drop);
-        level.getServer().getPluginManager().callEvent(event);
-        if (event.isCancelled()) {
-            if (player != null) {
-                spawnTo(player);
-            }
+        if (player == null) {
+            return null;
+        }
+
+        PlayerUseItemFrameEvent event1 = new PlayerUseItemFrameEvent(player, getLevelBlock(), this, drop, PlayerUseItemFrameEvent.Action.DROP);
+        ItemFrameDropItemEvent event2 = new ItemFrameDropItemEvent(player, getLevelBlock(), this, drop);
+        level.getServer().getPluginManager().callEvent(event1);
+        level.getServer().getPluginManager().callEvent(event2);
+        if (event1.isCancelled() || event2.isCancelled()) {
+            spawnTo(player);
             return null;
         }
 
@@ -178,16 +186,16 @@ public class BlockEntityItemFrame extends BlockEntitySpawnable {
         if (this.getItemDropChance() > ThreadLocalRandom.current().nextFloat()) {
             itemEntity = level.dropAndGetItem(add(0.5, 0.25, 0.5), drop);
             if (itemEntity == null) {
-                if (player != null) {
-                    spawnTo(player);
-                }
+                spawnTo(player);
                 return null;
             }
         }
+
         setItem(MinecraftItemID.AIR.get(0), true);
         setItemRotation(0);
         spawnToAll();
         level.addLevelEvent(this, LevelEventPacket.EVENT_SOUND_ITEM_FRAME_REMOVED);
+
         return itemEntity;
     }
 }

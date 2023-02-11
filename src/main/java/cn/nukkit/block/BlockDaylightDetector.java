@@ -17,8 +17,7 @@ import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.MathHelper;
 import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.RedstoneComponent;
-
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author CreeperFace
@@ -43,7 +42,7 @@ public class BlockDaylightDetector extends BlockTransparentMeta implements Redst
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -56,7 +55,7 @@ public class BlockDaylightDetector extends BlockTransparentMeta implements Redst
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     @Override
     public String getBlockEntityType() {
         return BlockEntity.DAYLIGHT_DETECTOR;
@@ -64,7 +63,7 @@ public class BlockDaylightDetector extends BlockTransparentMeta implements Redst
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public Class<? extends BlockEntityDaylightDetector> getBlockEntityClass() {
         return BlockEntityDaylightDetector.class;
@@ -102,23 +101,41 @@ public class BlockDaylightDetector extends BlockTransparentMeta implements Redst
     }
 
     @Override
-    public boolean place(@Nonnull Item item, @Nonnull Block block, @Nonnull Block target, @Nonnull BlockFace face, double fx, double fy, double fz, Player player) {
+    public int onUpdate(int type) {
+        if (!this.level.getServer().isRedstoneEnabled()) {
+            return 0;
+        }
+
+        if (type == Level.BLOCK_UPDATE_NORMAL || type == Level.BLOCK_UPDATE_REDSTONE) {
+            var be = getBlockEntity();
+            if (be != null) {
+                be.scheduleUpdate();
+            }
+        }
+        return type;
+    }
+
+    @Override
+    public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, Player player) {
         BlockEntityDaylightDetector detector = BlockEntityHolder.setBlockAndCreateEntity(this);
         if (detector == null) {
             return false;
         }
         if (getLevel().getDimension() == Level.DIMENSION_OVERWORLD) {
-            updatePower();
+            if (this.level.getServer().isRedstoneEnabled()) {
+                updatePower();
+            }
         }
         return true;
     }
 
     @Override
-    public boolean onActivate(@Nonnull Item item, Player player) {
-        checkAndRecoveryBlockEntity();
+    public boolean onActivate(@NotNull Item item, Player player) {
         BlockDaylightDetectorInverted block = new BlockDaylightDetectorInverted();
         getLevel().setBlock(this, block, true, true);
-        block.updatePower();
+        if (this.level.getServer().isRedstoneEnabled()) {
+            block.updatePower();
+        }
         return true;
     }
 
@@ -131,14 +148,6 @@ public class BlockDaylightDetector extends BlockTransparentMeta implements Redst
             return true;
         }
         return false;
-    }
-
-    @PowerNukkitXOnly
-    @Since("1.19.20-r3")
-    private void checkAndRecoveryBlockEntity() {
-        if (!(this.getLevel().getBlockEntity(this) instanceof BlockEntityDaylightDetector)) {
-            BlockEntityHolder.setBlockAndCreateEntity(this);
-        }
     }
 
     @Override

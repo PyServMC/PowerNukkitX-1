@@ -5,7 +5,8 @@ import cn.nukkit.api.Since;
 import cn.nukkit.nbt.stream.NBTInputStream;
 import cn.nukkit.nbt.stream.NBTOutputStream;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Objects;
@@ -33,9 +34,9 @@ public abstract class Tag {
     @Override
     public abstract String toString();
 
-    public abstract String toSnbt();
+    public abstract String toSNBT();
 
-    public abstract String toSnbt(int space);
+    public abstract String toSNBT(int space);
 
     public abstract byte getId();
 
@@ -88,7 +89,7 @@ public abstract class Tag {
         return this;
     }
 
-    @Nonnull
+    @NotNull
     public String getName() {
         if (name == null) return "";
         return name;

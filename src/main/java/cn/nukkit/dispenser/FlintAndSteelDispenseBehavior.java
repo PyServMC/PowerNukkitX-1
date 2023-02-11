@@ -8,6 +8,7 @@ import cn.nukkit.block.BlockDispenser;
 import cn.nukkit.block.BlockID;
 import cn.nukkit.event.block.BlockIgniteEvent;
 import cn.nukkit.item.Item;
+import cn.nukkit.level.Level;
 import cn.nukkit.level.Sound;
 import cn.nukkit.math.BlockFace;
 
@@ -29,6 +30,16 @@ public class FlintAndSteelDispenseBehavior extends DefaultDispenseBehavior {
         Server.getInstance().getPluginManager().callEvent(e);
         if (e.isCancelled()) {
             return null;
+        }
+
+        var down = target.down();
+        if (down.getId() == BlockID.OBSIDIAN) {
+            if (down.level.getDimension() != Level.DIMENSION_THE_END) {
+                if (down.level.createPortal(down)) {
+                    item.useOn(target);
+                    return item.getDamage() >= item.getMaxDurability() ? null : item;
+                }
+            }
         }
 
         if (target.getId() == BlockID.AIR) {

@@ -1,20 +1,17 @@
 package cn.nukkit.item;
 
 import cn.nukkit.api.PowerNukkitOnly;
-import cn.nukkit.api.Since;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author joserobjr
  * @since 2021-06-13
  */
 @PowerNukkitOnly
-@Since("FUTURE")
-public final class StringItemUnknown extends StringItem {
+public final class StringItemUnknown extends StringItemBase {
     @PowerNukkitOnly
-    @Since("FUTURE")
-    public StringItemUnknown(@Nonnull String id) {
+    public StringItemUnknown(@NotNull String id) {
         super(id, UNKNOWN_STR);
     }
 }

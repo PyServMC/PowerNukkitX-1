@@ -9,7 +9,8 @@ import cn.nukkit.item.Item;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.utils.BlockColor;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 
 /**
@@ -44,7 +45,7 @@ public class BlockStructureVoid extends BlockSolid {
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -52,7 +53,7 @@ public class BlockStructureVoid extends BlockSolid {
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     public StructureVoidType getType() {
         return getPropertyValue(STRUCTURE_VOID_TYPE);
     }
@@ -82,7 +83,7 @@ public class BlockStructureVoid extends BlockSolid {
     @PowerNukkitOnly
     @Override
     public boolean isSolid(BlockFace side) {
-        return true;
+        return false;
     }
 
     @Override

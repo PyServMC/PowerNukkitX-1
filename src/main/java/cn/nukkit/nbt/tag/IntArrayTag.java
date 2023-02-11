@@ -1,5 +1,7 @@
 package cn.nukkit.nbt.tag;
 
+import cn.nukkit.api.PowerNukkitXOnly;
+import cn.nukkit.api.Since;
 import cn.nukkit.nbt.stream.NBTInputStream;
 import cn.nukkit.nbt.stream.NBTOutputStream;
 
@@ -8,6 +10,13 @@ import java.util.Arrays;
 
 public class IntArrayTag extends Tag {
     public int[] data;
+
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public IntArrayTag(int[] data) {
+        super("");
+        this.data = data;
+    }
 
     public IntArrayTag(String name) {
         super(name);
@@ -55,13 +64,13 @@ public class IntArrayTag extends Tag {
     }
 
     @Override
-    public String toSnbt() {
-        return "\"" + this.getName() + "\":" + Arrays.toString(data).replace("[", "[I;");
+    public String toSNBT() {
+        return Arrays.toString(data).replace("[", "[I;");
     }
 
     @Override
-    public String toSnbt(int space) {
-        return "\"" + this.getName() + "\": " + Arrays.toString(data).replace("[", "[I;");
+    public String toSNBT(int space) {
+        return Arrays.toString(data).replace("[", "[I;");
     }
 
     @Override

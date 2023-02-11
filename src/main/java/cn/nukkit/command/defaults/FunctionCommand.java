@@ -8,9 +8,7 @@ import cn.nukkit.command.data.CommandEnum;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.function.Function;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.utils.CommandLogger;
-import cn.nukkit.network.protocol.UpdateSoftEnumPacket;
 
 import java.util.Map;
 
@@ -29,14 +27,9 @@ public class FunctionCommand extends VanillaCommand {
         this.enableParamTree();
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
-        UpdateSoftEnumPacket pk = new UpdateSoftEnumPacket();
-        pk.type = UpdateSoftEnumPacket.Type.SET;
-        pk.name = "filepath";
-        pk.values = Server.getInstance().getFunctionManager().getFunctions().keySet().stream().toList();
-        Server.broadcastPacket(Server.getInstance().getOnlinePlayers().values(), pk);
         var list = result.getValue();
         if (result.getKey().equals("default")) {
             String file = list.getResult(0);

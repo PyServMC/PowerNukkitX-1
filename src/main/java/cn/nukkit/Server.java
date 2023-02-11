@@ -32,7 +32,6 @@ import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.lang.BaseLang;
 import cn.nukkit.lang.LangCode;
 import cn.nukkit.lang.TextContainer;
-import cn.nukkit.lang.TranslationContainer;
 import cn.nukkit.level.*;
 import cn.nukkit.level.biome.EnumBiome;
 import cn.nukkit.level.format.LevelProvider;
@@ -100,7 +99,6 @@ import org.iq80.leveldb.Options;
 import org.iq80.leveldb.impl.Iq80DBFactory;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -244,6 +242,10 @@ public class Server {
     @PowerNukkitXOnly
     @Since("1.19.30-r2")
     private int maximumSizePerChunk = 1048576;
+
+    @Since("1.19.60-r1")
+    @PowerNukkitXOnly
+    private int serverAuthoritativeMovementMode = 0;
 
     private boolean autoTickRate = true;
     private int autoTickRateLimit = 20;
@@ -650,6 +652,7 @@ public class Server {
                 put("rcon.password", Base64.getEncoder().encodeToString(UUID.randomUUID().toString().replace("-", "").getBytes()).substring(3, 13));
                 put("auto-save", true);
                 put("force-resources", false);
+                put("force-resources-allow-client-packs", false);
                 put("xbox-auth", true);
                 put("check-login-time", true);
                 put("check-xuid", true);
@@ -721,6 +724,12 @@ public class Server {
         this.forceSkinTrusted = this.getConfig().getBoolean("player.force-skin-trusted", false);
         this.checkMovement = this.getConfig().getBoolean("player.check-movement", true);
         this.educationEditionEnabled = this.getConfig("level-settings.education-edition", false);
+        this.serverAuthoritativeMovementMode = switch (this.properties.get("server-authoritative-movement", "client-auth")) {
+            case "client-auth" -> 0;
+            case "server-auth" -> 1;
+            case "server-auth-with-rewind" -> 2;
+            default -> throw new IllegalArgumentException();
+        };
 
         this.maximumSizePerChunk = this.getConfig("chunk-saving.maximum-size-per-chunk", 1048576);
         //unlimited if value == -1
@@ -765,7 +774,7 @@ public class Server {
             ExceptionHandler.registerExceptionHandler();
         }
 
-        log.info(this.getLanguage().tr("nukkit.server.networkStart", new String[]{this.getIp().equals("") ? "*" : this.getIp(), String.valueOf(this.getPort())}));
+        log.info(this.getLanguage().tr("nukkit.server.networkStart", this.getIp().equals("") ? "*" : this.getIp(), String.valueOf(this.getPort())));
         this.serverID = UUID.randomUUID();
 
         this.network = new Network(this);
@@ -846,6 +855,7 @@ public class Server {
 
         this.pluginManager.loadInternalPlugin();
         this.pluginManager.loadPlugins(this.pluginPath);
+        Block.initCustomBlock();
 
         this.enablePlugins(PluginLoadOrder.STARTUP);
 
@@ -1177,6 +1187,13 @@ public class Server {
         this.pluginManager.disablePlugins();
     }
 
+
+    @Deprecated
+    @DeprecationDetails(since = "1.19.60-r1", reason = "use Server#executeCommand")
+    public boolean dispatchCommand(CommandSender sender, String commandLine) throws ServerException {
+        return this.executeCommand(sender, commandLine) > 0;
+    }
+
     /**
      * 以sender身份执行一行命令
      * <p>
@@ -1187,10 +1204,6 @@ public class Server {
      * @return boolean 执行是否成功
      * @throws ServerException 服务器异常
      */
-    public boolean dispatchCommand(CommandSender sender, String commandLine) throws ServerException {
-        return this.executeCommand(sender, commandLine) > 0;
-    }
-
     public int executeCommand(CommandSender sender, String commandLine) throws ServerException {
         // First we need to check if this command is on the main thread or not, if not, warn the user
         if (!this.isPrimaryThread()) {
@@ -1200,18 +1213,14 @@ public class Server {
             this.scheduler.scheduleTask(null, () -> executeCommand(sender, commandLine));
             return 1;
         }
-
         if (sender == null) {
             throw new ServerException("CommandSender is not valid");
         }
+        //pre
+        var cmd = commandLine.stripLeading();
+        cmd = cmd.charAt(0) == '/' ? cmd.substring(1) : cmd;
 
-        var command = (commandLine.startsWith("/") ? commandLine.substring(1) : commandLine);
-        int spaceIndex = command.indexOf(" ");
-        if (this.commandMap.getCommand(command.substring(0, spaceIndex == -1 ? command.length() : spaceIndex)) == null) {
-            sender.sendMessage(new TranslationContainer(TextFormat.RED + "%commands.generic.unknown", commandLine));
-            return 0;
-        }
-        return this.commandMap.executeCommand(sender, command);
+        return this.commandMap.executeCommand(sender, cmd);
     }
 
     /**
@@ -2180,11 +2189,19 @@ public class Server {
     }
 
     /**
-     * @return 是否强制使用服务器整合包<br>Whether to force the use of server resources
+     * @return 是否强制使用服务器资源包<br>Whether to force the use of server resourcepack
      */
     public boolean getForceResources() {
         return this.getPropertyBoolean("force-resources", false);
     }
+
+    /**
+     * @return 是否强制使用服务器资源包的同时允许加载客户端资源包<br>Whether to force the use of server resourcepack while allowing the loading of client resourcepack
+     */
+    public boolean getForceResourcesAllowOwnPacks() {
+        return this.getPropertyBoolean("force-resources-allow-client-packs", false);
+    }
+
 
     @Deprecated
     @DeprecationDetails(since = "1.4.0.0-PN", by = "PowerNukkit", reason = "Use your own logger, sharing loggers makes bug analyses harder.",
@@ -2357,7 +2374,6 @@ public class Server {
         nameLookup.put(nameBytes, buffer.array());
     }
 
-    @Deprecated
     public IPlayer getOfflinePlayer(final String name) {
         IPlayer result = this.getPlayerExact(name.toLowerCase());
         if (result != null) {
@@ -3274,7 +3290,6 @@ public class Server {
         Entity.registerEntity("ZombiePigman", EntityZombiePigman.class);
         Entity.registerEntity("ZombieVillager", EntityZombieVillager.class);
         Entity.registerEntity("ZombieVillagerV1", EntityZombieVillagerV1.class);
-        Entity.registerEntity("Warden", EntityWarden.class);
         //Passive
         Entity.registerEntity("Agent", EntityAgent.class);
         Entity.registerEntity("Allay", EntityAllay.class);
@@ -3311,7 +3326,7 @@ public class Server {
         Entity.registerEntity("TropicalFish", EntityTropicalFish.class);
         Entity.registerEntity("Turtle", EntityTurtle.class);
         Entity.registerEntity("Villager", EntityVillager.class);
-//        Entity.registerEntity("VillagerV1", EntityVillagerV1.class);
+        Entity.registerEntity("VillagerV1", EntityVillagerV1.class);
         Entity.registerEntity("WanderingTrader", EntityWanderingTrader.class);
         Entity.registerEntity("Wolf", EntityWolf.class);
         Entity.registerEntity("ZombieHorse", EntityZombieHorse.class);
@@ -3320,6 +3335,7 @@ public class Server {
         Entity.registerEntity("Tadpole", EntityTadpole.class);
         Entity.registerEntity("Allay", EntityAllay.class);
         //Projectile
+        Entity.registerEntity("Small FireBall", EntitySmallFireBall.class);
         Entity.registerEntity("AreaEffectCloud", EntityAreaEffectCloud.class);
         Entity.registerEntity("Egg", EntityEgg.class);
         Entity.registerEntity("IceBomb", EntityIceBomb.class);
@@ -3385,6 +3401,8 @@ public class Server {
         BlockEntity.registerBlockEntity(BlockEntity.SCULK_SENSOR, BlockEntitySculkSensor.class);
         BlockEntity.registerBlockEntity(BlockEntity.SCULK_CATALYST, BlockEntitySculkCatalyst.class);
         BlockEntity.registerBlockEntity(BlockEntity.SCULK_SHRIEKER, BlockEntitySculkShrieker.class);
+        BlockEntity.registerBlockEntity(BlockEntity.STRUCTURE_BLOCK, BlockEntityStructBlock.class);
+        BlockEntity.registerBlockEntity(BlockEntity.GLOW_ITEM_FRAME, BlockEntityGlowItemFrame.class);
     }
 
     public boolean isNetherAllowed() {
@@ -3416,7 +3434,7 @@ public class Server {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     public PositionTrackingService getPositionTrackingService() {
         return positionTrackingService;
     }
@@ -3480,12 +3498,7 @@ public class Server {
     @PowerNukkitXOnly
     @Since("1.19.40-r3")
     public int getServerAuthoritativeMovement() {
-        return switch (this.properties.get("server-authoritative-movement", "client-auth")) {
-            case "client-auth" -> 0;
-            case "server-auth" -> 1;
-            case "server-auth-with-rewind" -> 2;
-            default -> throw new IllegalArgumentException();
-        };
+        return serverAuthoritativeMovementMode;
     }
 
     //todo NukkitConsole 会阻塞关不掉

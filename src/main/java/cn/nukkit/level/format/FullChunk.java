@@ -10,7 +10,8 @@ import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.level.biome.Biome;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -273,7 +274,7 @@ public interface FullChunk extends Cloneable {
     void setChanged(boolean changed);
 
     @PowerNukkitXOnly
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     long getBlockChanges();
 
     @PowerNukkitOnly
@@ -282,7 +283,7 @@ public interface FullChunk extends Cloneable {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     List<Block> findBorders(int x, int z);
 
     @PowerNukkitOnly

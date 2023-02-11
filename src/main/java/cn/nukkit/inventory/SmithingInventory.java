@@ -25,7 +25,8 @@ import cn.nukkit.api.Since;
 import cn.nukkit.item.Item;
 import cn.nukkit.level.Position;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 
 /**
@@ -79,7 +80,7 @@ public class SmithingInventory extends FakeBlockUIComponent {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     public Item getResult() {
         SmithingRecipe recipe = matchRecipe();
         if (recipe == null) {

@@ -6,7 +6,6 @@ import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.tree.node.PlayersNode;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.lang.TranslationContainer;
@@ -36,7 +35,7 @@ public class SpawnpointCommand extends VanillaCommand {
         this.enableParamTree();
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
         var list = result.getValue();
@@ -44,6 +43,10 @@ public class SpawnpointCommand extends VanillaCommand {
         DecimalFormat round2 = new DecimalFormat("##0.00");
         if (list.hasResult(0)) {
             players = list.getResult(0);
+            if (players.isEmpty()) {
+                log.addNoTargetMatch().output();
+                return 0;
+            }
             Level level = sender.getPosition().getLevel();
             if (list.hasResult(1)) {
                 if (level != null) {

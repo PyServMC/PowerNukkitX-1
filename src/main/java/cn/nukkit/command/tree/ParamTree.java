@@ -10,6 +10,7 @@ import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.node.*;
 import cn.nukkit.command.utils.CommandLogger;
+import cn.nukkit.lang.CommandOutputContainer;
 import cn.nukkit.plugin.InternalPlugin;
 
 import javax.annotation.Nullable;
@@ -19,7 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @PowerNukkitXOnly
-@Since("1.19.50-r4")
+@Since("1.19.60-r1")
 public class ParamTree {
     private final Map<String, ParamList> root;
     private final Command command;
@@ -95,7 +96,10 @@ public class ParamTree {
                         case COMPARE_OPERATOR -> {
                             node = new CompareOperatorStringNode();
                         }
-                        case MESSAGE, JSON -> {
+                        case MESSAGE -> {
+                            node = new MessageStringNode();
+                        }
+                        case JSON -> {
                             node = new RemainStringNode();
                         }
                         case RAWTEXT -> {
@@ -180,7 +184,7 @@ public class ParamTree {
                 return defaultList;
             });
 
-            final CommandLogger log = new CommandLogger(this.command, sender, commandLabel, args, list.getMessageContainer(),
+            final CommandLogger log = new CommandLogger(this.command, sender, commandLabel, args, new CommandOutputContainer(),
                     command instanceof PluginCommand<?> pluginCommand ? pluginCommand.getPlugin() : InternalPlugin.INSTANCE);
             if (!list.getMessageContainer().getMessages().isEmpty()) {
                 for (var message : list.getMessageContainer().getMessages()) {

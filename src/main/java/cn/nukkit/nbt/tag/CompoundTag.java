@@ -6,7 +6,8 @@ import cn.nukkit.nbt.stream.NBTInputStream;
 import cn.nukkit.nbt.stream.NBTOutputStream;
 import io.netty.util.internal.EmptyArrays;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -98,7 +99,7 @@ public class CompoundTag extends Tag implements Cloneable {
         return this;
     }
 
-    public CompoundTag putString(@Nullable String name, @Nonnull String value) {
+    public CompoundTag putString(@Nullable String name, @NotNull String value) {
         tags.put(name, new StringTag(name, value));
         return this;
     }
@@ -115,6 +116,20 @@ public class CompoundTag extends Tag implements Cloneable {
 
     public CompoundTag putList(ListTag<? extends Tag> listTag) {
         tags.put(listTag.getName(), listTag);
+        return this;
+    }
+
+    @PowerNukkitOnly
+    @Since("1.19.60-r1")
+    public CompoundTag putList(String name, ListTag<? extends Tag> listTag) {
+        tags.put(name, listTag.setName(name));
+        return this;
+    }
+
+    @PowerNukkitOnly
+    @Since("1.19.60-r1")
+    public CompoundTag putCompound(CompoundTag value) {
+        tags.put(value.getName(), value);
         return this;
     }
 
@@ -318,18 +333,18 @@ public class CompoundTag extends Tag implements Cloneable {
     }
 
     @Override
-    public String toSnbt() {
+    public String toSNBT() {
         StringJoiner joiner = new StringJoiner(",");
-        tags.forEach((key, tag) -> joiner.add(tag.toSnbt()));
-        return "\"" + this.getName() + "\":" + "{" + joiner + "}";
+        tags.forEach((key, tag) -> joiner.add("\"" + key + "\":" + tag.toSNBT()));
+        return "{" + joiner + "}";
     }
 
-    public String toSnbt(int space) {
+    public String toSNBT(int space) {
         StringBuilder addSpace = new StringBuilder();
         addSpace.append(" ".repeat(Math.max(0, space)));
         StringJoiner joiner = new StringJoiner(",\n" + addSpace);
-        tags.forEach((key, tag) -> joiner.add(tag.toSnbt(space).replace("\n", "\n" + addSpace)));
-        return "\"" + this.getName() + "\": " + "{\n" + addSpace + joiner + "\n}";
+        tags.forEach((key, tag) -> joiner.add("\"" + key + "\": " + tag.toSNBT(space).replace("\n", "\n" + addSpace)));
+        return "{\n" + addSpace + joiner + "\n}";
     }
 
     @Override

@@ -10,7 +10,6 @@ import cn.nukkit.command.data.CommandEnum;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.inventory.EntityInventoryHolder;
@@ -20,7 +19,6 @@ import cn.nukkit.level.Position;
 
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 
 @PowerNukkitXOnly
 @Since("1.6.0.0-PNX")
@@ -88,7 +86,7 @@ public class ReplaceItemCommand extends VanillaCommand {
         this.enableParamTree();
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
         var list = result.getValue();
@@ -122,21 +120,20 @@ public class ReplaceItemCommand extends VanillaCommand {
                     log.addError("commands.replaceitem.keepFailed", "slot.container", String.valueOf(slotId)).output();
                     return 0;
                 }
-                Item item = list.getResult(5);
+                var notOldItemHandling = result.getKey().equals("block");
+                Item item = list.getResult(notOldItemHandling ? 4 : 5);
                 item.setCount(1);
-                if (list.hasResult(6)) {
-                    int count = list.getResult(6);
-                    item.setCount(count);
+                if (list.hasResult(notOldItemHandling ? 5 : 6)) {
+                    int amount = list.getResult(notOldItemHandling ? 5 : 6);
+                    item.setCount(amount);
                 }
-                if (list.hasResult(7)) {
-                    int data = list.getResult(7);
+                if (list.hasResult(notOldItemHandling ? 6 : 7)) {
+                    int data = list.getResult(notOldItemHandling ? 6 : 7);
                     item.setDamage(data);
                 }
-                if (list.hasResult(8)) {
-                    String[] components = list.getResult(8);
-                    StringJoiner join = new StringJoiner("");
-                    for (var c : components) join.add(c);
-                    item.readItemJsonComponents(Item.ItemJsonComponents.fromJson(join.toString()));
+                if (list.hasResult(notOldItemHandling ? 7 : 8)) {
+                    String components = list.getResult(notOldItemHandling ? 7 : 8);
+                    item.readItemJsonComponents(Item.ItemJsonComponents.fromJson(components));
                 }
                 if (holder.getInventory().setItem(slotId, item)) {
                     log.addSuccess("commands.replaceitem.success", "slot.container", String.valueOf(old.getId()), String.valueOf(item.getCount()), item.getName()).output();
@@ -155,24 +152,27 @@ public class ReplaceItemCommand extends VanillaCommand {
 
     private int entity(CommandSender sender, String key, ParamList list, CommandLogger log) {
         List<Entity> entities = list.getResult(1);
+        if (entities.isEmpty()) {
+            log.addNoTargetMatch().output();
+            return 0;
+        }
+        var notOldItemHandling = key.equals("entity");
         String slotType = list.getResult(2);
         int slotId = list.getResult(3);
-        String oldItemHandling = key.equals("entity") ? "destroy" : list.getResult(4);
-        Item item = list.getResult(5);
+        String oldItemHandling = notOldItemHandling ? "destroy" : list.getResult(4);
+        Item item = list.getResult(notOldItemHandling ? 4 : 5);
         item.setCount(1);
-        if (list.hasResult(6)) {
-            int amount = list.getResult(6);
+        if (list.hasResult(notOldItemHandling ? 5 : 6)) {
+            int amount = list.getResult(notOldItemHandling ? 5 : 6);
             item.setCount(amount);
         }
-        if (list.hasResult(7)) {
-            int data = list.getResult(7);
+        if (list.hasResult(notOldItemHandling ? 6 : 7)) {
+            int data = list.getResult(notOldItemHandling ? 6 : 7);
             item.setDamage(data);
         }
-        if (list.hasResult(8)) {
-            String[] components = list.getResult(8);
-            StringJoiner join = new StringJoiner("");
-            for (var c : components) join.add(c);
-            item.readItemJsonComponents(Item.ItemJsonComponents.fromJson(join.toString()));
+        if (list.hasResult(notOldItemHandling ? 7 : 8)) {
+            String components = list.getResult(notOldItemHandling ? 7 : 8);
+            item.readItemJsonComponents(Item.ItemJsonComponents.fromJson(components));
         }
         int successCount = 0;
         for (Entity entity : entities) {
@@ -191,12 +191,12 @@ public class ReplaceItemCommand extends VanillaCommand {
                             log.addError("commands.replaceitem.failed", slotType, String.valueOf(old.getId()), String.valueOf(item.getCount()), item.getName());
                         }
                     } else if (entity instanceof EntityInventoryHolder entityMob) {
-                        Item old = entityMob.getEquipmentInventory().getItemInHand();
+                        Item old = entityMob.getItemInHand();
                         if (oldItemHandling.equals("keep") && !old.isNull()) {
                             log.addError("commands.replaceitem.keepFailed", slotType, String.valueOf(slotId));
                             continue;
                         }
-                        if (entityMob.getEquipmentInventory().setItemInHand(item, true)) {
+                        if (entityMob.setItemInHand(item)) {
                             log.addSuccess("commands.replaceitem.success.entity", entity.getName(), slotType, String.valueOf(old.getId()), String.valueOf(item.getCount()), item.getName());
                             successCount++;
                         } else {
@@ -218,12 +218,12 @@ public class ReplaceItemCommand extends VanillaCommand {
                             log.addError("commands.replaceitem.failed", slotType, String.valueOf(old.getId()), String.valueOf(item.getCount()), item.getName());
                         }
                     } else if (entity instanceof EntityInventoryHolder entityMob) {
-                        Item old = entityMob.getEquipmentInventory().getItemInOffhand();
+                        Item old = entityMob.getItemInOffhand();
                         if (oldItemHandling.equals("keep") && !old.isNull()) {
                             log.addError("commands.replaceitem.keepFailed", slotType, String.valueOf(slotId));
                             continue;
                         }
-                        if (entityMob.getEquipmentInventory().setItemInOffhand(item, true)) {
+                        if (entityMob.setItemInOffhand(item)) {
                             log.addSuccess("commands.replaceitem.success.entity", entity.getName(), slotType, String.valueOf(old.getId()), String.valueOf(item.getCount()), item.getName());
                             successCount++;
                         } else {
