@@ -7,7 +7,6 @@ import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.tree.node.PlayersNode;
 import cn.nukkit.command.utils.CommandLogger;
 
@@ -34,7 +33,7 @@ public class ClearSpawnPointCommand extends VanillaCommand {
             var list = result.getValue();
             List<Player> players = sender.isPlayer() ? List.of(sender.asPlayer()) : null;
             if (list.hasResult(0)) players = list.getResult(0);
-            if (players == null) {
+            if (players == null || players.isEmpty()) {
                 log.addNoTargetMatch().output();
                 return 0;
             }

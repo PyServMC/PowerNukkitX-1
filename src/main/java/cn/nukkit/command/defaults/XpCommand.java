@@ -7,7 +7,6 @@ import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.tree.node.PlayersNode;
 import cn.nukkit.command.tree.node.XpLevelNode;
 import cn.nukkit.command.utils.CommandLogger;
@@ -36,7 +35,7 @@ public class XpCommand extends Command {
         this.enableParamTree();
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
         //  "/xp <amount> [player]"  for adding exp
@@ -53,7 +52,7 @@ public class XpCommand extends Command {
                 if (list.hasResult(1)) {
                     players = list.getResult(1);
                 }
-                if (players == null) {
+                if (players == null || players.isEmpty()) {
                     log.addNoTargetMatch().output();
                     return 0;
                 }
@@ -69,7 +68,7 @@ public class XpCommand extends Command {
                 if (list.hasResult(1)) {
                     players = list.getResult(1);
                 }
-                if (players == null) {
+                if (players == null || players.isEmpty()) {
                     log.addNoTargetMatch().output();
                     return 0;
                 }

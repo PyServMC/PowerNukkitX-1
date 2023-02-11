@@ -1,10 +1,13 @@
 package cn.nukkit.block.customblock;
 
+import cn.nukkit.api.PowerNukkitXOnly;
+import cn.nukkit.api.Since;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockFallableMeta;
 import cn.nukkit.block.BlockMeta;
 import cn.nukkit.item.Item;
 import lombok.NonNull;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
 
@@ -13,6 +16,8 @@ import java.util.Locale;
  * <p>
  * Inherit this class to implement a custom block, override the methods in the {@link Block} to control the feature of the block.
  */
+@PowerNukkitXOnly
+@Since("1.6.0.0-PNX")
 public interface CustomBlock {
     /**
      * 覆写该方法设置自定义方块的摩擦因数
@@ -43,18 +48,18 @@ public interface CustomBlock {
     int getLightLevel();
 
     /**
-     * 覆写该方法设置自定义方块的被挖掘所需要的时间(单位秒)
+     * 覆写该方法设置自定义方块的硬度，这有助于自定义方块在服务端侧计算挖掘时间(硬度越大服务端侧挖掘时间越长)
      * <p>
-     * {@code @Override} this method to set the amount of time (in seconds) it takes for a custom block to be dug
+     * {@code @Override} this method to set the hardness of the custom block, which helps to calculate the break time of the custom block on the server-side (the higher the hardness the longer the break time on the server-side)
      */
-    double calculateBreakTime();
+    double getHardness();
 
     /**
      * 覆写该方法设置自定义方块的命名空间ID
      * <p>
      * {@code @Override} this method to set the namespace ID of the custom block
      */
-    @NonNull
+    @NotNull
     String getNamespaceId();
 
     /**

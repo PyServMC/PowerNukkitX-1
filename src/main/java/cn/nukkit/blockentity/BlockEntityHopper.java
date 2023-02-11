@@ -1,7 +1,6 @@
 package cn.nukkit.blockentity;
 
 import cn.nukkit.Player;
-import cn.nukkit.api.PowerNukkitDifference;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
@@ -11,14 +10,12 @@ import cn.nukkit.block.BlockHopper;
 import cn.nukkit.block.BlockID;
 import cn.nukkit.blockproperty.CommonBlockProperties;
 import cn.nukkit.blockstate.BlockState;
-import cn.nukkit.entity.Entity;
-import cn.nukkit.entity.item.EntityItem;
-import cn.nukkit.entity.item.EntityMinecartAbstract;
-import cn.nukkit.entity.item.EntityMinecartHopper;
+import cn.nukkit.event.block.HopperSearchItemEvent;
 import cn.nukkit.event.inventory.InventoryMoveItemEvent;
 import cn.nukkit.inventory.*;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemBlock;
+import cn.nukkit.level.Position;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.BlockFace;
@@ -52,13 +49,13 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
     @Getter
     @Setter
     @PowerNukkitXOnly
-    @Since("1.19.50-r4")
-    private InventoryHolder MinecartInvPickupFrom = null;
+    @Since("1.19.60-r1")
+    private InventoryHolder minecartInvPickupFrom = null;
     @Getter
     @Setter
     @PowerNukkitXOnly
-    @Since("1.19.50-r4")
-    private InventoryHolder MinecartInvPushTo = null;
+    @Since("1.19.60-r1")
+    private InventoryHolder minecartInvPushTo = null;
 
     public BlockEntityHopper(FullChunk chunk, CompoundTag nbt) {
         super(chunk, nbt);
@@ -66,6 +63,14 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
 
     @Override
     protected void initBlockEntity() {
+        super.initBlockEntity();
+        this.scheduleUpdate();
+    }
+
+    @Since("1.19.60-r1")
+    @Override
+    public void loadNBT() {
+        super.loadNBT();
         if (this.namedTag.contains("TransferCooldown")) {
             this.transferCooldown = this.namedTag.getInt("TransferCooldown");
         } else {
@@ -83,10 +88,6 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         }
 
         this.pickupArea = new SimpleAxisAlignedBB(this.x, this.y, this.z, this.x + 1, this.y + 2, this.z + 1);
-
-        this.scheduleUpdate();
-
-        super.initBlockEntity();
 
         Block block = getBlock();
         if (block instanceof BlockHopper) {
@@ -182,16 +183,6 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         this.namedTag.putInt("TransferCooldown", this.transferCooldown);
     }
 
-    @Since("1.6.0.0-PNX")
-    @Override
-    public void loadNBT() {
-        super.loadNBT();
-        this.transferCooldown = this.namedTag.getInt("TransferCooldown");
-        for (int i = 0; i < this.getSize(); i++) {
-            this.inventory.setItem(i, this.getItem(i));
-        }
-    }
-
     @Override
     public HopperInventory getInventory() {
         return inventory;
@@ -227,12 +218,17 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         Block blockSide = this.getSide(BlockFace.UP).getTickCachedLevelBlock();
         BlockEntity blockEntity = this.level.getBlockEntity(temporalVector.setComponentsAdding(this, BlockFace.UP));
 
+        
         boolean changed = pushItems() || pushItemsIntoMinecart();
 
-        if (blockEntity instanceof InventoryHolder || blockSide instanceof BlockComposter) {
-            changed = pullItems(this, this) || changed;
-        } else {
-            changed = pullItemsFromMinecart() || pickupItems(this, this, pickupArea) || changed;
+        HopperSearchItemEvent event = new HopperSearchItemEvent(this, false);
+        this.server.getPluginManager().callEvent(event);
+        if (!event.isCancelled()) {
+            if (blockEntity instanceof InventoryHolder || blockSide instanceof BlockComposter) {
+                changed = pullItems(this, this) || changed;
+            } else {
+                changed = pullItemsFromMinecart() || pickupItems(this, this, pickupArea) || changed;
+            }
         }
 
         if (changed) {
@@ -368,7 +364,8 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         Block blockSide = this.getSide(side).getTickCachedLevelBlock();
         BlockEntity be = this.level.getBlockEntity(temporalVector.setComponentsAdding(this, side));
 
-        if (be instanceof BlockEntityHopper && levelBlockState.isDefaultState() || !(be instanceof InventoryHolder) && !(blockSide instanceof BlockComposter)) {
+        //漏斗应该有主动向被锁住的漏斗推送物品的能力
+        if (be instanceof BlockEntityHopper sideHopper && levelBlockState.isDefaultState() && !sideHopper.isDisabled() || !(be instanceof InventoryHolder) && !(blockSide instanceof BlockComposter)) {
             return false;
         }
 
@@ -521,5 +518,10 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         }
 
         return c;
+    }
+
+    @Override
+    public Position getPosition() {
+        return this.getBlock();
     }
 }

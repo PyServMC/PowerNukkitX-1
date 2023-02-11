@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
  * 坐标节点基类
  */
 @PowerNukkitXOnly
-@Since("1.19.50-r4")
+@Since("1.19.60-r1")
 public abstract class PositionNode extends ParamNode<Position> {
     private final Pattern pattern;
     protected final double[] coordinate = new double[3];
@@ -50,6 +50,7 @@ public abstract class PositionNode extends ParamNode<Position> {
     @Override
     public void fill(String arg) {
         TMP.clear();
+        //check
         var matcher = pattern.matcher(arg);
         while (matcher.find()) {
             TMP.add(matcher.group());
@@ -57,6 +58,7 @@ public abstract class PositionNode extends ParamNode<Position> {
         var str = TMP.stream().reduce((s1, s2) -> s1 + s2);
         if (str.isEmpty()) this.error();
         else if (str.get().length() != arg.length()) this.error();
+            //parse
         else {
             try {
                 Location loc = this.parent.parent.getSender().getLocation();
@@ -91,7 +93,7 @@ public abstract class PositionNode extends ParamNode<Position> {
                                     coordinate[2] += vector3.z;
                                 }
                                 case 1 -> {
-                                    vector3 = BVector3.fromLocation(loc).rotatePitch(90).setLength(Double.parseDouble(relativeAngleCoordinate)).addToPos();
+                                    vector3 = BVector3.fromLocation(loc).rotatePitch(-90).setLength(Double.parseDouble(relativeAngleCoordinate)).addToPos();
                                     coordinate[0] += vector3.x;
                                     coordinate[1] += vector3.y;
                                     coordinate[2] += vector3.z;

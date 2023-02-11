@@ -7,7 +7,6 @@ import cn.nukkit.command.data.CommandEnum;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.level.ParticleEffect;
 import cn.nukkit.level.Position;
@@ -37,16 +36,15 @@ public class ParticleCommand extends VanillaCommand {
         this.enableParamTree();
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
-        Position defaultPosition = sender.getPosition();
         String name = result.getValue().getResult(0);
         Position position = result.getValue().getResult(1);
         int count = 1;
-        if (result.getValue().hasResult(3)) count = result.getValue().getResult(3);
+        if (result.getValue().hasResult(2)) count = result.getValue().getResult(2);
         if (count < 1) {
-            log.addNumTooSmall(3, 1).output();
+            log.addNumTooSmall(2, 1).output();
             return 0;
         }
         for (int i = 0; i < count; i++) {

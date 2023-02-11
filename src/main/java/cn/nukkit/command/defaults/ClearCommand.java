@@ -7,7 +7,6 @@ import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.tree.node.PlayersNode;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.inventory.PlayerInventory;
@@ -42,7 +41,7 @@ public class ClearCommand extends VanillaCommand {
             Item item = null;
 
             if (list.hasResult(0)) {
-                targets = list.getResult(1);
+                targets = list.getResult(0);
                 if (list.hasResult(1)) {
                     item = list.getResult(1);
                     int data = -1;
@@ -56,7 +55,7 @@ public class ClearCommand extends VanillaCommand {
                 }
             }
 
-            if (targets == null) {
+            if (targets == null || targets.isEmpty()) {
                 log.addNoTargetMatch().output();
                 return 0;
             }

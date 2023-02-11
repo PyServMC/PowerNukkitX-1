@@ -13,7 +13,8 @@ import cn.nukkit.math.Vector3;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.utils.LevelException;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 
 @PowerNukkitOnly
@@ -45,14 +46,14 @@ public interface BlockEntityHolder<E extends BlockEntity> {
     
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     default E createBlockEntity() {
         return createBlockEntity(null);
     }
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     default E createBlockEntity(@Nullable CompoundTag initialData, @Nullable Object... args) {
         String typeName = getBlockEntityType();
         FullChunk chunk = getChunk();
@@ -87,7 +88,7 @@ public interface BlockEntityHolder<E extends BlockEntity> {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     default E getOrCreateBlockEntity() {
         E blockEntity = getBlockEntity();
         if (blockEntity != null) {
@@ -96,27 +97,14 @@ public interface BlockEntityHolder<E extends BlockEntity> {
         return createBlockEntity();
     }
 
-    @PowerNukkitXOnly
-    @Since("1.6.0.0-PNX")
-    @Nonnull
-    default E getOrCreateBlockEntity(@Nullable CompoundTag initialData,Object... args) {
-        E blockEntity = getBlockEntity();
-        if (blockEntity != null) {
-            return blockEntity;
-        }
-        return createBlockEntity(null,args);
-    }
-
-
-    
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     Class<? extends E> getBlockEntityClass();
     
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     String getBlockEntityType();
 
     @PowerNukkitOnly
@@ -138,7 +126,7 @@ public interface BlockEntityHolder<E extends BlockEntity> {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     Location getLocation();
 
     @PowerNukkitOnly
@@ -148,7 +136,7 @@ public interface BlockEntityHolder<E extends BlockEntity> {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     @Nullable
-    static <E extends BlockEntity, H extends BlockEntityHolder<E>> E setBlockAndCreateEntity(@Nonnull H holder) {
+    static <E extends BlockEntity, H extends BlockEntityHolder<E>> E setBlockAndCreateEntity(@NotNull H holder) {
         return setBlockAndCreateEntity(holder, true, true);
     }
 
@@ -156,7 +144,7 @@ public interface BlockEntityHolder<E extends BlockEntity> {
     @Since("1.4.0.0-PN")
     @Nullable
     static <E extends BlockEntity, H extends BlockEntityHolder<E>> E setBlockAndCreateEntity(
-            @Nonnull H holder, boolean direct, boolean update) {
+            @NotNull H holder, boolean direct, boolean update) {
         return setBlockAndCreateEntity(holder, direct, update, null);
     }
 
@@ -164,7 +152,7 @@ public interface BlockEntityHolder<E extends BlockEntity> {
     @Since("1.4.0.0-PN")
     @Nullable
     static <E extends BlockEntity, H extends BlockEntityHolder<E>> E setBlockAndCreateEntity(
-            @Nonnull H holder, boolean direct, boolean update, @Nullable CompoundTag initialData,
+            @NotNull H holder, boolean direct, boolean update, @Nullable CompoundTag initialData,
             @Nullable Object... args) {
         Block block = holder.getBlock(); 
         Level level = block.getLevel();

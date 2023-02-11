@@ -6,7 +6,6 @@ import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.tree.node.CommandNode;
 import cn.nukkit.command.tree.node.IPStringNode;
 import cn.nukkit.command.utils.CommandLogger;
@@ -36,11 +35,11 @@ public class BanIpCommand extends VanillaCommand {
         this.commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[]{
                 CommandParameter.newType("player", CommandParamType.STRING),
-                CommandParameter.newType("reason", true, CommandParamType.STRING, new CommandNode())
+                CommandParameter.newType("reason", true, CommandParamType.STRING)
         });
         this.commandParameters.put("byIp", new CommandParameter[]{
                 CommandParameter.newType("ip", CommandParamType.STRING, new IPStringNode()),
-                CommandParameter.newType("reason", true, CommandParamType.STRING, new CommandNode())
+                CommandParameter.newType("reason", true, CommandParamType.STRING)
         });
         this.enableParamTree();
     }

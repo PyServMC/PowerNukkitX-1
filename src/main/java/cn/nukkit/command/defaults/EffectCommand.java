@@ -7,16 +7,12 @@ import cn.nukkit.command.data.CommandEnum;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.tree.ParamList;
-import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.entity.item.EntityItem;
 import cn.nukkit.potion.Effect;
 import cn.nukkit.potion.InstantEffect;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -29,17 +25,9 @@ public class EffectCommand extends Command {
         super(name, "commands.effect.description", "nukkit.command.effect.usage");
         this.setPermission("nukkit.command.effect");
         this.commandParameters.clear();
-
-        List<String> effects = new ArrayList<>();
-        for (Field field : Effect.class.getDeclaredFields()) {
-            if (field.getType() == int.class && field.getModifiers() == (Modifier.PUBLIC | Modifier.STATIC | Modifier.FINAL)) {
-                effects.add(field.getName().toLowerCase());
-            }
-        }
-
         this.commandParameters.put("default", new CommandParameter[]{
                 CommandParameter.newType("player", CommandParamType.TARGET),
-                CommandParameter.newEnum("effect", new CommandEnum("Effect", effects)),
+                CommandParameter.newEnum("effect", CommandEnum.ENUM_EFFECT),
                 CommandParameter.newType("seconds", true, CommandParamType.INT),
                 CommandParameter.newType("amplifier", true, CommandParamType.INT),
                 CommandParameter.newEnum("hideParticle", true, CommandEnum.ENUM_BOOLEAN)
@@ -51,12 +39,16 @@ public class EffectCommand extends Command {
         this.enableParamTree();
     }
 
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     @Override
     public int execute(CommandSender sender, String commandLabel, Map.Entry<String, ParamList> result, CommandLogger log) {
         var list = result.getValue();
         List<Entity> entities = list.getResult(0);
         entities = entities.stream().filter(e -> !(e instanceof EntityItem)).toList();
+        if (entities.isEmpty()) {
+            log.addNoTargetMatch().output();
+            return 0;
+        }
         switch (result.getKey()) {
             case "default" -> {
                 Effect effect;
@@ -92,7 +84,7 @@ public class EffectCommand extends Command {
 
                 if (list.hasResult(4)) {
                     boolean v = list.getResult(4);
-                    effect.setVisible(v);
+                    effect.setVisible(!v);
                 }
 
                 int success = 0;

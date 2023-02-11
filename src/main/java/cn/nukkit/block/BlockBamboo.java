@@ -17,17 +17,18 @@ import cn.nukkit.level.Sound;
 import cn.nukkit.level.particle.BoneMealParticle;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.MathHelper;
+import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.network.protocol.AnimatePacket;
 import cn.nukkit.utils.BlockColor;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static cn.nukkit.block.BlockSapling.AGED;
 
 @PowerNukkitOnly
-public class BlockBamboo extends BlockTransparentMeta {
+public class BlockBamboo extends BlockTransparentMeta implements BlockFlowerPot.FlowerPotBlock {
 
     @PowerNukkitOnly
     @Since("1.5.0.0-PN")
@@ -65,7 +66,7 @@ public class BlockBamboo extends BlockTransparentMeta {
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -133,7 +134,7 @@ public class BlockBamboo extends BlockTransparentMeta {
     }
 
     @Override
-    public boolean place(@Nonnull Item item, @Nonnull Block block, @Nonnull Block target, @Nonnull BlockFace face, double fx, double fy, double fz, Player player) {
+    public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, Player player) {
         Block down = down();
         int downId = down.getId();
         if (downId != BAMBOO && downId != BAMBOO_SAPLING) {
@@ -282,7 +283,7 @@ public class BlockBamboo extends BlockTransparentMeta {
 
     @PowerNukkitOnly
     @Since("1.5.0.0-PN")
-    public void setBambooStalkThickness(@Nonnull BambooStalkThickness value) {
+    public void setBambooStalkThickness(@NotNull BambooStalkThickness value) {
         setPropertyValue(STALK_THICKNESS, value);
     }
 
@@ -318,7 +319,7 @@ public class BlockBamboo extends BlockTransparentMeta {
     }
 
     @Override
-    public boolean onActivate(@Nonnull Item item, Player player) {
+    public boolean onActivate(@NotNull Item item, Player player) {
         boolean itemIsBoneMeal = item.isFertilizer(); //Bonemeal
         if (itemIsBoneMeal || item.getBlock() != null && item.getBlockId() == BlockID.BAMBOO) {
             int top = (int) y;

@@ -19,6 +19,7 @@ import cn.nukkit.nbt.tag.Tag;
 import cn.nukkit.utils.BinaryStream;
 import cn.nukkit.utils.HumanStringComparator;
 import cn.nukkit.utils.MinecraftNamespaceComparator;
+import cn.nukkit.utils.OK;
 import com.google.common.base.Preconditions;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -27,8 +28,8 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.UtilityClass;
 import lombok.extern.log4j.Log4j2;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.*;
@@ -152,6 +153,7 @@ public class BlockStateRegistry {
             }
         }
 
+        //update block_ids.csv
         /*for (var block : warned) {
             var id = 255-RuntimeItems.getRuntimeMapping().getNetworkIdByNamespaceId(block).getAsInt();
             try {
@@ -180,7 +182,7 @@ public class BlockStateRegistry {
         return blockId != -1 && !name.equals("minecraft:wood") || blockId == BlockID.WOOD_BARK;
     }
 
-    @Nonnull
+    @NotNull
     private String getStateId(CompoundTag block) {
         Map<String, String> propertyMap = new TreeMap<>(HumanStringComparator.getInstance());
         for (Tag tag : block.getCompound("states").getAllTags()) {
@@ -429,7 +431,7 @@ public class BlockStateRegistry {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     public String getPersistenceName(int blockId) {
         String persistenceName = blockIdToPersistenceName.get(blockId);
         if (persistenceName == null) {
@@ -461,7 +463,7 @@ public class BlockStateRegistry {
 
     @PowerNukkitOnly
     @Since("1.6.0.0-PNX")
-    public synchronized static void registerCustomBlockState(List<CustomBlock> blockCustoms) {
+    public synchronized static OK<?> registerCustomBlockState(List<CustomBlock> blockCustoms) {
         //清空原本的数据
         blockStateRegistration.clear();
         stateIdRegistration.clear();
@@ -471,7 +473,7 @@ public class BlockStateRegistry {
         //处理原版方块
         try (InputStream stream = Server.class.getModule().getResourceAsStream("canonical_block_states.nbt")) {
             if (stream == null) {
-                throw new AssertionError("Unable to locate block state nbt");
+                return new OK<>(false, "Unable to locate block state nbt!");
             }
             try (BufferedInputStream bis = new BufferedInputStream(stream)) {
                 while (bis.available() > 0) {
@@ -486,7 +488,7 @@ public class BlockStateRegistry {
                 }
             }
         } catch (IOException e) {
-            throw new AssertionError(e);
+            return new OK<>(false, e);
         }
 
         var version = -1;
@@ -603,7 +605,7 @@ public class BlockStateRegistry {
             }
         }
         if (infoUpdateRuntimeId == null) {
-            throw new IllegalStateException("Could not find the minecraft:info_update runtime id!");
+            return new OK<>(false, new IllegalStateException("Could not find the minecraft:info_update runtime id!"));
         }
 
         updateBlockRegistration = findRegistrationByRuntimeId(infoUpdateRuntimeId);
@@ -611,8 +613,10 @@ public class BlockStateRegistry {
         try {
             blockPaletteBytes = NBTIO.write(tags, ByteOrder.LITTLE_ENDIAN, true);
         } catch (IOException e) {
-            throw new ExceptionInInitializerError(e);
+            e.printStackTrace();
+            return new OK<>(false, e);
         }
+        return new OK<Void>(true);
     }
 
     @PowerNukkitXOnly
@@ -663,7 +667,7 @@ public class BlockStateRegistry {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     public byte[] getBlockPaletteBytes() {
         return blockPaletteBytes.clone();
     }
@@ -689,7 +693,7 @@ public class BlockStateRegistry {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     @SuppressWarnings({"deprecation", "squid:CallToDepreca"})
-    @Nonnull
+    @NotNull
     public BlockProperties getProperties(int blockId) {
         int fullId = blockId << Block.DATA_BITS;
         if (blockId > Block.MAX_BLOCK_ID && Block.ID_TO_CUSTOM_BLOCK.get(blockId) instanceof Block block1) {
@@ -704,14 +708,14 @@ public class BlockStateRegistry {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     public MutableBlockState createMutableState(int blockId) {
         return getProperties(blockId).createMutableState(blockId);
     }
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     public MutableBlockState createMutableState(int blockId, int bigMeta) {
         MutableBlockState blockState = createMutableState(blockId);
         blockState.setDataStorageFromInt(bigMeta);
@@ -723,7 +727,7 @@ public class BlockStateRegistry {
      */
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     public MutableBlockState createMutableState(int blockId, Number storage) {
         MutableBlockState blockState = createMutableState(blockId);
         blockState.setDataStorage(storage);

@@ -1,5 +1,7 @@
 package cn.nukkit.nbt.tag;
 
+import cn.nukkit.api.PowerNukkitXOnly;
+import cn.nukkit.api.Since;
 import cn.nukkit.nbt.stream.NBTInputStream;
 import cn.nukkit.nbt.stream.NBTOutputStream;
 
@@ -8,14 +10,11 @@ import java.io.IOException;
 public class ShortTag extends NumberTag<Integer> {
     public int data;
 
-    @Override
-    public Integer getData() {
-        return data;
-    }
-
-    @Override
-    public void setData(Integer data) {
-        this.data = data == null ? 0 : data;
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public ShortTag(int data) {
+        super("");
+        this.data = data;
     }
 
     public ShortTag(String name) {
@@ -25,6 +24,16 @@ public class ShortTag extends NumberTag<Integer> {
     public ShortTag(String name, int data) {
         super(name);
         this.data = data;
+    }
+
+    @Override
+    public Integer getData() {
+        return (int) (short) data;
+    }
+
+    @Override
+    public void setData(Integer data) {
+        this.data = data == null ? 0 : data;
     }
 
     @Override
@@ -53,13 +62,13 @@ public class ShortTag extends NumberTag<Integer> {
     }
 
     @Override
-    public String toSnbt() {
-        return "\"" + this.getName() + "\":" + data + "s";
+    public String toSNBT() {
+        return data + "s";
     }
 
     @Override
-    public String toSnbt(int space) {
-        return "\"" + this.getName() + "\": " + data + "s";
+    public String toSNBT(int space) {
+        return data + "s";
     }
 
     @Override

@@ -26,7 +26,8 @@ import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
 import cn.nukkit.utils.RedstoneComponent;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +51,7 @@ public class BlockTrapdoor extends BlockTransparentMeta implements RedstoneCompo
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    public static final BlockProperty<BlockFace> TRAPDOOR_DIRECTION = new ArrayBlockProperty<>("direction", false, new BlockFace[] {
+    public static final BlockProperty<BlockFace> TRAPDOOR_DIRECTION = new ArrayBlockProperty<>("direction", false, new BlockFace[]{
             // It's basically weirdo_direction but renamed
             BlockFace.EAST, BlockFace.WEST,
             BlockFace.SOUTH, BlockFace.NORTH
@@ -62,10 +63,12 @@ public class BlockTrapdoor extends BlockTransparentMeta implements RedstoneCompo
 
     private static final AxisAlignedBB[] boundingBoxDamage = new AxisAlignedBB[0x1 << PROPERTIES.getBitSize()];
 
-    @Deprecated @DeprecationDetails(reason = "Use the properties or the accessors", since = "1.4.0.0-PN", replaceWith = "CommonBlockProperties.OPEN")
+    @Deprecated
+    @DeprecationDetails(reason = "Use the properties or the accessors", since = "1.4.0.0-PN", replaceWith = "CommonBlockProperties.OPEN")
     public static final int TRAPDOOR_OPEN_BIT = 0x08;
 
-    @Deprecated @DeprecationDetails(reason = "Use the properties or the accessors", since = "1.4.0.0-PN", replaceWith = "BlockStairs.UPSIDE_DOWN")
+    @Deprecated
+    @DeprecationDetails(reason = "Use the properties or the accessors", since = "1.4.0.0-PN", replaceWith = "BlockStairs.UPSIDE_DOWN")
     public static final int TRAPDOOR_TOP_BIT = 0x04;
 
     public BlockTrapdoor() {
@@ -83,7 +86,7 @@ public class BlockTrapdoor extends BlockTransparentMeta implements RedstoneCompo
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -128,7 +131,7 @@ public class BlockTrapdoor extends BlockTransparentMeta implements RedstoneCompo
                 BlockFace face = (BlockFace) PROPERTIES.getValue(damage, TRAPDOOR_DIRECTION.getName());
                 face = face.getOpposite();
                 if (face.getAxisDirection() == AxisDirection.NEGATIVE) {
-                    bb = new SimpleAxisAlignedBB (
+                    bb = new SimpleAxisAlignedBB(
                             0,
                             0,
                             0,
@@ -137,7 +140,7 @@ public class BlockTrapdoor extends BlockTransparentMeta implements RedstoneCompo
                             1 + face.getZOffset() - (THICKNESS * face.getZOffset())
                     );
                 } else {
-                    bb = new SimpleAxisAlignedBB (
+                    bb = new SimpleAxisAlignedBB(
                             face.getXOffset() - (THICKNESS * face.getXOffset()),
                             0,
                             face.getZOffset() - (THICKNESS * face.getZOffset()),
@@ -165,7 +168,7 @@ public class BlockTrapdoor extends BlockTransparentMeta implements RedstoneCompo
                         1
                 );
             }
-            
+
             boundingBoxDamage[damage] = bb;
         }
     }
@@ -173,7 +176,7 @@ public class BlockTrapdoor extends BlockTransparentMeta implements RedstoneCompo
 
     @PowerNukkitDifference(info = "The bounding box was fixed", since = "1.3.0.0-PN")
     private AxisAlignedBB getRelativeBoundingBox() {
-        @SuppressWarnings("deprecation") 
+        @SuppressWarnings("deprecation")
         int bigDamage = getSignedBigDamage();
         return boundingBoxDamage[bigDamage];
     }
@@ -251,9 +254,9 @@ public class BlockTrapdoor extends BlockTransparentMeta implements RedstoneCompo
 
     @PowerNukkitDifference(info = "Will return false if setBlock fails and the direction is relative to where the player is facing", since = "1.4.0.0-PN")
     @Override
-    public boolean place(@Nonnull Item item, @Nonnull Block block, @Nonnull Block target, @Nonnull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
+    public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
         if (face.getAxis().isHorizontal()) {
-            setBlockFace(player == null? face : player.getDirection().getOpposite());
+            setBlockFace(player == null ? face : player.getDirection().getOpposite());
             setTop(fy > 0.5);
         } else {
             setBlockFace(player.getDirection().getOpposite());
@@ -272,7 +275,7 @@ public class BlockTrapdoor extends BlockTransparentMeta implements RedstoneCompo
     }
 
     @Override
-    public boolean onActivate(@Nonnull Item item, Player player) {
+    public boolean onActivate(@NotNull Item item, Player player) {
         return toggle(player);
     }
 
@@ -326,13 +329,13 @@ public class BlockTrapdoor extends BlockTransparentMeta implements RedstoneCompo
             playCloseSound();
         }
     }
-    
+
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public void playOpenSound() {
         this.level.addSound(this, Sound.RANDOM_DOOR_OPEN);
     }
-    
+
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public void playCloseSound() {
@@ -353,11 +356,11 @@ public class BlockTrapdoor extends BlockTransparentMeta implements RedstoneCompo
     public void setOpen(boolean open) {
         setBooleanValue(OPEN, open);
     }
-    
+
     public boolean isTop() {
         return getBooleanValue(UPSIDE_DOWN);
     }
-    
+
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public void setTop(boolean top) {

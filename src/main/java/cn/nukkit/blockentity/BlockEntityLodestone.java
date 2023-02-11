@@ -12,7 +12,8 @@ import cn.nukkit.positiontracking.PositionTrackingService;
 import it.unimi.dsi.fastutil.ints.IntList;
 import lombok.extern.log4j.Log4j2;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.util.OptionalInt;
 
@@ -29,17 +30,18 @@ public class BlockEntityLodestone extends BlockEntitySpawnable {
         super(chunk, nbt);
     }
 
+    @Since("1.19.60-r1")
     @Override
-    protected void initBlockEntity() {
+    public void loadNBT() {
+        super.loadNBT();
         if (namedTag.containsInt("trackingHandler")) {
             namedTag.put("trackingHandle", namedTag.removeAndGet("trackingHandler"));
         }
-        super.initBlockEntity();
     }
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     public OptionalInt getTrackingHandler() {
         if (namedTag.containsInt("trackingHandle")) {
             return OptionalInt.of(namedTag.getInt("trackingHandle"));

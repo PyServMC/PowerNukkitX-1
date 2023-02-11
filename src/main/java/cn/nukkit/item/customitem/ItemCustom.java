@@ -4,11 +4,11 @@ import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.StringItem;
-import lombok.Getter;
+import cn.nukkit.item.StringItemBase;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
-import java.util.Locale;
 
 /**
  * 继承这个类实现自定义物品,重写{@link Item}中的方法控制方块属性
@@ -19,17 +19,21 @@ import java.util.Locale;
  */
 @PowerNukkitXOnly
 @Since("1.6.0.0-PNX")
-public abstract class ItemCustom extends StringItem {
-    @Getter
-    private String textureName;
+public abstract class ItemCustom extends StringItemBase implements CustomItem {
+    private final String textureName;
 
-    public ItemCustom(@Nonnull String id, @Nullable String name) {
-        super(id.toLowerCase(Locale.ENGLISH), name);
+    public ItemCustom(@NotNull String id, @Nullable String name) {
+        super(id, StringItem.notEmpty(name));
+        this.textureName = name;
     }
 
-    public ItemCustom(@Nonnull String id, @Nullable String name, @Nonnull String textureName) {
-        this(id, name);
+    public ItemCustom(@NotNull String id, @Nullable String name, @NotNull String textureName) {
+        super(id, StringItem.notEmpty(name));
         this.textureName = textureName;
+    }
+
+    public String getTextureName() {
+        return textureName;
     }
 
     /**

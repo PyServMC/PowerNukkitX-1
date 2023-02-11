@@ -1,5 +1,7 @@
 package cn.nukkit.nbt.tag;
 
+import cn.nukkit.api.PowerNukkitXOnly;
+import cn.nukkit.api.Since;
 import cn.nukkit.nbt.stream.NBTInputStream;
 import cn.nukkit.nbt.stream.NBTOutputStream;
 import cn.nukkit.utils.Binary;
@@ -9,6 +11,13 @@ import java.util.Arrays;
 
 public class ByteArrayTag extends Tag {
     public byte[] data;
+
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public ByteArrayTag(byte[] data) {
+        super("");
+        this.data = data;
+    }
 
     public ByteArrayTag(String name) {
         super(name);
@@ -51,13 +60,23 @@ public class ByteArrayTag extends Tag {
     }
 
     @Override
-    public String toSnbt() {
-        return "\"" + this.getName() + "\":" + Arrays.toString(data).replace("[", "[B;").replace(" ", "");
+    public String toSNBT() {
+        StringBuilder builder = new StringBuilder("[B;");
+        for (int i = 0; i < this.data.length - 1; i++) {
+            builder.append(i).append('b').append(',');
+        }
+        builder.append(data[data.length - 1]).append("b]");
+        return builder.toString();
     }
 
     @Override
-    public String toSnbt(int space) {
-        return "\"" + this.getName() + "\": " + Arrays.toString(data).replace("[", "[B; ");
+    public String toSNBT(int space) {
+        StringBuilder builder = new StringBuilder("[B; ");
+        for (int i = 0; i < this.data.length - 1; i++) {
+            builder.append(i).append("b, ");
+        }
+        builder.append(data[data.length - 1]).append("b]");
+        return builder.toString();
     }
 
     @Override
@@ -68,14 +87,14 @@ public class ByteArrayTag extends Tag {
         }
         return false;
     }
-    
+
     @Override
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + Arrays.hashCode(data);
         return result;
     }
-    
+
     @Override
     public Tag copy() {
         byte[] cp = new byte[data.length];

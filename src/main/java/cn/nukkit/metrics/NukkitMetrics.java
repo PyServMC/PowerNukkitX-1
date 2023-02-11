@@ -10,7 +10,8 @@ import cn.nukkit.utils.Config;
 import cn.nukkit.utils.LoginChainData;
 import lombok.extern.log4j.Log4j2;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -79,7 +80,7 @@ public class NukkitMetrics {
         return nukkitMetrics.metrics != null;
     }
 
-    private static NukkitMetrics getOrCreateMetrics(@Nonnull final Server server) {
+    private static NukkitMetrics getOrCreateMetrics(@NotNull final Server server) {
         Map<Server, NukkitMetrics> current = metricsStarted.get();
         NukkitMetrics metrics = current.get(server);
         if (metrics != null) {
@@ -100,8 +101,8 @@ public class NukkitMetrics {
         return metrics;
     }
 
-    @Nonnull
-    private static NukkitMetrics createMetrics(@Nonnull final Server server) {
+    @NotNull
+    private static NukkitMetrics createMetrics(@NotNull final Server server) {
         NukkitMetrics nukkitMetrics = new NukkitMetrics(server, false);
         if (!nukkitMetrics.enabled) {
             return nukkitMetrics;
@@ -208,15 +209,16 @@ public class NukkitMetrics {
             case 1 -> "Android";
             case 2 -> "iOS";
             case 3 -> "macOS";
-            case 4 -> "FireOS";
+            case 4 -> "Fire OS";
             case 5 -> "Gear VR";
-            case 6 -> "Hololens";
+            case 6 -> "HoloLens";
             case 7 -> "Windows 10";
             case 8 -> "Windows";
             case 9 -> "Dedicated";
-            case 10 -> "PS4";
-            case 11, 12 -> "Switch";
-            case 13 -> "Xbox One";
+            case 10 -> "tvOS";
+            case 11 -> "PlayStation";
+            case 12 -> "Switch";
+            case 13 -> "Xbox";
             case 14 -> "Windows Phone";
             default -> "Unknown";
         };

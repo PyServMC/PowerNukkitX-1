@@ -4,6 +4,8 @@ import cn.nukkit.api.PowerNukkitDifference;
 import cn.nukkit.api.PowerNukkitXDifference;
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
+import cn.nukkit.block.Block;
+import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemID;
 import cn.nukkit.item.PNAlphaItemID;
@@ -14,6 +16,7 @@ import cn.nukkit.nbt.stream.PGZIPOutputStream;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.Tag;
 import cn.nukkit.utils.ThreadCache;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.nio.ByteOrder;
@@ -37,6 +40,7 @@ public class NBTIO {
         return putItemHelper(item, null);
     }
 
+    @PowerNukkitXDifference(info = "Remove the name from the tag, this function will be removed in the future")
     public static CompoundTag putItemHelper(Item item, Integer slot) {
         CompoundTag tag = new CompoundTag((String) null)
                 .putByte("Count", item.getCount())
@@ -53,7 +57,7 @@ public class NBTIO {
 
         if (item.hasCompoundTag()) {
             if (id == ItemID.STRING_IDENTIFIED_ITEM) {
-                CompoundTag realCompound = item.getNamedTag().clone().remove("Name");
+                CompoundTag realCompound = item.getNamedTag().clone().remove("Name");//todo 未来移除
                 if (!realCompound.isEmpty()) {
                     tag.putCompound("tag", realCompound);
                 }
@@ -65,6 +69,7 @@ public class NBTIO {
         return tag;
     }
 
+    @PowerNukkitXDifference(info = "Remove the name from the tag, this function will be removed in the future")
     @PowerNukkitXDifference(info = "not limit name and id because the return value of fromString not null")
     public static Item getItemHelper(CompoundTag tag) {
         if (!tag.containsByte("Count")) {
@@ -97,12 +102,46 @@ public class NBTIO {
         }
 
         Tag tagTag = tag.get("tag");
-        if (tagTag instanceof CompoundTag) {
-            item.setNamedTag((CompoundTag) tagTag);
+        if (tagTag instanceof CompoundTag compoundTag) {//todo 临时修复物品NBT，未来移除
+            if (compoundTag.containsString("Name")) {
+                compoundTag.remove("Name");
+            }
+            item.setNamedTag(compoundTag);
         }
 
         return item;
     }
+
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public static CompoundTag putBlockHelper(Block block) {
+        var states = new CompoundTag();
+        for (var str : block.getProperties().getNames()) {
+            Class<?> type = block.getCurrentState().getProperty(str).getValueClass();
+            if (type == Boolean.class) {
+                states.putBoolean(str, block.getCurrentState().getBooleanValue(str));
+            } else if (type == Integer.class) {
+                states.putInt(str, block.getCurrentState().getIntValue(str));
+            } else {
+                states.putString(str, block.getCurrentState().getPersistenceValue(str));
+            }
+        }
+        return new CompoundTag("Block")
+                .putString("name", block.getPersistenceName())
+                .putCompound("states", states)
+                .putInt("version", 17959425);
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public static Block getBlockHelper(@NotNull CompoundTag block) {
+        if (!block.containsString("name")) return Block.get(0);
+        StringBuilder state = new StringBuilder(block.getString("name"));
+        CompoundTag states = block.getCompound("states");
+        states.getTags().forEach((k, v) -> state.append(';').append(k).append('=').append(v.parseValue()));
+        return BlockState.of(state.toString()).getBlock();
+    }
+
 
     @SuppressWarnings("deprecation")
     private static Item fixAlphaItem(int id, int damage, int count) {

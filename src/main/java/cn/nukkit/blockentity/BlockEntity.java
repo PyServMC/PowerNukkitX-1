@@ -31,7 +31,8 @@ public abstract class BlockEntity extends Position {
     public static final String ENDER_CHEST = "EnderChest";
     public static final String FURNACE = "Furnace";
     @PowerNukkitOnly public static final String BLAST_FURNACE = "BlastFurnace";
-    @PowerNukkitOnly public static final String SMOKER = "Smoker";
+    @PowerNukkitOnly
+    public static final String SMOKER = "Smoker";
     public static final String SIGN = "Sign";
     public static final String MOB_SPAWNER = "MobSpawner";
     public static final String ENCHANT_TABLE = "EnchantTable";
@@ -41,6 +42,9 @@ public abstract class BlockEntity extends Position {
     public static final String DAYLIGHT_DETECTOR = "DaylightDetector";
     public static final String MUSIC = "Music";
     public static final String ITEM_FRAME = "ItemFrame";
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public static final String GLOW_ITEM_FRAME = "GlowItemFrame";
     public static final String CAULDRON = "Cauldron";
     public static final String BEACON = "Beacon";
     public static final String PISTON_ARM = "PistonArm";
@@ -126,7 +130,7 @@ public abstract class BlockEntity extends Position {
     }
 
     protected void initBlockEntity() {
-
+        loadNBT();
     }
 
     @PowerNukkitOnly
@@ -209,6 +213,9 @@ public abstract class BlockEntity extends Position {
         return id;
     }
 
+    /**
+     * 存储方块实体数据到namedtag
+     */
     public void saveNBT() {
         this.namedTag.putString("id", this.getSaveId());
         this.namedTag.putInt("x", (int) this.getX());
@@ -217,17 +224,12 @@ public abstract class BlockEntity extends Position {
         this.namedTag.putBoolean("isMovable", this.movable);
     }
 
-    /*
-     * load data from namedtag (used after you editd it's namedtag)
+    /**
+     * 从方块实体的namedtag中读取数据
      */
     @PowerNukkitXOnly
-    @Since("1.6.0.0-PNX")
-    public void loadNBT() {
-        this.x = this.namedTag.getInt("x");
-        this.y = this.namedTag.getInt("y");
-        this.z = this.namedTag.getInt("z");
-        this.movable = this.namedTag.getBoolean("isMovable");
-    }
+    @Since("1.19.60-r1")
+    public void loadNBT() {}
 
     public CompoundTag getCleanedNBT() {
         this.saveNBT();

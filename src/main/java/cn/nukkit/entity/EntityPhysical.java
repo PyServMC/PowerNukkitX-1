@@ -7,6 +7,7 @@ import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockLava;
 import cn.nukkit.block.BlockLiquid;
 import cn.nukkit.event.entity.EntityDamageEvent;
+import cn.nukkit.event.player.EntityFreezeEvent;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.SimpleAxisAlignedBB;
@@ -82,6 +83,33 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
     }
 
     @Override
+    public boolean entityBaseTick() {
+        return this.entityBaseTick(1);
+    }
+
+    @Override
+    public boolean entityBaseTick(int tickDiff) {
+        boolean hasUpdate = super.entityBaseTick(tickDiff);
+        //handle human entity freeze
+        var collidedWithPowderSnow = this.getTickCachedCollisionBlocks().stream().anyMatch(block -> block.getId() == Block.POWDER_SNOW);
+        if (this.getFreezingTicks() < 140 && collidedWithPowderSnow) {
+            this.addFreezingTicks(1);
+            EntityFreezeEvent event = new EntityFreezeEvent(this);
+            this.server.getPluginManager().callEvent(event);
+            if (!event.isCancelled()) {
+                //this.setMovementSpeed(); //todo 给物理实体添加freeze减速
+            }
+        } else if (this.getFreezingTicks() > 0 && !collidedWithPowderSnow) {
+            this.addFreezingTicks(-1);
+            //this.setMovementSpeed();
+        }
+        if (this.getFreezingTicks() == 140 && this.getServer().getTick() % 40 == 0) {
+            this.attack(new EntityDamageEvent(this, EntityDamageEvent.DamageCause.FREEZING, getFrostbiteInjury()));
+        }
+        return hasUpdate;
+    }
+
+    @Override
     public boolean canBeMovedByCurrents() {
         return true;
     }
@@ -97,7 +125,7 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
     }
 
     @PowerNukkitXOnly
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     public boolean isFalling() {
         return !this.onGround && this.y < this.highestPosition;
     }
@@ -125,7 +153,7 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
     /**
      * 计算地面摩擦力
      */
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     protected void handleGroundFrictionMovement() {
         //未在地面就没有地面阻力
         if (!this.onGround) return;
@@ -142,7 +170,7 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
     /**
      * 计算流体阻力（空气/液体）
      */
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     protected void handlePassableBlockFrictionMovement() {
         //小于精度
         if (Math.abs(this.motionZ) < PRECISION && Math.abs(this.motionX) < PRECISION && Math.abs(this.motionY) < PRECISION)
@@ -161,7 +189,7 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
      *
      * @return 当前位置的地面摩擦因子
      */
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     public double getGroundFrictionFactor() {
         if (!this.onGround) return 1.0;
         return this.getLevel().getTickCachedBlock(this.temporalVector.setComponents((int) Math.floor(this.x), (int) Math.floor(this.y - 1), (int) Math.floor(this.z))).getFrictionFactor();
@@ -172,7 +200,7 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
      *
      * @return 当前位置的流体阻力因子
      */
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     public double getPassableBlockFrictionFactor() {
         var block = this.getTickCachedLevelBlock();
         if (block.collidesWithBB(this.getBoundingBox(), true)) return block.getPassableBlockFrictionFactor();
@@ -227,7 +255,7 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
      *
      * @return the floating force factor
      */
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     public double getFloatingForceFactor() {
         if (hasWaterAt(this.getFloatingHeight())) {
             return 1.3;
@@ -242,7 +270,7 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
      * @return the float
      */
     @PowerNukkitXOnly
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     public float getFloatingHeight() {
         return this.getEyeHeight();
     }
@@ -251,7 +279,7 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
     protected void handleCollideMovement(int currentTick) {
         var selfAABB = getOffsetBoundingBox().getOffsetBoundingBox(this.motionX, this.motionY, this.motionZ);
         var collidingEntities = this.level.fastCollidingEntities(selfAABB, this);
-        collidingEntities.removeIf(entity -> !(entity instanceof EntityPhysical || entity instanceof Player));
+        collidingEntities.removeIf(entity -> !(entity.canCollide() && (entity instanceof EntityPhysical || entity instanceof Player)));
         var size = collidingEntities.size();
         if (size == 0) {
             this.previousCollideMotion.setX(0);
@@ -307,7 +335,7 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
      */
     protected boolean onCollide(int currentTick, List<Entity> collidingEntities) {
         if (currentTick % 10 == 0) {
-            if (collidingEntities.stream().filter(Entity::canCollide).count() > 24) {
+            if (collidingEntities.size() > 24) {
                 this.needsCollisionDamage = true;
             }
         }

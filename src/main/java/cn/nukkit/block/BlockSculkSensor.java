@@ -1,5 +1,6 @@
 package cn.nukkit.block;
 
+import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.blockentity.BlockEntity;
@@ -9,9 +10,10 @@ import cn.nukkit.blockproperty.BooleanBlockProperty;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.Sound;
 import cn.nukkit.math.BlockFace;
+import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.RedstoneComponent;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author LT_Name
@@ -38,13 +40,13 @@ public class BlockSculkSensor extends BlockSolid implements BlockEntityHolder<Bl
         return PROPERTIES;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Class<? extends BlockEntitySculkSensor> getBlockEntityClass() {
         return BlockEntitySculkSensor.class;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getBlockEntityType() {
         return BlockEntity.SCULK_SENSOR;
@@ -89,5 +91,22 @@ public class BlockSculkSensor extends BlockSolid implements BlockEntityHolder<Bl
         else this.level.addSound(this.add(0.5,0.5,0.5), Sound.POWER_OFF_SCULK_SENSOR);
         this.setBooleanValue(POWERED_BIT, powered);
         this.level.setBlock(this, this, true, false);
+    }
+
+    @Override
+    public boolean isSolid() {
+        return false;
+    }
+
+    @Since("1.3.0.0-PN")
+    @PowerNukkitOnly
+    @Override
+    public boolean isSolid(BlockFace side) {
+        return false;
+    }
+
+    @Override
+    public BlockColor getColor() {
+        return BlockColor.SCULK_BLOCK_COLOR;
     }
 }

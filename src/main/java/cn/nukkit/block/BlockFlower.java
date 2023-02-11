@@ -15,16 +15,18 @@ import cn.nukkit.level.Level;
 import cn.nukkit.level.particle.BoneMealParticle;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.Vector3;
+import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.utils.BlockColor;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author xtypr
  * @since 2015/11/23
  */
-public class BlockFlower extends BlockFlowable {
+public class BlockFlower extends BlockFlowable implements BlockFlowerPot.FlowerPotBlock {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public static final BlockProperty<SmallFlowerType> RED_FLOWER_TYPE = new ArrayBlockProperty<>("flower_type", true, new SmallFlowerType[]{
@@ -98,7 +100,7 @@ public class BlockFlower extends BlockFlowable {
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -158,7 +160,7 @@ public class BlockFlower extends BlockFlowable {
     }
 
     @Override
-    public boolean place(@Nonnull Item item, @Nonnull Block block, @Nonnull Block target, @Nonnull BlockFace face, double fx, double fy, double fz, Player player) {
+    public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, Player player) {
         Block down = this.down();
         if (canPlantOn(down)) {
             this.getLevel().setBlock(block, this, true);
@@ -193,7 +195,7 @@ public class BlockFlower extends BlockFlowable {
     }
 
     @Override
-    public boolean onActivate(@Nonnull Item item, Player player) {
+    public boolean onActivate(@NotNull Item item, Player player) {
         if (item.isFertilizer()) { //Bone meal
             if (player != null && (player.gamemode & 0x01) == 0) {
                 item.count--;

@@ -8,7 +8,6 @@ import cn.nukkit.blockentity.BlockEntityHopper;
 import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.entity.item.EntityItem;
-import cn.nukkit.event.block.ComposterEmptyEvent;
 import cn.nukkit.event.inventory.InventoryMoveItemEvent;
 import cn.nukkit.inventory.ContainerInventory;
 import cn.nukkit.inventory.Inventory;
@@ -27,7 +26,8 @@ import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.utils.Faceable;
 import cn.nukkit.utils.RedstoneComponent;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 
 import static cn.nukkit.blockproperty.CommonBlockProperties.FACING_DIRECTION;
@@ -39,7 +39,7 @@ import static cn.nukkit.blockproperty.CommonBlockProperties.TOGGLE;
 @PowerNukkitDifference(since = "1.4.0.0-PN", info = "Implements BlockEntityHolder only in PowerNukkit")
 @PowerNukkitDifference(info = "Implements RedstoneComponent.", since = "1.4.0.0-PN")
 public class BlockHopper extends BlockTransparentMeta implements RedstoneComponent, Faceable, BlockEntityHolder<BlockEntityHopper> {
-    
+
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public static final BlockProperties PROPERTIES = new BlockProperties(FACING_DIRECTION, TOGGLE);
@@ -59,7 +59,7 @@ public class BlockHopper extends BlockTransparentMeta implements RedstoneCompone
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return PROPERTIES;
@@ -67,7 +67,7 @@ public class BlockHopper extends BlockTransparentMeta implements RedstoneCompone
 
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public Class<? extends BlockEntityHopper> getBlockEntityClass() {
         return BlockEntityHopper.class;
@@ -75,7 +75,7 @@ public class BlockHopper extends BlockTransparentMeta implements RedstoneCompone
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     @Override
     public String getBlockEntityType() {
         return BlockEntity.HOPPER;
@@ -104,13 +104,13 @@ public class BlockHopper extends BlockTransparentMeta implements RedstoneCompone
 
     @PowerNukkitDifference(info = "Using new method for checking if powered", since = "1.4.0.0-PN")
     @Override
-    public boolean place(@Nonnull Item item, @Nonnull Block block, @Nonnull Block target, @Nonnull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
+    public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
         BlockFace facing = face.getOpposite();
 
         if (facing == BlockFace.UP) {
             facing = BlockFace.DOWN;
         }
-        
+
         setBlockFace(facing);
 
         if (this.level.getServer().isRedstoneEnabled()) {
@@ -126,11 +126,11 @@ public class BlockHopper extends BlockTransparentMeta implements RedstoneCompone
     }
 
     @Override
-    public boolean onActivate(@Nonnull Item item, Player player) {
+    public boolean onActivate(@NotNull Item item, Player player) {
         if (player == null) {
             return false;
         }
-        
+
         BlockEntityHopper blockEntity = getOrCreateBlockEntity();
 
         return player.addWindow(blockEntity.getInventory()) != -1;
@@ -239,8 +239,10 @@ public class BlockHopper extends BlockTransparentMeta implements RedstoneCompone
     }
 
     @PowerNukkitXOnly
-    @Since("1.19.50-r4")
+    @Since("1.19.60-r1")
     public interface IHopper {
+        Position getPosition();
+
         default boolean pullItems(InventoryHolder hopperHolder, Position hopperPos) {
             var hopperInv = hopperHolder.getInventory();
 
@@ -249,12 +251,6 @@ public class BlockHopper extends BlockTransparentMeta implements RedstoneCompone
 
             Block blockSide = hopperPos.getSide(BlockFace.UP).getTickCachedLevelBlock();
             BlockEntity blockEntity = hopperPos.level.getBlockEntity(new Vector3().setComponentsAdding(hopperPos, BlockFace.UP));
-
-            if (blockEntity instanceof BlockEntityHopper) {
-                BlockEntityHopper hopper = (BlockEntityHopper) blockEntity;
-                if (hopper.isDisabled())
-                    return false;
-            }
 
             if (blockEntity instanceof InventoryHolder) {
                 Inventory inv = blockEntity instanceof RecipeInventoryHolder recipeInventoryHolder ? recipeInventoryHolder.getProductView() : ((InventoryHolder) blockEntity).getInventory();

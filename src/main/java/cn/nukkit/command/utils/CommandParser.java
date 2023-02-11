@@ -10,6 +10,7 @@ import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.exceptions.CommandSyntaxException;
+import cn.nukkit.command.selector.EntitySelectorAPI;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.Position;
@@ -34,7 +35,7 @@ import java.util.stream.Collectors;
  * 目前已经重写了解析器，应使用新的ParamTree而不是继续使用此实现
  */
 @Deprecated
-@DeprecationDetails(since = "1.19.50-r4", reason = "Using the new ParamTree instead", replaceWith = "ParamTree")
+@DeprecationDetails(since = "1.19.60-r1", reason = "Using the new ParamTree instead", replaceWith = "ParamTree")
 @PowerNukkitXOnly
 @Since("1.6.0.0-PNX")
 @Getter
@@ -410,8 +411,8 @@ public class CommandParser {
     public List<Entity> parseTargets(boolean moveCursor) throws CommandSyntaxException {
         try {
             String arg = this.parseString(moveCursor);
-            if (EntitySelector.hasArguments(arg)) {
-                return EntitySelector.matchEntities(this.sender, arg);
+            if (EntitySelectorAPI.getAPI().checkValid(arg)) {
+                return EntitySelectorAPI.getAPI().matchEntities(this.sender, arg);
             } else {
                 Player player = Server.getInstance().getPlayer(arg);
                 return player == null ? Collections.emptyList() : Collections.singletonList(player);

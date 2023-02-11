@@ -5,11 +5,15 @@ import cn.nukkit.api.Since;
 import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.blockproperty.CommonBlockProperties;
 import cn.nukkit.entity.Entity;
+import cn.nukkit.entity.projectile.EntitySmallFireBall;
 import cn.nukkit.item.Item;
+import cn.nukkit.level.Position;
 import cn.nukkit.math.BlockFace;
+import cn.nukkit.math.Vector3;
 import cn.nukkit.utils.BlockColor;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 @Since("1.6.0.0-PNX")
 @PowerNukkitOnly
@@ -63,20 +67,25 @@ public class BlockPowderSnow extends BlockTransparentMeta {
 
     @Since("1.6.0.0-PNX")
     @PowerNukkitOnly
-    @Nonnull
+    @NotNull
     @Override
     public BlockProperties getProperties() {
         return CommonBlockProperties.EMPTY_PROPERTIES;
     }
 
     @Override
-    public void onEntityCollide(Entity entity) {
-        if (entity.getFreezingTicks() < 140)
-            entity.addFreezingTicks(1);
-    }
-
-    @Override
     public Item[] getDrops(Item item) {
         return Item.EMPTY_ARRAY;
+    }
+
+    @Since("1.4.0.0-PN")
+    @PowerNukkitOnly
+    @Override
+    public boolean onProjectileHit(@NotNull Entity projectile, @NotNull Position position, @NotNull Vector3 motion) {
+        if (projectile instanceof EntitySmallFireBall) {
+            this.getLevel().useBreakOn(this);
+            return true;
+        }
+        return false;
     }
 }

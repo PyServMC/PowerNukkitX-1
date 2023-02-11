@@ -15,19 +15,16 @@ import cn.nukkit.blockstate.exception.InvalidBlockStateException;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.inventory.Fuel;
 import cn.nukkit.inventory.ItemTag;
+import cn.nukkit.item.customitem.CustomItem;
 import cn.nukkit.item.customitem.CustomItemDefinition;
-import cn.nukkit.item.customitem.ItemCustom;
 import cn.nukkit.item.enchantment.Enchantment;
-import cn.nukkit.item.enchantment.sideeffect.SideEffect;
 import cn.nukkit.item.randomitem.ItemEchoShard;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.nbt.NBTIO;
 import cn.nukkit.nbt.tag.*;
-import cn.nukkit.utils.Binary;
-import cn.nukkit.utils.Config;
-import cn.nukkit.utils.Utils;
+import cn.nukkit.utils.*;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import io.netty.util.internal.EmptyArrays;
@@ -35,8 +32,8 @@ import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -46,6 +43,7 @@ import java.lang.reflect.Modifier;
 import java.nio.ByteOrder;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -74,7 +72,7 @@ public class Item implements Cloneable, BlockID, ItemID {
             //       1:namespace    2:name           3:damage   4:num-id    5:damage
             "^(?:(?:([a-z_]\\w*):)?([a-z._]\\w*)(?::(-?\\d+))?|(-?\\d+)(?::(-?\\d+))?)$");
 
-    protected static String UNKNOWN_STR = "Unknown";
+    public static String UNKNOWN_STR = "Unknown";
     public static Class[] list = null;
 
     private static Map<String, Integer> itemIds = Arrays.stream(ItemID.class.getDeclaredFields())
@@ -113,7 +111,7 @@ public class Item implements Cloneable, BlockID, ItemID {
 
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
-    private static final HashMap<String, Class<? extends Item>> CUSTOM_ITEMS = new HashMap<>();
+    private static final HashMap<String, Supplier<Item>> CUSTOM_ITEMS = new HashMap<>();
 
     @PowerNukkitXOnly
     @Since("1.19.31-r1")
@@ -631,8 +629,8 @@ public class Item implements Cloneable, BlockID, ItemID {
      */
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
-    public static void registerCustomItem(Class<? extends ItemCustom> c) {
-        registerCustomItem(List.of(c));
+    public static OK<?> registerCustomItem(Class<? extends CustomItem> c) {
+        return registerCustomItem(List.of(c));
     }
 
     /**
@@ -644,35 +642,52 @@ public class Item implements Cloneable, BlockID, ItemID {
      */
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
-    public static void registerCustomItem(@Nonnull List<Class<? extends ItemCustom>> itemClassList) {
+    public static OK<?> registerCustomItem(@NotNull List<Class<? extends CustomItem>> itemClassList) {
         if (!Server.getInstance().isEnableExperimentMode() || Server.getInstance().getConfig("settings.waterdogpe", false)) {
-            log.warn("The server does not have the custom item feature enabled. Unable to register the customItemList!");
-            return;
+            return new OK<>(false, "The server does not have the custom item feature enabled. Unable to register the customItemList!");
         }
         for (var clazz : itemClassList) {
+            CustomItem customItem;
+            Supplier<Item> supplier;
+
             try {
                 var method = clazz.getDeclaredConstructor();
                 method.setAccessible(true);
-                ItemCustom itemCustom = method.newInstance();
-                if (CUSTOM_ITEMS.containsKey(itemCustom.getNamespaceId())) return;
-                CUSTOM_ITEMS.put(itemCustom.getNamespaceId(), clazz);
-                var customDef = itemCustom.getDefinition();
-                CUSTOM_ITEM_DEFINITIONS.put(itemCustom.getNamespaceId(), customDef);
-                // 在服务端注册自定义物品的tag
-                if (customDef.nbt().get("components") instanceof CompoundTag componentTag) {
-                    var tagList = componentTag.getList("item_tags", StringTag.class);
-                    if (tagList.size() != 0) {
-                        ItemTag.registerItemTag(itemCustom.getNamespaceId(), tagList.getAll().stream().map(tag -> tag.data).collect(Collectors.toSet()));
+                customItem = method.newInstance();
+                supplier = () -> {
+                    try {
+                        return (Item) method.newInstance();
+                    } catch (ReflectiveOperationException e) {
+                        throw new UnsupportedOperationException(e);
                     }
-                }
-                RuntimeItems.getRuntimeMapping().registerCustomItem(itemCustom);
-                addCreativeItem(itemCustom);
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                throw new RuntimeException(e);
-            } catch (NoSuchMethodException e) {
-                log.error("Cannot find the parameterless constructor for this custom item:" + clazz.getCanonicalName());
+                };
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                     NoSuchMethodException e) {
+                return new OK<>(false, e);
             }
+
+            try {
+                Identifier.assertValid(customItem.getNamespaceId());
+            } catch (InvalidIdentifierException e) {
+                return new OK<>(false, e);
+            }
+
+            if (CUSTOM_ITEMS.containsKey(customItem.getNamespaceId())) continue;
+            CUSTOM_ITEMS.put(customItem.getNamespaceId(), supplier);
+            var customDef = customItem.getDefinition();
+            CUSTOM_ITEM_DEFINITIONS.put(customItem.getNamespaceId(), customDef);
+
+            // 在服务端注册自定义物品的tag
+            if (customDef.nbt().get("components") instanceof CompoundTag componentTag) {
+                var tagList = componentTag.getList("item_tags", StringTag.class);
+                if (tagList.size() != 0) {
+                    ItemTag.registerItemTag(customItem.getNamespaceId(), tagList.getAll().stream().map(tag -> tag.data).collect(Collectors.toSet()));
+                }
+            }
+            RuntimeItems.getRuntimeMapping().registerCustomItem(customItem, supplier);
+            addCreativeItem((Item) customItem);
         }
+        return new OK<Void>(true);
     }
 
     /**
@@ -686,11 +701,11 @@ public class Item implements Cloneable, BlockID, ItemID {
     @Since("1.6.0.0-PNX")
     public static void deleteCustomItem(String namespaceId) {
         if (CUSTOM_ITEMS.containsKey(namespaceId)) {
-            ItemCustom itemCustom = (ItemCustom) fromString(namespaceId);
-            removeCreativeItem(itemCustom);
+            Item customItem = fromString(namespaceId);
+            removeCreativeItem(customItem);
             CUSTOM_ITEMS.remove(namespaceId);
             CUSTOM_ITEM_DEFINITIONS.remove(namespaceId);
-            RuntimeItems.getRuntimeMapping().deleteCustomItem(itemCustom);
+            RuntimeItems.getRuntimeMapping().deleteCustomItem((CustomItem) customItem);
         }
     }
 
@@ -703,11 +718,11 @@ public class Item implements Cloneable, BlockID, ItemID {
     @Since("1.6.0.0-PNX")
     public static void deleteAllCustomItem() {
         for (String name : CUSTOM_ITEMS.keySet()) {
-            ItemCustom itemCustom = (ItemCustom) fromString(name);
-            removeCreativeItem(itemCustom);
+            Item customItem = fromString(name);
+            removeCreativeItem(customItem);
             CUSTOM_ITEMS.remove(name);
             CUSTOM_ITEM_DEFINITIONS.remove(name);
-            RuntimeItems.getRuntimeMapping().deleteCustomItem(itemCustom);
+            RuntimeItems.getRuntimeMapping().deleteCustomItem((CustomItem) customItem);
         }
     }
 
@@ -721,7 +736,7 @@ public class Item implements Cloneable, BlockID, ItemID {
 
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
-    public static HashMap<String, Class<? extends Item>> getCustomItems() {
+    public static HashMap<String, Supplier<? extends Item>> getCustomItems() {
         return new HashMap<>(CUSTOM_ITEMS);
     }
 
@@ -950,30 +965,24 @@ public class Item implements Cloneable, BlockID, ItemID {
             }
             if (CUSTOM_ITEMS.containsKey(namespacedId)) {
                 var item = RuntimeItems.getRuntimeMapping().getItemByNamespaceId(namespacedId, 1);
-                ItemCustom itemCustom;
-
+                Item customItem;
                 /*
-                 * 因为getDefinition中如果需要使用Item.fromString()获取自定义物品,此时RuntimeItems中还没注册自定义物品,所以留一个反射构造。
+                 * 因为getDefinition中如果需要使用Item.fromString()获取自定义物品,此时RuntimeItems中还没注册自定义物品,留一个备用构造。
                  * 主要用于getDefinition中addRepairItems
                  */
                 if (item.getName() != null && item.getName().equals(Item.UNKNOWN_STR)) {
-                    try {
-                        itemCustom = (ItemCustom) CUSTOM_ITEMS.get(namespacedId).getDeclaredConstructor().newInstance();
-                    } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
-                             NoSuchMethodException e) {
-                        throw new RuntimeException(e);
-                    }
-                } else itemCustom = (ItemCustom) item;
+                    customItem = CUSTOM_ITEMS.get(namespacedId).get();
+                } else customItem = item;
 
                 if (meta.isPresent()) {
                     int damage = meta.getAsInt();
                     if (damage < 0) {
-                        itemCustom = (ItemCustom) itemCustom.createFuzzyCraftingRecipe();
+                        customItem = customItem.createFuzzyCraftingRecipe();
                     } else {
-                        itemCustom.setDamage(damage);
+                        customItem.setDamage(damage);
                     }
                 }
-                return itemCustom;
+                return customItem;
             } else if (Block.CUSTOM_BLOCK_ID_MAP.containsKey(namespacedId)) {
                 ItemBlock customItemBlock = (ItemBlock) RuntimeItems.getRuntimeMapping().getItemByNamespaceId(namespacedId, 1);
                 if (meta.isPresent()) {
@@ -1119,18 +1128,6 @@ public class Item implements Cloneable, BlockID, ItemID {
         return this.tags != null && this.tags.length > 0;
     }
 
-    @PowerNukkitOnly
-    @Since("FUTURE")
-    public boolean hasCustomCompoundTag() {
-        return hasCompoundTag();
-    }
-
-    @PowerNukkitOnly
-    @Since("FUTURE")
-    public byte[] getCustomCompoundTag() {
-        return getCompoundTag();
-    }
-
     public boolean hasCustomBlockData() {
         if (!this.hasCompoundTag()) {
             return false;
@@ -1190,13 +1187,8 @@ public class Item implements Cloneable, BlockID, ItemID {
     }
 
     /**
-     * 使用该物品是否应用附魔效果例如锋利等....
-     * <p>
-     * Whether to apply the enchantment effect when using this item
-     *
-     * @return
+     * 该物品是否可以应用附魔效果
      */
-
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
     public boolean applyEnchantments() {
@@ -1213,14 +1205,16 @@ public class Item implements Cloneable, BlockID, ItemID {
         if (tag.contains("ench")) {
             Tag enchTag = tag.get("ench");
             return enchTag instanceof ListTag;
+        } else if (tag.contains("custom_ench")) {
+            Tag enchTag = tag.get("custom_ench");
+            return enchTag instanceof ListTag;
         }
 
         return false;
     }
 
-
     /**
-     * 通过附魔id来查找附魔等级
+     * 通过附魔id来查找对应附魔的等级
      * <p>
      * Find the enchantment level by the enchantment id.
      *
@@ -1243,15 +1237,71 @@ public class Item implements Cloneable, BlockID, ItemID {
         return 0;
     }
 
+
     /**
-     * 定义附魔的id
+     * 通过附魔id来查找对应附魔的等级
+     * <p>
+     * Find the enchantment level by the enchantment id.
+     *
+     * @param id 要查询的附魔标识符
+     * @return {@code 0} if the item don't have that enchantment or the current level of the given enchantment.
+     */
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public int getCustomEnchantmentLevel(String id) {
+        if (!this.hasEnchantments()) {
+            return 0;
+        }
+        for (CompoundTag entry : this.getNamedTag().getList("custom_ench", CompoundTag.class).getAll()) {
+            if (entry.getString("id").equals(id)) {
+                return entry.getShort("lvl");
+            }
+        }
+        return 0;
+    }
+
+
+    /**
+     * @param id 要查询的附魔标识符
+     */
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public Enchantment getCustomEnchantment(String id) {
+        if (!this.hasEnchantments()) {
+            return null;
+        }
+
+        for (CompoundTag entry : this.getNamedTag().getList("custom_ench", CompoundTag.class).getAll()) {
+            if (entry.getString("id").equals(id)) {
+                Enchantment e = Enchantment.getEnchantment(entry.getString("id"));
+                if (e != null) {
+                    e.setLevel(entry.getShort("lvl"), false);
+                    return e;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 检测该物品是否有该附魔
+     * <p>
+     * Detect if the item has the enchantment
+     *
+     * @param id 要查询的附魔标识符
+     */
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public boolean hasCustomEnchantment(String id) {
+        return this.getCustomEnchantmentLevel(id) > 0;
+    }
+
+    /**
+     * 从给定的附魔id查找该物品是否存在对应的附魔效果，如果查找不到返回null
      * <p>
      * Get the id of the enchantment
-     *
-     * @param id
-     * @return
      */
-
     public Enchantment getEnchantment(int id) {
         return getEnchantment((short) (id & 0xffff));
     }
@@ -1289,31 +1339,74 @@ public class Item implements Cloneable, BlockID, ItemID {
         } else {
             ench = tag.getList("ench", CompoundTag.class);
         }
+        ListTag<CompoundTag> custom_ench;
+        if (!tag.contains("custom_ench")) {
+            custom_ench = new ListTag<>("custom_ench");
+            tag.putList(custom_ench);
+        } else {
+            custom_ench = tag.getList("custom_ench", CompoundTag.class);
+        }
 
         for (Enchantment enchantment : enchantments) {
             boolean found = false;
-
-            for (int k = 0; k < ench.size(); k++) {
-                CompoundTag entry = ench.get(k);
-                if (entry.getShort("id") == enchantment.getId()) {
-                    ench.add(k, new CompoundTag()
+            if (enchantment.getIdentifier() == null) {
+                for (int k = 0; k < ench.size(); k++) {
+                    CompoundTag entry = ench.get(k);
+                    if (entry.getShort("id") == enchantment.getId()) {
+                        ench.add(k, new CompoundTag()
+                                .putShort("id", enchantment.getId())
+                                .putShort("lvl", enchantment.getLevel())
+                        );
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    ench.add(new CompoundTag()
                             .putShort("id", enchantment.getId())
                             .putShort("lvl", enchantment.getLevel())
                     );
-                    found = true;
-                    break;
+                }
+            } else {
+                for (int k = 0; k < custom_ench.size(); k++) {
+                    CompoundTag entry = custom_ench.get(k);
+                    if (entry.getString("id").equals(enchantment.getIdentifier().toString())) {
+                        custom_ench.add(k, new CompoundTag()
+                                .putString("id", enchantment.getIdentifier().toString())
+                                .putShort("lvl", enchantment.getLevel())
+                        );
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    custom_ench.add(new CompoundTag()
+                            .putString("id", enchantment.getIdentifier().toString())
+                            .putShort("lvl", enchantment.getLevel())
+                    );
                 }
             }
-
-            if (!found) {
-                ench.add(new CompoundTag()
-                        .putShort("id", enchantment.getId())
-                        .putShort("lvl", enchantment.getLevel())
+        }
+        if (custom_ench.size() != 0) {
+            var customName = setCustomEnchantDisplay(custom_ench);
+            if (tag.contains("display") && tag.get("display") instanceof CompoundTag) {
+                tag.getCompound("display").putString("Name", customName);
+            } else {
+                tag.putCompound("display", new CompoundTag("display")
+                        .putString("Name", customName)
                 );
             }
         }
-
         this.setNamedTag(tag);
+    }
+
+    private String setCustomEnchantDisplay(ListTag<CompoundTag> custom_ench) {
+        StringJoiner joiner = new StringJoiner("\n", "" + TextFormat.RESET + TextFormat.AQUA + this.name + "\n", "");
+        for (var ench : custom_ench.getAll()) {
+            var enchantment = Enchantment.getEnchantment(ench.getString("id"));
+            joiner.add(TextFormat.GRAY + enchantment.getName() + " " + Enchantment.getLevelString(enchantment.getLevel()));
+        }
+        return joiner.toString();
     }
 
     /**
@@ -1323,12 +1416,10 @@ public class Item implements Cloneable, BlockID, ItemID {
      *
      * @return 如果没有附魔效果返回Enchantment.EMPTY_ARRAY<br>If there is no enchanting effect return Enchantment.EMPTY_ARRAY
      */
-
     public Enchantment[] getEnchantments() {
         if (!this.hasEnchantments()) {
             return Enchantment.EMPTY_ARRAY;
         }
-
         List<Enchantment> enchantments = new ArrayList<>();
 
         ListTag<CompoundTag> ench = this.getNamedTag().getList("ench", CompoundTag.class);
@@ -1339,7 +1430,15 @@ public class Item implements Cloneable, BlockID, ItemID {
                 enchantments.add(e);
             }
         }
-
+        //custom ench
+        ListTag<CompoundTag> custom_ench = this.getNamedTag().getList("custom_ench", CompoundTag.class);
+        for (CompoundTag entry : custom_ench.getAll()) {
+            Enchantment e = Enchantment.getEnchantment(entry.getString("id"));
+            if (e != null) {
+                e.setLevel(entry.getShort("lvl"), false);
+                enchantments.add(e);
+            }
+        }
         return enchantments.toArray(Enchantment.EMPTY_ARRAY);
     }
 
@@ -1353,17 +1452,6 @@ public class Item implements Cloneable, BlockID, ItemID {
     @Since("1.4.0.0-PN")
     public boolean hasEnchantment(int id) {
         return this.getEnchantmentLevel(id) > 0;
-    }
-
-    @PowerNukkitOnly
-    @Since("1.5.1.0-PN")
-    @Nonnull
-    public SideEffect[] getAttackSideEffects(@Nonnull Entity attacker, @Nonnull Entity entity) {
-        return Arrays.stream(getEnchantments())
-                .flatMap(enchantment -> Arrays.stream(enchantment.getAttackSideEffects(attacker, entity)))
-                .filter(Objects::nonNull)
-                .toArray(SideEffect[]::new)
-                ;
     }
 
     @Since("1.4.0.0-PN")
@@ -1658,9 +1746,7 @@ public class Item implements Cloneable, BlockID, ItemID {
     @Since("1.4.0.0-PN")
     public String getNamespaceId() {
         RuntimeItemMapping runtimeMapping = RuntimeItems.getRuntimeMapping();
-        return runtimeMapping.getNamespacedIdByNetworkId(
-                RuntimeItems.getNetworkId(runtimeMapping.getNetworkFullId(this))
-        );
+        return runtimeMapping.getNamespacedIdByNetworkId(RuntimeItems.getNetworkId(runtimeMapping.getNetworkFullId(this)));
     }
 
     @PowerNukkitOnly
@@ -2012,7 +2098,7 @@ public class Item implements Cloneable, BlockID, ItemID {
                 " (" + (this instanceof StringItem ? this.getNamespaceId() : this.id)
                 + ":" + (!this.hasMeta ? "?" : this.meta)
                 + ")x" + this.count
-                + (this.hasCustomCompoundTag() ? " tags:0x" + Binary.bytesToHexString(this.getCustomCompoundTag()) : "");
+                + (this.hasCompoundTag() ? " tags:0x" + Binary.bytesToHexString(this.getCompoundTag()) : "");
     }
 
     public int getDestroySpeed(Block block, Player player) {
@@ -2093,8 +2179,19 @@ public class Item implements Cloneable, BlockID, ItemID {
         return equals(item, checkDamage, true);
     }
 
+    /**
+     * 判断两个物品是否相等
+     *
+     * @param item          要比较的物品
+     * @param checkDamage   是否检查数据值
+     * @param checkCompound 是否检查NBT
+     * @return the boolean
+     */
     public final boolean equals(Item item, boolean checkDamage, boolean checkCompound) {
-        if (this.getId() == item.getId() && (!checkDamage || this.getDamage() == item.getDamage())) {
+        if (this.getId() == 255 && item.getId() == 255) {
+            if (!this.getNamespaceId().equals(item.getNamespaceId())) return false;
+        } else if (this.getId() != item.getId()) return false;
+        if (!checkDamage || this.getDamage() == item.getDamage()) {
             if (checkCompound) {
                 if (Arrays.equals(this.getCompoundTag(), item.getCompoundTag())) {
                     return true;
@@ -2105,7 +2202,6 @@ public class Item implements Cloneable, BlockID, ItemID {
                 return true;
             }
         }
-
         return false;
     }
 

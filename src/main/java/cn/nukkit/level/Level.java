@@ -69,7 +69,6 @@ import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.lang.ref.SoftReference;
@@ -113,7 +112,7 @@ public class Level implements ChunkManager, Metadatable {
     // Lower values use less memory
     public static final int MAX_BLOCK_CACHE = 512;
     // The blocks that can randomly tick
-    private static final boolean[] randomTickBlocks = new boolean[Block.MAX_BLOCK_ID];
+    private static final IntOpenHashSet randomTickBlocks = new IntOpenHashSet(64);
     private static final int LCG_CONSTANT = 1013904223;
     @PowerNukkitXOnly
     @Since("1.19.21-r1")
@@ -129,66 +128,67 @@ public class Level implements ChunkManager, Metadatable {
     }
 
     static {
-        randomTickBlocks[BlockID.GRASS] = true;
-        randomTickBlocks[BlockID.FARMLAND] = true;
-        randomTickBlocks[BlockID.MYCELIUM] = true;
-        randomTickBlocks[BlockID.SAPLING] = true;
-        randomTickBlocks[BlockID.LEAVES] = true;
-        randomTickBlocks[BlockID.LEAVES2] = true;
-        randomTickBlocks[BlockID.SNOW_LAYER] = true;
-        randomTickBlocks[BlockID.ICE] = true;
-        randomTickBlocks[BlockID.FLOWING_LAVA] = true;
-        randomTickBlocks[BlockID.STILL_LAVA] = true;
-        randomTickBlocks[BlockID.CACTUS] = true;
-        randomTickBlocks[BlockID.BEETROOT_BLOCK] = true;
-        randomTickBlocks[BlockID.CARROT_BLOCK] = true;
-        randomTickBlocks[BlockID.POTATO_BLOCK] = true;
-        randomTickBlocks[BlockID.MELON_STEM] = true;
-        randomTickBlocks[BlockID.PUMPKIN_STEM] = true;
-        randomTickBlocks[BlockID.WHEAT_BLOCK] = true;
-        randomTickBlocks[BlockID.REEDS] = true;
-        randomTickBlocks[BlockID.RED_MUSHROOM] = true;
-        randomTickBlocks[BlockID.BROWN_MUSHROOM] = true;
-        randomTickBlocks[BlockID.NETHER_WART_BLOCK] = true;
-        randomTickBlocks[BlockID.FIRE] = true;
-        randomTickBlocks[BlockID.LIT_REDSTONE_ORE] = true;
-        randomTickBlocks[BlockID.COCOA] = true;
-        randomTickBlocks[BlockID.VINE] = true;
-        randomTickBlocks[BlockID.CORAL_FAN] = true;
-        randomTickBlocks[BlockID.CORAL_FAN_DEAD] = true;
-        randomTickBlocks[BlockID.BLOCK_KELP] = true;
-        randomTickBlocks[BlockID.SWEET_BERRY_BUSH] = true;
-        randomTickBlocks[BlockID.TURTLE_EGG] = true;
-        randomTickBlocks[BlockID.BAMBOO] = true;
-        randomTickBlocks[BlockID.BAMBOO_SAPLING] = true;
-        randomTickBlocks[BlockID.CRIMSON_NYLIUM] = true;
-        randomTickBlocks[BlockID.WARPED_NYLIUM] = true;
-        randomTickBlocks[BlockID.TWISTING_VINES] = true;
-        randomTickBlocks[BlockID.CHORUS_FLOWER] = true;
-        randomTickBlocks[BlockID.COPPER_BLOCK] = true;
-        randomTickBlocks[BlockID.EXPOSED_COPPER] = true;
-        randomTickBlocks[BlockID.WEATHERED_COPPER] = true;
-        randomTickBlocks[BlockID.WAXED_COPPER] = true;
-        randomTickBlocks[BlockID.CUT_COPPER] = true;
-        randomTickBlocks[BlockID.EXPOSED_CUT_COPPER] = true;
-        randomTickBlocks[BlockID.WEATHERED_CUT_COPPER] = true;
-        randomTickBlocks[BlockID.CUT_COPPER_STAIRS] = true;
-        randomTickBlocks[BlockID.EXPOSED_CUT_COPPER_STAIRS] = true;
-        randomTickBlocks[BlockID.WEATHERED_CUT_COPPER_STAIRS] = true;
-        randomTickBlocks[BlockID.CUT_COPPER_SLAB] = true;
-        randomTickBlocks[BlockID.EXPOSED_CUT_COPPER_SLAB] = true;
-        randomTickBlocks[BlockID.WEATHERED_CUT_COPPER_SLAB] = true;
-        randomTickBlocks[BlockID.DOUBLE_CUT_COPPER_SLAB] = true;
-        randomTickBlocks[BlockID.EXPOSED_DOUBLE_CUT_COPPER_SLAB] = true;
-        randomTickBlocks[BlockID.WEATHERED_DOUBLE_CUT_COPPER_SLAB] = true;
-        randomTickBlocks[BlockID.BUDDING_AMETHYST] = true;
-        randomTickBlocks[BlockID.POINTED_DRIPSTONE] = true;
-        randomTickBlocks[BlockID.CAVE_VINES] = true;
-        randomTickBlocks[BlockID.CAVE_VINES_BODY_WITH_BERRIES] = true;
-        randomTickBlocks[BlockID.CAVE_VINES_HEAD_WITH_BERRIES] = true;
-        randomTickBlocks[BlockID.AZALEA_LEAVES] = true;
-        randomTickBlocks[BlockID.AZALEA_LEAVES_FLOWERED] = true;
-        randomTickBlocks[BlockID.MANGROVE_LEAVES] = true;
+        randomTickBlocks.add(BlockID.GRASS);
+        randomTickBlocks.add(BlockID.FARMLAND);
+        randomTickBlocks.add(BlockID.MYCELIUM);
+        randomTickBlocks.add(BlockID.SAPLING);
+        randomTickBlocks.add(BlockID.LEAVES);
+        randomTickBlocks.add(BlockID.LEAVES2);
+        randomTickBlocks.add(BlockID.SNOW_LAYER);
+        randomTickBlocks.add(BlockID.ICE);
+        randomTickBlocks.add(BlockID.FLOWING_LAVA);
+        randomTickBlocks.add(BlockID.STILL_LAVA);
+        randomTickBlocks.add(BlockID.CACTUS);
+        randomTickBlocks.add(BlockID.BEETROOT_BLOCK);
+        randomTickBlocks.add(BlockID.CARROT_BLOCK);
+        randomTickBlocks.add(BlockID.POTATO_BLOCK);
+        randomTickBlocks.add(BlockID.MELON_STEM);
+        randomTickBlocks.add(BlockID.PUMPKIN_STEM);
+        randomTickBlocks.add(BlockID.WHEAT_BLOCK);
+        randomTickBlocks.add(BlockID.REEDS);
+        randomTickBlocks.add(BlockID.RED_MUSHROOM);
+        randomTickBlocks.add(BlockID.BROWN_MUSHROOM);
+        randomTickBlocks.add(BlockID.NETHER_WART_BLOCK);
+        randomTickBlocks.add(BlockID.FIRE);
+        randomTickBlocks.add(BlockID.LIT_REDSTONE_ORE);
+        randomTickBlocks.add(BlockID.COCOA);
+        randomTickBlocks.add(BlockID.VINE);
+        randomTickBlocks.add(BlockID.CORAL_FAN);
+        randomTickBlocks.add(BlockID.CORAL_FAN_DEAD);
+        randomTickBlocks.add(BlockID.BLOCK_KELP);
+        randomTickBlocks.add(BlockID.SWEET_BERRY_BUSH);
+        randomTickBlocks.add(BlockID.TURTLE_EGG);
+        randomTickBlocks.add(BlockID.BAMBOO);
+        randomTickBlocks.add(BlockID.BAMBOO_SAPLING);
+        randomTickBlocks.add(BlockID.CRIMSON_NYLIUM);
+        randomTickBlocks.add(BlockID.WARPED_NYLIUM);
+        randomTickBlocks.add(BlockID.TWISTING_VINES);
+        randomTickBlocks.add(BlockID.CHORUS_FLOWER);
+        randomTickBlocks.add(BlockID.COPPER_BLOCK);
+        randomTickBlocks.add(BlockID.EXPOSED_COPPER);
+        randomTickBlocks.add(BlockID.WEATHERED_COPPER);
+        randomTickBlocks.add(BlockID.WAXED_COPPER);
+        randomTickBlocks.add(BlockID.CUT_COPPER);
+        randomTickBlocks.add(BlockID.EXPOSED_CUT_COPPER);
+        randomTickBlocks.add(BlockID.WEATHERED_CUT_COPPER);
+        randomTickBlocks.add(BlockID.CUT_COPPER_STAIRS);
+        randomTickBlocks.add(BlockID.EXPOSED_CUT_COPPER_STAIRS);
+        randomTickBlocks.add(BlockID.WEATHERED_CUT_COPPER_STAIRS);
+        randomTickBlocks.add(BlockID.CUT_COPPER_SLAB);
+        randomTickBlocks.add(BlockID.EXPOSED_CUT_COPPER_SLAB);
+        randomTickBlocks.add(BlockID.WEATHERED_CUT_COPPER_SLAB);
+        randomTickBlocks.add(BlockID.DOUBLE_CUT_COPPER_SLAB);
+        randomTickBlocks.add(BlockID.EXPOSED_DOUBLE_CUT_COPPER_SLAB);
+        randomTickBlocks.add(BlockID.WEATHERED_DOUBLE_CUT_COPPER_SLAB);
+        randomTickBlocks.add(BlockID.BUDDING_AMETHYST);
+        randomTickBlocks.add(BlockID.POINTED_DRIPSTONE);
+        randomTickBlocks.add(BlockID.CAVE_VINES);
+        randomTickBlocks.add(BlockID.CAVE_VINES_BODY_WITH_BERRIES);
+        randomTickBlocks.add(BlockID.CAVE_VINES_HEAD_WITH_BERRIES);
+        randomTickBlocks.add(BlockID.AZALEA_LEAVES);
+        randomTickBlocks.add(BlockID.AZALEA_LEAVES_FLOWERED);
+        randomTickBlocks.add(BlockID.MANGROVE_LEAVES);
+        randomTickBlocks.trim();
     }
 
     public final Long2ObjectOpenHashMap<Entity> updateEntities = new Long2ObjectOpenHashMap<>();
@@ -410,13 +410,17 @@ public class Level implements ChunkManager, Metadatable {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public static boolean canRandomTick(int blockId) {
-        return blockId < randomTickBlocks.length && randomTickBlocks[blockId];
+        return blockId < randomTickBlocks.size() && randomTickBlocks.contains(blockId);
     }
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public static void setCanRandomTick(int blockId, boolean newValue) {
-        randomTickBlocks[blockId] = newValue;
+        if (newValue) {
+            randomTickBlocks.add(blockId);
+        } else {
+            randomTickBlocks.remove(blockId);
+        }
     }
 
     public static long chunkHash(int x, int z) {
@@ -717,7 +721,7 @@ public class Level implements ChunkManager, Metadatable {
      */
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    @Nonnull
+    @NotNull
     public final LevelProvider requireProvider() {
         LevelProvider levelProvider = getProvider();
         if (levelProvider == null) {
@@ -823,6 +827,16 @@ public class Level implements ChunkManager, Metadatable {
         pk.data = data;
 
         addChunkPacket(pos.getFloorX() >> 4, pos.getFloorZ() >> 4, pk);
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public void addLevelEvent(Vector3 pos, int event, CompoundTag data) {
+        LevelEventGenericPacket pk = new LevelEventGenericPacket();
+        pk.eventId = event;
+        pk.tag = data;
+
+        this.addChunkPacket(pos.getChunkX(), pos.getChunkZ(), pk);
     }
 
     @PowerNukkitDifference(info = "Default sound method changed to addSound", since = "1.4.0.0-PN")
@@ -1649,9 +1663,7 @@ public class Level implements ChunkManager, Metadatable {
                                     int z = lcg >>> 16 & 0x0f;
 
                                     BlockState state = section.getBlockState(x, y, z);
-                                    //todo 2022/7/17 实现自定义方块随机刻
-                                    if (state.getBlockId() >= Block.MAX_BLOCK_ID) continue;
-                                    if (randomTickBlocks[state.getBlockId()]) {
+                                    if (randomTickBlocks.contains(state.getBlockId())) {
                                         Block block = state.getBlockRepairing(this, chunkX * 16 + x, ((Y - (isOverWorld() ? 4 : 0))
                                                 << 4) + y, chunkZ * 16 + z);
                                         block.onUpdate(BLOCK_UPDATE_RANDOM);
@@ -1670,7 +1682,7 @@ public class Level implements ChunkManager, Metadatable {
 
                                 BlockState state = chunk.getBlockState(x, y + (Y << 4), z);
                                 blockTest = blockTest || !state.equals(BlockState.AIR);
-                                if (Level.randomTickBlocks[state.getBlockId()]) {
+                                if (Level.randomTickBlocks.contains(state.getBlockId())) {
                                     Block block = state.getBlockRepairing(this, x, y + ((Y - (isOverWorld() ? 4 : 0))
                                             << 4), z);
                                     block.onUpdate(BLOCK_UPDATE_RANDOM);
@@ -1777,6 +1789,36 @@ public class Level implements ChunkManager, Metadatable {
         }
     }
 
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public void neighborChangeAroundImmediately(int x, int y, int z) {
+        neighborChangeAroundImmediately(new Vector3(x, y, z));
+    }
+
+    /**
+     * 立即对围绕指定位置的方块发送neighborChange更新
+     *
+     * @param pos 指定位置
+     */
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public void neighborChangeAroundImmediately(Vector3 pos) {
+        for (var face : BlockFace.values()) {
+            var neighborBlock = getBlock(pos.getSide(face));
+            neighborBlock.onNeighborChange(face.getOpposite());
+        }
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public void updateAroundObserver(Vector3 pos) {
+        for (var face : BlockFace.values()) {
+            var neighborBlock = getBlock(pos.getSide(face));
+            if (neighborBlock.getId() == BlockID.OBSERVER)
+                neighborBlock.onNeighborChange(face.getOpposite());
+        }
+    }
+
     public void updateAround(int x, int y, int z) {
         updateAround(new Vector3(x, y, z));
     }
@@ -1844,7 +1886,7 @@ public class Level implements ChunkManager, Metadatable {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    public List<Block> scanBlocks(@Nonnull AxisAlignedBB bb, @Nonnull BiPredicate<BlockVector3, BlockState> condition) {
+    public List<Block> scanBlocks(@NotNull AxisAlignedBB bb, @NotNull BiPredicate<BlockVector3, BlockState> condition) {
         BlockVector3 min = new BlockVector3(NukkitMath.floorDouble(bb.getMinX()), NukkitMath.floorDouble(bb.getMinY()), NukkitMath.floorDouble(bb.getMinZ()));
         BlockVector3 max = new BlockVector3(NukkitMath.floorDouble(bb.getMaxX()), NukkitMath.floorDouble(bb.getMaxY()), NukkitMath.floorDouble(bb.getMaxZ()));
         ChunkVector2 minChunk = min.getChunkVector();
@@ -2328,7 +2370,7 @@ public class Level implements ChunkManager, Metadatable {
             newHeightMap = chunk.recalculateHeightMapColumn(x & 0x0f, z & 0x0f);
         } else if (yPlusOne > oldHeightMap) { // Block changed above the heightmap
             if (Block.getLightFilter(sourceId) > 1 || Block.diffusesSkyLight(sourceId)) {
-                chunk.setHeightMap(x & 0xf, y & 0xf, yPlusOne);
+                chunk.setHeightMap(x & 0xf, z & 0xf, yPlusOne);
                 newHeightMap = yPlusOne;
             } else { // Block changed which has no effect on direct sky light, for example placing or removing glass.
                 return;
@@ -2557,6 +2599,18 @@ public class Level implements ChunkManager, Metadatable {
         return setBlock(x, y, z, 0, block, direct, update);
     }
 
+    /**
+     * 设置一个方块
+     *
+     * @param x      方块的x坐标
+     * @param y      方块的y坐标
+     * @param z      方块的z坐标
+     * @param layer  设置的方块层级。例如含水方块位置上的layer1对应的方块为水
+     * @param block  方块
+     * @param direct 是否立即同步方块变更到客户端。
+     * @param update 是否进行方块更新
+     * @return 是否设置成功
+     */
     @PowerNukkitOnly
     public boolean setBlock(int x, int y, int z, int layer, Block block, boolean direct, boolean update) {
         if (!isYInRange(y) || layer < 0 || layer > this.requireProvider().getMaximumLayer()) {
@@ -2590,7 +2644,6 @@ public class Level implements ChunkManager, Metadatable {
         } else {
             addBlockChange(index, x, y, z);
         }
-
         for (ChunkLoader loader : this.getChunkLoaders(cx, cz)) {
             loader.onBlockChanged(block);
         }
@@ -2680,25 +2733,25 @@ public class Level implements ChunkManager, Metadatable {
 
     @Since("1.4.0.0-PN")
     @Nullable
-    public EntityItem dropAndGetItem(@Nonnull Vector3 source, @Nonnull Item item) {
+    public EntityItem dropAndGetItem(@NotNull Vector3 source, @NotNull Item item) {
         return this.dropAndGetItem(source, item, null);
     }
 
     @Since("1.4.0.0-PN")
     @Nullable
-    public EntityItem dropAndGetItem(@Nonnull Vector3 source, @Nonnull Item item, @Nullable Vector3 motion) {
+    public EntityItem dropAndGetItem(@NotNull Vector3 source, @NotNull Item item, @Nullable Vector3 motion) {
         return this.dropAndGetItem(source, item, motion, 10);
     }
 
     @Since("1.4.0.0-PN")
     @Nullable
-    public EntityItem dropAndGetItem(@Nonnull Vector3 source, @Nonnull Item item, @Nullable Vector3 motion, int delay) {
+    public EntityItem dropAndGetItem(@NotNull Vector3 source, @NotNull Item item, @Nullable Vector3 motion, int delay) {
         return this.dropAndGetItem(source, item, motion, false, delay);
     }
 
     @Since("1.4.0.0-PN")
     @Nullable
-    public EntityItem dropAndGetItem(@Nonnull Vector3 source, @Nonnull Item item, @Nullable Vector3 motion, boolean dropAround, int delay) {
+    public EntityItem dropAndGetItem(@NotNull Vector3 source, @NotNull Item item, @Nullable Vector3 motion, boolean dropAround, int delay) {
         EntityItem itemEntity = null;
 
         if (motion == null) {
@@ -5086,7 +5139,7 @@ public class Level implements ChunkManager, Metadatable {
     @AllArgsConstructor
     @Data
     private static class QueuedUpdate {
-        @Nonnull
+        @NotNull
         private Block block;
         private BlockFace neighbor;
     }
