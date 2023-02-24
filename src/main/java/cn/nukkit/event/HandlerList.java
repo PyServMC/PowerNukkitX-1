@@ -6,6 +6,7 @@ import cn.nukkit.plugin.Plugin;
 import cn.nukkit.plugin.RegisteredListener;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Nukkit Team.
@@ -112,10 +113,9 @@ public class HandlerList {
 
     public synchronized void bake() {
         if (handlers != null) return; // don't re-bake when still valid
-        List<RegisteredListener> entries = new ArrayList<>();
-        for (EventPriority priority : handlerslots.keySet().stream().sorted(Comparator.comparing(EventPriority::getSlot)).toList()) {
-            entries.addAll(handlerslots.get(priority));
-        }
+        List<RegisteredListener> entries = handlerslots.keySet().stream()
+                .sorted(Comparator.comparing(EventPriority::getSlot))
+                .flatMap(priority -> handlerslots.get(priority).stream()).toList();
         handlers = entries.toArray(RegisteredListener.EMPTY_ARRAY);
     }
 
