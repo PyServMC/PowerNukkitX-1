@@ -102,7 +102,7 @@ https://hub.docker.com/r/coolloong/powernukkitx
 <!-- Just Do it :-D -->
 <!--使用DeepL暴力翻译-->
 **PowerNukkitX** is a modified and optimized version based on PowerNukkit and Nukkit, fixing its bugs, adding more
-feature support,such as [LiteLoader](https://github.com/PowerNukkitX/LiteLoader-Libs) (WIP) plugin
+feature support, such as [LiteLoader](https://github.com/PowerNukkitX/LiteLoader-Libs) (WIP) plugin
 compatibility.
 
 * Please note that **PowerNukkitX** is not maintained by Cloudburst developers, it relies on the open source community
@@ -146,7 +146,7 @@ repositories {
 }
 
 dependencies {
-    compile group: 'cn.powernukkitx', name: 'powernukkitx', version: '1.19.60-r1'
+    compile group: 'cn.powernukkitx', name: 'powernukkitx', version: '1.19.62-r1'
 }
 ```
 
@@ -156,7 +156,7 @@ dependencies {
     <dependency>
         <groupId>cn.powernukkitx</groupId>
         <artifactId>powernukkitx</artifactId>
-        <version>1.19.60-r1</version>
+        <version>1.19.62-r1</version>
     </dependency>
 </dependencies>
 ```
