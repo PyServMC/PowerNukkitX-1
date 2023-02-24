@@ -22,7 +22,7 @@ public abstract class DefaultPermissions {
     }
 
     public static void registerCorePermissions() {
-        Permission parent = registerPermission(new Permission(ROOT, "Allows using all Nukkit commands and utilities"));
+        /*Permission parent = registerPermission(new Permission(ROOT, "Allows using all Nukkit commands and utilities"));
 
         Permission broadcasts = registerPermission(new Permission(ROOT + ".broadcast", "Allows the user to receive all broadcast messages"), parent);
 
@@ -119,7 +119,7 @@ public abstract class DefaultPermissions {
 
         commands.recalculatePermissibles();
 
-        parent.recalculatePermissibles();
+        parent.recalculatePermissibles();*/
     }
 
 }
