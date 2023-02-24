@@ -112,9 +112,10 @@ public class HandlerList {
 
     public synchronized void bake() {
         if (handlers != null) return; // don't re-bake when still valid
-        List<RegisteredListener> entries = handlerslots.keySet().stream()
-                .sorted(Comparator.comparing(EventPriority::getSlot))
-                .flatMap(priority -> handlerslots.get(priority).stream()).toList();
+        List<RegisteredListener> entries = new ArrayList<>();
+        for (Map.Entry<EventPriority, ArrayList<RegisteredListener>> entry : handlerslots.entrySet()) {
+            entries.addAll(entry.getValue());
+        }
         handlers = entries.toArray(RegisteredListener.EMPTY_ARRAY);
     }
 
