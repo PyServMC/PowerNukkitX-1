@@ -6,7 +6,6 @@ import cn.nukkit.plugin.Plugin;
 import cn.nukkit.plugin.RegisteredListener;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Nukkit Team.
