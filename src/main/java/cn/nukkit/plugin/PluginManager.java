@@ -323,7 +323,7 @@ public class PluginManager {
 
                     if (missingDependency) {
                         for (String name : plugins.keySet()) {
-                            log.fatal(this.server.getLanguage().tr("nukkit.plugin.loadError", new String[]{name, "%nukkit.plugin.circularDependency"}));
+                            log.fatal(this.server.getLanguage().tr("nukkit.plugin.loadError", name, "%nukkit.plugin.circularDependency"));
                         }
                         plugins.clear();
                     }
@@ -344,14 +344,15 @@ public class PluginManager {
     }
 
     public boolean addPermission(Permission permission) {
-        if (!this.permissions.containsKey(permission.getName())) {
+        /*if (!this.permissions.containsKey(permission.getName())) {
             this.permissions.put(permission.getName(), permission);
             this.calculatePermissionDefault(permission);
 
             return true;
         }
 
-        return false;
+        return false;*/
+        return true;
     }
 
     public void removePermission(String name) {
