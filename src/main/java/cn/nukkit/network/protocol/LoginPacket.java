@@ -31,6 +31,7 @@ public class LoginPacket extends DataPacket {
     public long clientId;
     public Skin skin;
     public long issueUnixTime = -1;
+    public boolean incompatibleVersion;//TODO: Remove in next update
 
     @Override
     public byte pid() {
@@ -86,6 +87,15 @@ public class LoginPacket extends DataPacket {
     private void decodeSkinData() {
         JsonObject skinToken = decodeToken(new String(this.get(this.getLInt())));
         if (skinToken.has("ClientRandomId")) this.clientId = skinToken.get("ClientRandomId").getAsLong();
+        // Hack: 1.19.62 hotfix includes protocol changes but doesn't bump the protocol
+        // TODO: Remove in next update
+        if (skinToken.has("GameVersion") && skinToken.get("GameVersion").getAsString().startsWith("1.19.60")) {
+            // Hack: Allow plugins to ignore this patch if they really want to
+            if (!ProtocolInfo.SUPPORTED_PROTOCOLS.contains(ProtocolInfo.CURRENT_PROTOCOL + 1)) {
+                this.incompatibleVersion = true;
+                return;
+            }
+        }
         skin = new Skin();
 
         if (skinToken.has("PlayFabId")) {
@@ -100,11 +110,12 @@ public class LoginPacket extends DataPacket {
             //这边获取到的"SkinId"是FullId
             //FullId = SkinId + CapeId
             //而Skin对象中的skinId不是FullId,我们需要减掉CapeId
-            var FullSkinId = skinToken.get("SkinId").getAsString();
+            var fullSkinId = skinToken.get("SkinId").getAsString();
+            skin.setFullSkinId(fullSkinId);
             if (skin.getCapeId() != null)
-                skin.setSkinId(FullSkinId.substring(0, FullSkinId.length() - skin.getCapeId().length()));
+                skin.setSkinId(fullSkinId.substring(0, fullSkinId.length() - skin.getCapeId().length()));
             else
-                skin.setSkinId(FullSkinId);
+                skin.setSkinId(fullSkinId);
         }
 
         skin.setSkinData(getImage(skinToken, "Skin"));
