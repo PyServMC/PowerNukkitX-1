@@ -8330,14 +8330,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         this.isIgnoringMobEquipmentPacket = isIgnoringMobEquipmentPacket;
     }
 
-    @PowerNukkitXOnly
-    @Since("1.19.21-r4")
-    public void setItemCoolDown(int coolDown, String itemCategory) {
-        var pk = new PlayerStartItemCoolDownPacket();
-        pk.setCoolDownDuration(coolDown);
-        pk.setItemCategory(itemCategory);
-    }
-
     @Override
     public void removeScoreboard(IScoreboard scoreboard) {
         RemoveObjectivePacket pk = new RemoveObjectivePacket();
