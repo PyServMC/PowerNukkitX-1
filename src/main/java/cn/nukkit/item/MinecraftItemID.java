@@ -1115,7 +1115,6 @@ public enum MinecraftItemID {
     @PowerNukkitXOnly @Since("1.6.0.0-PNX") DARK_OAK_CHEST_BOAT,
     @PowerNukkitXOnly @Since("1.6.0.0-PNX") MANGROVE_CHEST_BOAT,
     @PowerNukkitXOnly @Since("1.6.0.0-PNX") CHEST_BOAT,
-    GLOBE_BANNER_PATTERN,
     @PowerNukkitXOnly @Since("1.19.50-r1") DISC_FRAGMENT_5,
     @PowerNukkitXOnly @Since("1.19.50-r1") ECHO_SHARD,
     @PowerNukkitXOnly @Since("1.19.60-r1") SCULK,
