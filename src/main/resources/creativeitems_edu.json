@@ -1,6 +1,6 @@
 [
     {
-    "blockState": "minecraft:chemistry_table;chemistry_table_type=compound_creator"
+        "blockState": "minecraft:chemistry_table;chemistry_table_type=compound_creator"
     },
     {
         "blockState": "minecraft:chemistry_table;chemistry_table_type=element_constructor"
