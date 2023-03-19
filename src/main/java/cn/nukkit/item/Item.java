@@ -26,14 +26,18 @@ import cn.nukkit.nbt.NBTIO;
 import cn.nukkit.nbt.tag.*;
 import cn.nukkit.utils.*;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.SerializedName;
 import io.netty.util.internal.EmptyArrays;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -532,23 +536,22 @@ public class Item implements Cloneable, BlockID, ItemID {
 
     private static final ArrayList<Item> creative = new ArrayList<>();
 
+    @SneakyThrows(IOException.class)
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void initCreativeItems() {
         clearCreativeItems();
 
-        Config config = new Config(Config.JSON);
-      
-        config.load(Server.class.getClassLoader().getResourceAsStream("creativeitems.json"));
+        Gson gson = new GsonBuilder().create();
+        List<Map<String, Object>> list;
+        try (InputStream resourceAsStream = Server.class.getModule().getResourceAsStream("creativeitems.json")) {
+            list = gson.fromJson(new InputStreamReader(resourceAsStream), List.class);
+        }
 
         if (Server.getInstance().isEducationEditionEnabled()) {
-            Config edu = new Config(Config.JSON);
-            edu.load(Server.class.getClassLoader().getResourceAsStream("creativeitems_edu.json"));
-            List<Map> items = config.getMapList("items");
-            items.addAll(edu.getMapList("items"));
-            config.set("items", items);
+            try (InputStream resourceAsStream = Server.class.getModule().getResourceAsStream("creativeitems_edu.json")) {
+                list.addAll(gson.fromJson(new InputStreamReader(resourceAsStream), List.class));
+            }
         }
-      
-        List<Map> list = config.getMapList("items");
 
         for (Map<String, Object> map : list) {
             try {
