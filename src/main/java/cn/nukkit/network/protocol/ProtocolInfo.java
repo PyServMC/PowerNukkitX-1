@@ -22,6 +22,7 @@ public interface ProtocolInfo {
 
     List<Integer> SUPPORTED_PROTOCOLS = Ints.asList(CURRENT_PROTOCOL);
 
+    String MINECRAFT_VERSION = dynamic("v1.19.70");
     String MINECRAFT_VERSION_NETWORK = dynamic("1.19.70");
 
     byte LOGIN_PACKET = 0x01;
