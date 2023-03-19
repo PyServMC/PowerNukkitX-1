@@ -4,6 +4,7 @@ import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.api.*;
 import cn.nukkit.block.*;
+import cn.nukkit.block.customblock.CustomBlock;
 import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.blockstate.BlockStateRegistry;
@@ -2870,17 +2871,6 @@ public class Level implements ChunkManager, Metadatable {
                 }
             }
 
-            double breakTime = target.calculateBreakTime(item, player);
-            // this in
-            // block
-            // class
-
-            if ((setBlockDestroy || player.isCreative()) && breakTime > 0.15) {
-                breakTime = 0.15;
-            }
-
-            breakTime -= 0.15;
-
             Item[] eventDrops;
             if (!mustDrop && !setBlockDestroy && !player.isSurvival() && !player.isAdventure()) {
                 eventDrops = Item.EMPTY_ARRAY;
@@ -2893,10 +2883,24 @@ public class Level implements ChunkManager, Metadatable {
             if (!setBlockDestroy) {
                 if (!player.getAdventureSettings().get(PlayerAbility.MINE))
                     return null;
-                boolean fastBreak = Long.sum(player.lastBreak, (long) breakTime * 1000) > Long.sum(System.currentTimeMillis(), 1000);
-                BlockBreakEvent ev = new BlockBreakEvent(player, target, face, item, eventDrops, player.isCreative(),
-                        fastBreak);
 
+                //使用calculateBreakTimeNotInAir目的是获取玩家在陆地上的挖掘时间，如果挖掘时间小于这个时间才认为玩家作弊。
+                double breakTime = target.calculateBreakTimeNotInAir(item, player);
+                //对于自定义方块，由于用户可以自由设置客户端侧的挖掘时间，拿服务端硬度计算出来的挖掘时间来判断是否为fastBreak是不准确的。
+                if (target instanceof CustomBlock customBlock) {
+                    var comp = customBlock.getDefinition().nbt().getCompound("components");
+                    if (comp.containsCompound("minecraft:destructible_by_mining")) {
+                        var clientBreakTime = comp.getCompound("minecraft:destructible_by_mining").getFloat("value");
+                        breakTime = Math.min(breakTime, clientBreakTime);
+                    }
+                }
+                if (player.isCreative() && breakTime > 0.15) {
+                    breakTime = 0.15;
+                }
+                breakTime -= 0.15;
+                //thisBreak-lastBreak < breakTime-1000ms = the player is hacker (fastBreak)
+                boolean fastBreak = Long.sum(player.lastBreak, (long) breakTime * 1000) > Long.sum(System.currentTimeMillis(), 1000);
+                BlockBreakEvent ev = new BlockBreakEvent(player, target, face, item, eventDrops, player.isCreative(), fastBreak);
                 if (player.isSurvival() && !target.isBreakable(item)) {
                     ev.setCancelled();
                 } else if (!player.isOp() && isInSpawnRadius(target)) {
@@ -3125,7 +3129,6 @@ public class Level implements ChunkManager, Metadatable {
         }
 
         //cause bug (eg: frog_spawn) (and I don't know what this is for)
-        //@todo 2022/6/11 daoge_cmd 特判处理青蛙卵
         if (!(hand instanceof BlockFrogSpawn) && target.canBeReplaced()) {
             block = target;
             hand.position(block);
@@ -3156,8 +3159,8 @@ public class Level implements ChunkManager, Metadatable {
                 //if (diff.lengthSquared() > 0.00001) {
                 AxisAlignedBB bb = player.getBoundingBox().getOffsetBoundingBox(diff.x, diff.y, diff.z);
 
-                //这是一个对于x z更宽松的碰撞检测,用于解决临界条件下方块无法放置的问题
-                if (bb.getMaxY() > hand.getMinY() && bb.getMinY() < hand.getMaxY()) {
+                //这是一个对于x y z更宽松的碰撞检测,用于解决临界条件下方块无法放置的问题
+                if (bb.getMaxY() - hand.getMinY() > 0.005 && bb.getMinY() - hand.getMaxY() < -0.005) {
                     if (bb.getMaxX() - hand.getMinX() > 0.005 && bb.getMinX() - hand.getMaxX() < -0.005) {
                         if (bb.getMaxZ() - hand.getMinZ() > 0.005 && bb.getMinZ() - hand.getMaxZ() < -0.005) {
                             ++realCount;
@@ -3182,7 +3185,7 @@ public class Level implements ChunkManager, Metadatable {
                 return null;
 
             BlockPlaceEvent event = new BlockPlaceEvent(player, hand, block, target, item);
-            if (player.getGamemode() == 2) {
+            if (player.getGamemode() == Player.ADVENTURE) {
                 Tag tag = item.getNamedTagEntry("CanPlaceOn");
                 boolean canPlace = false;
                 if (tag instanceof ListTag) {
