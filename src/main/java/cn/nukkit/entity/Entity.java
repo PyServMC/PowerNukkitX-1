@@ -7,21 +7,18 @@ import cn.nukkit.api.*;
 import cn.nukkit.block.*;
 import cn.nukkit.blockentity.BlockEntityPistonArm;
 import cn.nukkit.blockstate.BlockState;
-import cn.nukkit.entity.component.EntityComponent;
-import cn.nukkit.entity.component.EntityComponentGroup;
-import cn.nukkit.entity.component.EntityComponentRegistery;
-import cn.nukkit.entity.component.SimpleEntityComponentGroup;
 import cn.nukkit.entity.custom.CustomEntity;
 import cn.nukkit.entity.custom.CustomEntityDefinition;
 import cn.nukkit.entity.data.*;
-import cn.nukkit.entity.item.EntityArmorStand;
-import cn.nukkit.entity.item.EntityItem;
-import cn.nukkit.entity.mob.EntityEnderDragon;
-import cn.nukkit.entity.projectile.EntityProjectile;
+import cn.nukkit.entity.item.*;
+import cn.nukkit.entity.mob.*;
+import cn.nukkit.entity.passive.*;
+import cn.nukkit.entity.projectile.*;
 import cn.nukkit.entity.provider.ClassEntityProvider;
 import cn.nukkit.entity.provider.CustomEntityProvider;
 import cn.nukkit.entity.provider.EntityProvider;
 import cn.nukkit.entity.provider.EntityProviderWithClass;
+import cn.nukkit.entity.weather.EntityLightning;
 import cn.nukkit.event.Event;
 import cn.nukkit.event.block.FarmLandDecayEvent;
 import cn.nukkit.event.entity.*;
@@ -31,7 +28,7 @@ import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.event.player.PlayerInteractEvent.Action;
 import cn.nukkit.event.player.PlayerTeleportEvent;
 import cn.nukkit.item.Item;
-import cn.nukkit.item.ItemID;
+import cn.nukkit.item.ItemTotem;
 import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.level.*;
 import cn.nukkit.level.format.FullChunk;
@@ -54,12 +51,10 @@ import co.aikar.timings.TimingsHistory;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntCollection;
-import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -131,10 +126,15 @@ public abstract class Entity extends Location implements Metadatable {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public static final int DATA_USING_ITEM = dynamic(25); //byte
+
+    public static final int DATA_PLAYER_FLAG_SLEEP = 1;
+    public static final int DATA_PLAYER_FLAG_DEAD = 2;
     public static final int DATA_PLAYER_FLAGS = dynamic(26); //byte
     @Since("1.2.0.0-PN")
     public static final int DATA_PLAYER_INDEX = dynamic(27);
     public static final int DATA_PLAYER_BED_POSITION = dynamic(28); //block coords
+    public static final int DATA_PLAYER_BUTTON_TEXT = 40;
+
     public static final int DATA_FIREBALL_POWER_X = dynamic(29); //float
     public static final int DATA_FIREBALL_POWER_Y = dynamic(30); //float
     public static final int DATA_FIREBALL_POWER_Z = dynamic(31); //float
@@ -459,8 +459,15 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_FLAG_HAS_DASH_COOLDOWN = dynamic(108);
     @Since("1.19.50-r1")
     public static final int DATA_FLAG_PUSH_TOWARDS_CLOSEST_SPACE = dynamic(109);
-    @Since("1.19.60-r1")
-    public static final int DATA_FLAG_LARGE = dynamic(110);
+    @Since("1.19.70-r1")
+    public static final int DATA_FLAG_SCENTING = dynamic(110);
+    @Since("1.19.70-r1")
+    public static final int DATA_FLAG_RISING = dynamic(111);
+    @Since("1.19.70-r1")
+    public static final int DATA_FLAG_FEELING_HAPPY = dynamic(112);
+    @Since("1.19.70-r1")
+    public static final int DATA_FLAG_SEARCHING = dynamic(113);
+
     private static final Set<CustomEntityDefinition> entityDefinitions = new HashSet<>();
     private static final Map<String, EntityProvider<? extends Entity>> knownEntities = new HashMap<>();
     private static final Map<String, String> shortNames = new HashMap<>();
@@ -561,10 +568,6 @@ public abstract class Entity extends Location implements Metadatable {
     protected Server server;
     protected Timing timing;
     protected boolean isPlayer = this instanceof Player;
-    @PowerNukkitXOnly
-    @Since("1.19.60-r1")
-    @Getter
-    protected EntityComponentGroup componentGroup;
     private int maxHealth = 20;
     private volatile boolean initialized;
 
@@ -600,9 +603,9 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     /**
-     * 创建一个实体从实体名,名称从{@link Server#registerEntities registerEntities}源代码查询
+     * 创建一个实体从实体名,名称从{@link Entity#init registerEntities}源代码查询
      * <p>
-     * Create an entity from entity name, name from {@link Server#registerEntities registerEntities} source code query
+     * Create an entity from entity name, name from {@link Entity#init registerEntities} source code query
      *
      * @param name the name
      * @param pos  the pos
@@ -865,19 +868,6 @@ public abstract class Entity extends Location implements Metadatable {
         return shortNames.get(entityProvider.getSimpleName());
     }
 
-
-    /**
-     * 获取该实体的标识符
-     * <p>
-     * Get the identifier of the entity
-     *
-     * @return the identifier
-     */
-    @Nullable
-    public Identifier getIdentifier() {
-        return Entity.getIdentifier(this.getNetworkId());
-    }
-
     /**
      * 获取指定网络id实体的标识符
      * <p>
@@ -959,7 +949,6 @@ public abstract class Entity extends Location implements Metadatable {
         Server.broadcastPacket(players, pk);
     }
 
-
     /**
      * @see #playAnimationOnEntities(AnimateEntityPacket.Animation, Collection<Entity>, Collection<Player>)
      */
@@ -972,6 +961,141 @@ public abstract class Entity extends Location implements Metadatable {
             if (entity.isPlayer) viewers.add((Player) entity);
         });
         playAnimationOnEntities(animation, entities, viewers);
+    }
+
+    @PowerNukkitXInternal
+    public static void init() {
+        Entity.registerEntity("Lightning", EntityLightning.class);
+        Entity.registerEntity("Arrow", EntityArrow.class);
+        Entity.registerEntity("Balloon", EntityBalloon.class);
+        Entity.registerEntity("EnderPearl", EntityEnderPearl.class);
+        Entity.registerEntity("FallingSand", EntityFallingBlock.class);
+        Entity.registerEntity("Firework", EntityFirework.class);
+        Entity.registerEntity("Item", EntityItem.class);
+        Entity.registerEntity("LeashKnot", EntityLeashKnot.class);
+        Entity.registerEntity("Painting", EntityPainting.class);
+        Entity.registerEntity("PrimedTnt", EntityPrimedTNT.class);
+        Entity.registerEntity("Snowball", EntitySnowball.class);
+        Entity.registerEntity("TripodCamera", EntityTripodCamera.class);
+        //Monsters
+        Entity.registerEntity("Blaze", EntityBlaze.class);
+        Entity.registerEntity("CaveSpider", EntityCaveSpider.class);
+        Entity.registerEntity("Creeper", EntityCreeper.class);
+        Entity.registerEntity("Drowned", EntityDrowned.class);
+        Entity.registerEntity("ElderGuardian", EntityElderGuardian.class);
+        Entity.registerEntity("EnderDragon", EntityEnderDragon.class);
+        Entity.registerEntity("Enderman", EntityEnderman.class);
+        Entity.registerEntity("Endermite", EntityEndermite.class);
+        Entity.registerEntity("Evoker", EntityEvoker.class);
+        Entity.registerEntity("Ghast", EntityGhast.class);
+        Entity.registerEntity("Goat", EntityGoat.class);
+        Entity.registerEntity("Guardian", EntityGuardian.class);
+        Entity.registerEntity("Hoglin", EntityHoglin.class);
+        Entity.registerEntity("Husk", EntityHusk.class);
+        Entity.registerEntity("MagmaCube", EntityMagmaCube.class);
+        Entity.registerEntity("Phantom", EntityPhantom.class);
+        Entity.registerEntity("Piglin", EntityPiglin.class);
+        Entity.registerEntity("PiglinBrute", EntityPiglinBrute.class);
+        Entity.registerEntity("Pillager", EntityPillager.class);
+        Entity.registerEntity("Ravager", EntityRavager.class);
+        Entity.registerEntity("Shulker", EntityShulker.class);
+        Entity.registerEntity("Silverfish", EntitySilverfish.class);
+        Entity.registerEntity("Skeleton", EntitySkeleton.class);
+        Entity.registerEntity("Slime", EntitySlime.class);
+        Entity.registerEntity("IronGolem", EntityIronGolem.class);
+        Entity.registerEntity("SnowGolem", EntitySnowGolem.class);
+        Entity.registerEntity("Spider", EntitySpider.class);
+        Entity.registerEntity("Stray", EntityStray.class);
+        Entity.registerEntity("Vex", EntityVex.class);
+        Entity.registerEntity("Vindicator", EntityVindicator.class);
+        Entity.registerEntity("Warden", EntityWarden.class);
+        Entity.registerEntity("Witch", EntityWitch.class);
+        Entity.registerEntity("Wither", EntityWither.class);
+        Entity.registerEntity("WitherSkeleton", EntityWitherSkeleton.class);
+        Entity.registerEntity("Zombie", EntityZombie.class);
+        Entity.registerEntity("Zoglin", EntityZoglin.class);
+        Entity.registerEntity("ZombiePigman", EntityZombiePigman.class);
+        Entity.registerEntity("ZombieVillager", EntityZombieVillager.class);
+        Entity.registerEntity("ZombieVillagerV1", EntityZombieVillagerV1.class);
+        //Passive
+        Entity.registerEntity("Agent", EntityAgent.class);
+        Entity.registerEntity("Allay", EntityAllay.class);
+        Entity.registerEntity("Axolotl", EntityAxolotl.class);
+        Entity.registerEntity("Bat", EntityBat.class);
+        Entity.registerEntity("Bee", EntityBee.class);
+        Entity.registerEntity("Cat", EntityCat.class);
+        Entity.registerEntity("Chicken", EntityChicken.class);
+        Entity.registerEntity("Cod", EntityCod.class);
+        Entity.registerEntity("Cow", EntityCow.class);
+        Entity.registerEntity("Dolphin", EntityDolphin.class);
+        Entity.registerEntity("Donkey", EntityDonkey.class);
+        Entity.registerEntity("Fox", EntityFox.class);
+        Entity.registerEntity("GlowSquid", EntityGlowSquid.class);
+        Entity.registerEntity("Frog", EntityFrog.class);
+        Entity.registerEntity("Horse", EntityHorse.class);
+        Entity.registerEntity("Llama", EntityLlama.class);
+        Entity.registerEntity("Mooshroom", EntityMooshroom.class);
+        Entity.registerEntity("Mule", EntityMule.class);
+        Entity.registerEntity("NPC", EntityNPCEntity.class);
+        Entity.registerEntity("Ocelot", EntityOcelot.class);
+        Entity.registerEntity("Panda", EntityPanda.class);
+        Entity.registerEntity("Parrot", EntityParrot.class);
+        Entity.registerEntity("Pig", EntityPig.class);
+        Entity.registerEntity("PolarBear", EntityPolarBear.class);
+        Entity.registerEntity("Pufferfish", EntityPufferfish.class);
+        Entity.registerEntity("Rabbit", EntityRabbit.class);
+        Entity.registerEntity("Salmon", EntitySalmon.class);
+        Entity.registerEntity("Sheep", EntitySheep.class);
+        Entity.registerEntity("SkeletonHorse", EntitySkeletonHorse.class);
+        Entity.registerEntity("Squid", EntitySquid.class);
+        Entity.registerEntity("Strider", EntityStrider.class);
+        Entity.registerEntity("Tadpole", EntityTadpole.class);
+        Entity.registerEntity("TropicalFish", EntityTropicalFish.class);
+        Entity.registerEntity("Turtle", EntityTurtle.class);
+        Entity.registerEntity("Villager", EntityVillager.class);
+        Entity.registerEntity("VillagerV1", EntityVillagerV1.class);
+        Entity.registerEntity("WanderingTrader", EntityWanderingTrader.class);
+        Entity.registerEntity("Wolf", EntityWolf.class);
+        Entity.registerEntity("ZombieHorse", EntityZombieHorse.class);
+        Entity.registerEntity("NPC", EntityNPCEntity.class);
+        Entity.registerEntity("Frog", EntityFrog.class);
+        Entity.registerEntity("Tadpole", EntityTadpole.class);
+        Entity.registerEntity("Allay", EntityAllay.class);
+        //Projectile
+        Entity.registerEntity("Small FireBall", EntitySmallFireBall.class);
+        Entity.registerEntity("AreaEffectCloud", EntityAreaEffectCloud.class);
+        Entity.registerEntity("Egg", EntityEgg.class);
+        Entity.registerEntity("IceBomb", EntityIceBomb.class);
+        Entity.registerEntity("LingeringPotion", EntityPotionLingering.class);
+        Entity.registerEntity("ThrownExpBottle", EntityExpBottle.class);
+        Entity.registerEntity("ThrownPotion", EntityPotion.class);
+        Entity.registerEntity("ThrownTrident", EntityThrownTrident.class);
+        Entity.registerEntity("XpOrb", EntityXPOrb.class);
+        Entity.registerEntity("ArmorStand", EntityArmorStand.class);
+
+        Entity.registerEntity("Human", EntityHuman.class, true);
+        //Vehicle
+        Entity.registerEntity("Boat", EntityBoat.class);
+        Entity.registerEntity("ChestBoat", EntityChestBoat.class);
+        Entity.registerEntity("MinecartChest", EntityMinecartChest.class);
+        Entity.registerEntity("MinecartHopper", EntityMinecartHopper.class);
+        Entity.registerEntity("MinecartRideable", EntityMinecartEmpty.class);
+        Entity.registerEntity("MinecartTnt", EntityMinecartTNT.class);
+
+        Entity.registerEntity("EndCrystal", EntityEndCrystal.class);
+        Entity.registerEntity("FishingHook", EntityFishingHook.class);
+    }
+
+    /**
+     * 获取该实体的标识符
+     * <p>
+     * Get the identifier of the entity
+     *
+     * @return the identifier
+     */
+    @Nullable
+    public Identifier getIdentifier() {
+        return Entity.getIdentifier(this.getNetworkId());
     }
 
     /**
@@ -1080,13 +1204,6 @@ public abstract class Entity extends Location implements Metadatable {
         this.dataProperties.putFloat(DATA_BOUNDING_BOX_WIDTH, this.getWidth());
         this.dataProperties.putInt(DATA_HEALTH, (int) this.getHealth());
 
-        try {
-            this.componentGroup = requireEntityComponentGroup();
-        } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
-            throw new RuntimeException("An error occurred while creating the component group", e);
-        }
-        this.componentGroup.onInitEntity();
-
         this.scheduleUpdate();
     }
 
@@ -1172,6 +1289,7 @@ public abstract class Entity extends Location implements Metadatable {
             this.chunk.addEntity(this);
             this.level.addEntity(this);
 
+            //TODO: 此方法放在这里调用不合适
             this.initEntity();
 
             this.lastUpdate = this.server.getTick();
@@ -1529,8 +1647,6 @@ public abstract class Entity extends Location implements Metadatable {
         } else {
             this.namedTag.remove("ActiveEffects");
         }
-
-        this.getComponentGroup().onSaveNBT();
     }
 
     /**
@@ -1729,15 +1845,16 @@ public abstract class Entity extends Location implements Metadatable {
 
         //计算血量
         float newHealth = getHealth() - source.getFinalDamage();
-        if (newHealth < 1 && this instanceof Player) {
+
+        //only player
+        if (newHealth < 1 && this instanceof Player player) {
             if (source.getCause() != DamageCause.VOID && source.getCause() != DamageCause.SUICIDE) {
-                Player p = (Player) this;
                 boolean totem = false;
-                if (p.getOffhandInventory().getItem(0).getId() == ItemID.TOTEM) {
-                    p.getOffhandInventory().clear(0);
+                if (player.getOffhandInventory().getItem(0) instanceof ItemTotem) {
+                    player.getOffhandInventory().clear(0, true);
                     totem = true;
-                } else if (p.getInventory().getItemInHand().getId() == ItemID.TOTEM) {
-                    p.getInventory().clear(p.getInventory().getHeldItemIndex());
+                } else if (player.getInventory().getItemInHand() instanceof ItemTotem) {
+                    player.getInventory().clear(player.getInventory().getHeldItemIndex(), true);
                     totem = true;
                 }
                 //复活图腾实现
@@ -1755,7 +1872,7 @@ public abstract class Entity extends Location implements Metadatable {
                     EntityEventPacket pk = new EntityEventPacket();
                     pk.eid = this.getId();
                     pk.event = EntityEventPacket.CONSUME_TOTEM;
-                    p.dataPacket(pk);
+                    player.dataPacket(pk);
 
                     source.setCancelled(true);
                     return false;
@@ -3760,32 +3877,6 @@ public abstract class Entity extends Location implements Metadatable {
         pk.eid = this.getId();
         pk.encode();
         Server.broadcastPacket(players, pk);
-    }
-
-    /**
-     * 通过反射获取类实现的接口并查询{@link cn.nukkit.entity.component.EntityComponentRegistery}创建对应组件
-     */
-    @PowerNukkitXOnly
-    @Since("1.19.60-r1")
-    protected EntityComponentGroup requireEntityComponentGroup() throws InvocationTargetException, InstantiationException, IllegalAccessException {
-        var components = new HashSet<EntityComponent>();
-
-        var interfaces = this.getClass().getInterfaces();
-        for (var interfaze : interfaces) {
-            var component = EntityComponentRegistery.getInterfaceBoundEntityComponent(interfaze);
-            if (component != null) {
-                var constructor = EntityComponent.CONSTRUCTOR_CACHE.computeIfAbsent(component, k -> {
-                    try {
-                        return component.getConstructor(Entity.class);
-                    } catch (NoSuchMethodException e) {
-                        throw new RuntimeException("The required entity component constructor was not found", e);
-                    }
-                });
-                components.add(constructor.newInstance(this));
-            }
-        }
-
-        return new SimpleEntityComponentGroup(components);
     }
 
     private record OldStringClass(String key, Class<? extends Entity> value) {

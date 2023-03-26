@@ -26,7 +26,6 @@ import cn.nukkit.nbt.tag.Tag;
 import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
 import cn.nukkit.utils.RedstoneComponent;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -35,7 +34,7 @@ import static cn.nukkit.blockproperty.CommonBlockProperties.FACING_DIRECTION;
 
 @PowerNukkitDifference(since = "1.4.0.0-PN", info = "Implements BlockEntityHolder only in PowerNukkit")
 @PowerNukkitDifference(info = "Implements RedstoneComponent.", since = "1.4.0.0-PN")
-public class BlockSkull extends BlockTransparentMeta implements RedstoneComponent, BlockEntityHolder<BlockEntitySkull>,Faceable {
+public class BlockSkull extends BlockTransparentMeta implements RedstoneComponent, BlockEntityHolder<BlockEntitySkull>, Faceable {
     @PowerNukkitOnly
     @Deprecated
     @Since("1.6.0.0-PNX")
@@ -118,7 +117,7 @@ public class BlockSkull extends BlockTransparentMeta implements RedstoneComponen
     @Override
     public String getName() {
         int itemMeta = 0;
-        
+
         if (this.level != null) {
             BlockEntitySkull blockEntity = getBlockEntity();
             if (blockEntity != null) {
@@ -172,7 +171,7 @@ public class BlockSkull extends BlockTransparentMeta implements RedstoneComponen
         if (ev.isCancelled()) {
             return 0;
         }
-        
+
         entity.setMouthMoving(this.isGettingPower());
         return Level.BLOCK_UPDATE_REDSTONE;
     }
@@ -191,12 +190,14 @@ public class BlockSkull extends BlockTransparentMeta implements RedstoneComponen
 
     @Override
     public Item toItem() {
-        BlockEntitySkull blockEntity = getBlockEntity();
-        int itemMeta = 0;
-        if (blockEntity != null) {
-            itemMeta = blockEntity.namedTag.getByte("SkullType");
-        }
-        return new ItemSkull(itemMeta);
+        if (getLevel() != null) {
+            BlockEntitySkull blockEntity = getBlockEntity();
+            int itemMeta = 0;
+            if (blockEntity != null) {
+                itemMeta = blockEntity.namedTag.getByte("SkullType");
+            }
+            return new ItemSkull(itemMeta);
+        } else return new ItemSkull();
     }
 
     @Override
@@ -217,7 +218,7 @@ public class BlockSkull extends BlockTransparentMeta implements RedstoneComponen
 
     @Override
     @PowerNukkitOnly
-    public  boolean sticksToPiston() {
+    public boolean sticksToPiston() {
         return false;
     }
 
