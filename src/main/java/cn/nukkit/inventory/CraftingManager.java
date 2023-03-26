@@ -149,7 +149,7 @@ public class CraftingManager {
         //load xp config
         var furnaceXpConfig = new Config(Config.JSON);
         try {
-            furnaceXpConfig.load(Server.class.getModule().getResourceAsStream("furnace_xp.json"));
+            furnaceXpConfig.load(Server.class.getModule().getResourceAsStream("vanilla_recipes/furnace_xp.json"));
         } catch (IOException e) {
             log.warn("Failed to load furnace xp config");
         }
@@ -294,6 +294,31 @@ public class CraftingManager {
             }
         }
 
+        //load multi recipe
+        try (var r = Server.class.getModule().getResourceAsStream("vanilla_recipes/special_hardcoded.json")) {
+            if (r == null) {
+                throw new AssertionError("Unable to find special_hardcoded.json");
+            }
+            List<String> uuids = gson.fromJson(new InputStreamReader(r), List.class);
+            for (String uuid : uuids) {
+                this.registerRecipe(new MultiRecipe(UUID.fromString(uuid)));
+            }
+        }
+
+        //load container mixes
+        try (var r = Server.class.getModule().getResourceAsStream("vanilla_recipes/container_mixes.json")) {
+            if (r == null) {
+                throw new AssertionError("Unable to find container_mixes.json");
+            }
+            List<Map<String, Object>> containerMixes = gson.fromJson(new InputStreamReader(r), List.class);
+            for (Map containerMix : containerMixes) {
+                String fromItemId = containerMix.get("inputId").toString();
+                String ingredient = containerMix.get("reagentId").toString();
+                String toItemId = containerMix.get("outputId").toString();
+                registerContainerRecipe(new ContainerRecipe(Item.fromString(fromItemId), Item.fromString(ingredient), Item.fromString(toItemId)));
+            }
+        }
+
         // Allow to rename without crafting
         registerCartographyRecipe(new CartographyRecipe(Item.get(ItemID.EMPTY_MAP), Collections.singletonList(Item.get(ItemID.EMPTY_MAP))));
         registerCartographyRecipe(new CartographyRecipe(Item.get(ItemID.EMPTY_MAP, 2), Collections.singletonList(Item.get(ItemID.EMPTY_MAP, 2))));
@@ -307,6 +332,7 @@ public class CraftingManager {
     @Since("1.19.50-r2")
     @SuppressWarnings("unchecked")
     private Recipe parseShapelessRecipe(Map<String, Object> recipeObject, String craftingBlock) {
+        String id = recipeObject.containsKey("id") ? recipeObject.get("id").toString() : null;
         if (craftingBlock.equals("smithing_table")) {
             List<Item> items = new ArrayList<>();
             Map<String, Object> addition = (Map<String, Object>) recipeObject.get("addition");
@@ -354,10 +380,10 @@ public class CraftingManager {
         }
 
         return switch (craftingBlock) {
-            case "crafting_table" -> new ShapelessRecipe(null, priority, result, itemDescriptors);
-            case "shulker_box" -> new ShulkerBoxRecipe(null, priority, result, itemDescriptors);
-            case "stonecutter" -> new StonecutterRecipe(null, priority, result, itemDescriptors.get(0).toItem());
-            case "cartography_table" -> new CartographyRecipe(null, priority, result, itemDescriptors);
+            case "crafting_table" -> new ShapelessRecipe(id, priority, result, itemDescriptors);
+            case "shulker_box" -> new ShulkerBoxRecipe(id, priority, result, itemDescriptors);
+            case "stonecutter" -> new StonecutterRecipe(id, priority, result, itemDescriptors.get(0).toItem());
+            case "cartography_table" -> new CartographyRecipe(id, priority, result, itemDescriptors);
             default -> null;
         };
     }
@@ -366,6 +392,7 @@ public class CraftingManager {
     @Since("1.19.50-r2")
     @SuppressWarnings("unchecked")
     private Recipe parseShapeRecipe(Map<String, Object> recipeObject) {
+        String id = recipeObject.containsKey("id") ? recipeObject.get("id").toString() : null;
         List<Map<String, Object>> outputs = (List<Map<String, Object>>) recipeObject.get("output");
 
         Map<String, Object> first = outputs.remove(0);
@@ -404,7 +431,7 @@ public class CraftingManager {
                 ingredients.put(ingredientChar, new DefaultDescriptor(recipeItem));
             }
         }
-        return new ShapedRecipe(null, priority, primaryResult, shape, ingredients, extraResults);
+        return new ShapedRecipe(id, priority, primaryResult, shape, ingredients, extraResults);
     }
 
     @PowerNukkitXDifference(info = "Recipe formats exported from proxypass before 1.19.40 are no longer supported", since = "1.19.50-r1")

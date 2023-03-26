@@ -525,10 +525,6 @@ public class BinaryStream {
                 namedTag.put("CanPlaceOn", listTag);
             }
 
-            if (namedTag.containsString("Name")) {//todo 临时修复物品NBT，未来移除
-                namedTag.remove("Name");
-            }
-
             item.setNamedTag(namedTag);
         }
 
@@ -609,22 +605,20 @@ public class BinaryStream {
             return;
         }
 
-        int networkFullId;
+        int networkId;
         try {
-            networkFullId = RuntimeItems.getRuntimeMapping().getNetworkFullId(item);
+            networkId = RuntimeItems.getRuntimeMapping().getNetworkId(item);
         } catch (IllegalArgumentException e) {
             log.trace(e);
             item = createFakeUnknownItem(item);
-            networkFullId = RuntimeItems.getRuntimeMapping().getNetworkFullId(item);
+            networkId = RuntimeItems.getRuntimeMapping().getNetworkId(item);
         }
-        int networkId = RuntimeItems.getNetworkId(networkFullId);
-
         putVarInt(networkId);
         putLShort(item.getCount());
 
         int legacyData = 0;
         if (item.getId() > 256) { // Not a block
-            if (item instanceof ItemDurable || !RuntimeItems.hasData(networkFullId)) {
+            if (item instanceof ItemDurable || !RuntimeItems.getRuntimeMapping().toRuntime(item.getId(), item.getDamage()).hasDamage()) {
                 legacyData = item.getDamage();
             }
         }
@@ -654,9 +648,6 @@ public class BinaryStream {
                 } else {
                     tag = NBTIO.read(nbt, ByteOrder.LITTLE_ENDIAN);
                 }
-
-                if (tag.containsString("Name")) tag.remove("Name");//todo 未来移除
-
                 if (tag.contains("Damage")) {
                     tag.put("__DamageConflict__", tag.removeAndGet("Damage"));
                 }
@@ -667,9 +658,7 @@ public class BinaryStream {
             } else if (item.hasCompoundTag()) {
                 stream.writeShort(-1);
                 stream.writeByte(1); // Hardcoded in current version
-                var tag = item.getNamedTag();
-                if (tag.containsString("Name")) tag.remove("Name");//todo 未来移除
-                stream.write(NBTIO.write(tag, ByteOrder.LITTLE_ENDIAN));
+                stream.write(NBTIO.write(item.getNamedTag(), ByteOrder.LITTLE_ENDIAN));
             } else {
                 userDataBuf.writeShortLE(0);
             }
@@ -731,10 +720,9 @@ public class BinaryStream {
         }
         this.putBoolean(true); // isValid? - true
 
-        int networkFullId = RuntimeItems.getRuntimeMapping().getNetworkFullId(ingredient);
-        int networkId = RuntimeItems.getNetworkId(networkFullId);
+        int networkId = RuntimeItems.getRuntimeMapping().getNetworkId(ingredient);
         int damage = ingredient.hasMeta() ? ingredient.getDamage() : 0x7fff;
-        if (RuntimeItems.hasData(networkFullId)) {
+        if (RuntimeItems.getRuntimeMapping().toRuntime(ingredient.getId(), ingredient.getDamage()).hasDamage()) {
             damage = 0;
         }
 
@@ -756,10 +744,9 @@ public class BinaryStream {
                     this.putVarInt(0); // item == null ? 0 : item.getCount()
                     return;
                 }
-                int networkFullId = RuntimeItems.getRuntimeMapping().getNetworkFullId(ingredient);
-                int networkId = RuntimeItems.getNetworkId(networkFullId);
+                int networkId = RuntimeItems.getRuntimeMapping().getNetworkId(ingredient);
                 int damage = ingredient.hasMeta() ? ingredient.getDamage() : 0x7fff;
-                if (RuntimeItems.hasData(networkFullId)) {
+                if (RuntimeItems.getRuntimeMapping().toRuntime(ingredient.getId(), ingredient.getDamage()).hasDamage()) {
                     damage = 0;
                 }
                 this.putLShort(networkId);
