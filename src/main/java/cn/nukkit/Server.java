@@ -622,7 +622,7 @@ public class Server {
                 put("sub-motd", "https://powernukkitx.cn");
                 put("server-port", 19132);
                 put("server-ip", "0.0.0.0");
-                put("view-distance", 10);
+                put("view-distance", 12);
                 put("white-list", false);
                 put("achievements", true);
                 put("announce-player-achievements", true);
@@ -1512,6 +1512,7 @@ public class Server {
                         }
 
                         if (allocated > 0) {
+                            //noinspection BusyWait
                             Thread.sleep(allocated, 900000);
                         }
                     }
