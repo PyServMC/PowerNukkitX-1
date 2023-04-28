@@ -347,6 +347,7 @@ public class Server {
     @Since("1.19.50-r1")
     private FreezableArrayManager freezableArrayManager;
 
+
     /**
      * 最小初始化测试
      * Minimal initializer for testing
@@ -430,7 +431,7 @@ public class Server {
 
         this.console = new NukkitConsole(this);
         this.consoleThread = new ConsoleThread();
-        this.consoleThread.start();
+
         this.computeThreadPool = new ForkJoinPool(Math.min(0x7fff, Runtime.getRuntime().availableProcessors()), new ComputeThreadPoolThreadFactory(), null, false);
 
         this.playerDataSerializer = new DefaultPlayerDataSerializer(this);
@@ -951,6 +952,9 @@ public class Server {
             this.watchdog = new Watchdog(this, 60000);
             this.watchdog.start();
         }
+
+        //服务器加载完成后再开始监听控制台输入命令
+        this.consoleThread.start();
 
         System.runFinalization();
         this.start();
