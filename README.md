@@ -24,7 +24,7 @@ Join US:
 
 What's new in PowerNukkitX? Let's See：
 
-1. Support for 1.19.70 protocol.
+1. Support for 1.19.80 protocol.
 2. Support for 384 world height.
 3. Support for The Nether world, no need to install additional plugin.
 4. Support 3D biomes.<!--Custom dimension interface TODO-->
@@ -146,7 +146,7 @@ repositories {
 }
 
 dependencies {
-    compile group: 'cn.powernukkitx', name: 'powernukkitx', version: '1.19.70-r2'
+    compile group: 'cn.powernukkitx', name: 'powernukkitx', version: '1.19.80-r2'
 }
 ```
 
@@ -156,7 +156,7 @@ dependencies {
     <dependency>
         <groupId>cn.powernukkitx</groupId>
         <artifactId>powernukkitx</artifactId>
-        <version>1.19.70-r2</version>
+        <version>1.19.80-r2</version>
     </dependency>
 </dependencies>
 ```
@@ -185,6 +185,7 @@ Please read the [CONTRIBUTING](https://github.com/PowerNukkitX/PowerNukkitX/blob
 - __[🌐 PowerNukkitX Website](https://powernukkitx.cn/)__
 - __[👩🏽‍💻 PowernNukkitX Document library](https://doc.powernukkitx.cn/)__
 - __[💬 PowerNukkitX Discord](https://discord.gg/BcPhZCVJHJ)__
+- __[💾 Download PowerNukkitX Released Build](https://github.com/PowerNukkitX/PowerNukkitX/releases)__
 - __[💾 Download PowerNukkitX Snapshot Build](https://github.com/PowerNukkitX/PowerNukkitX/actions)__
 - __[🔌 Cloudburst Nukkit Plugins](https://cloudburstmc.org/resources/categories/nukkit-plugins.1/)__
 - __[🔌 PowerNukkit Plugins](https://discuss.powernukkit.org/c/plugins/powernukkit-plugins/14/)__

@@ -6,7 +6,7 @@ import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockUnknown;
-import cn.nukkit.blockproperty.UnknownRuntimeIdException;
+import cn.nukkit.blockproperty.*;
 import cn.nukkit.blockproperty.exception.BlockPropertyNotFoundException;
 import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.blockstate.BlockStateRegistry;
@@ -112,19 +112,29 @@ public class NBTIO {
     public static CompoundTag putBlockHelper(Block block) {
         var states = new CompoundTag();
         for (var str : block.getProperties().getNames()) {
-            Class<?> type = block.getCurrentState().getProperty(str).getValueClass();
-            if (type == Boolean.class) {
+            BlockProperty<?> property = block.getCurrentState().getProperty(str);
+            if (property instanceof BooleanBlockProperty) {
                 states.putBoolean(str, block.getCurrentState().getBooleanValue(str));
-            } else if (type == Integer.class) {
+            } else if (property instanceof IntBlockProperty) {
                 states.putInt(str, block.getCurrentState().getIntValue(str));
-            } else {
-                states.putString(str, block.getCurrentState().getPersistenceValue(str));
+            } else if (property instanceof UnsignedIntBlockProperty) {
+                states.putInt(str, block.getCurrentState().getIntValue(str));
+            } else if (property instanceof ArrayBlockProperty<?> arrayBlockProperty) {
+                if (arrayBlockProperty.isOrdinal()) {
+                    if (property.getBitSize() > 1) {
+                        states.putInt(str, Integer.parseInt(block.getCurrentState().getPersistenceValue(str)));
+                    } else {
+                        states.putBoolean(str, !block.getCurrentState().getPersistenceValue(str).equals("0"));
+                    }
+                } else {
+                    states.putString(str, block.getCurrentState().getPersistenceValue(str));
+                }
             }
         }
         return new CompoundTag("Block")
                 .putString("name", block.getPersistenceName())
                 .putCompound("states", states)
-                .putInt("version", 17959425);
+                .putInt("version", BlockStateRegistry.blockPaletteVersion.get());
     }
 
     @PowerNukkitXOnly
@@ -164,6 +174,56 @@ public class NBTIO {
 
 
     private static Item fixWoolItem(int id, int damage, int count) {
+        //TODO 回退之前的方块更新方案，现在有更好的解决方式，下个版本移除这段代码
+        if (damage == 0) {
+            switch (id) {
+                case -552 -> {
+                    return Item.get(35, 8, count);
+                }
+                case -553 -> {
+                    return Item.get(35, 7, count);
+                }
+                case -554 -> {
+                    return Item.get(35, 15, count);
+                }
+                case -555 -> {
+                    return Item.get(35, 12, count);
+                }
+                case -556 -> {
+                    return Item.get(35, 14, count);
+                }
+                case -557 -> {
+                    return Item.get(35, 1, count);
+                }
+                case -558 -> {
+                    return Item.get(35, 4, count);
+                }
+                case -559 -> {
+                    return Item.get(35, 5, count);
+                }
+                case -560 -> {
+                    return Item.get(35, 13, count);
+                }
+                case -561 -> {
+                    return Item.get(35, 9, count);
+                }
+                case -562 -> {
+                    return Item.get(35, 3, count);
+                }
+                case -563 -> {
+                    return Item.get(35, 11, count);
+                }
+                case -564 -> {
+                    return Item.get(35, 10, count);
+                }
+                case -565 -> {
+                    return Item.get(35, 2, count);
+                }
+                case -566 -> {
+                    return Item.get(35, 6, count);
+                }
+            }
+        }
         return Item.get(id, damage, count);
     }
 

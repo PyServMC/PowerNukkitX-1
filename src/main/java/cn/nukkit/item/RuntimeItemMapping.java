@@ -1,6 +1,7 @@
 package cn.nukkit.item;
 
 import cn.nukkit.Server;
+import cn.nukkit.api.DoNotModify;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
@@ -10,6 +11,8 @@ import cn.nukkit.item.customitem.CustomItem;
 import cn.nukkit.item.customitem.CustomItemDefinition;
 import cn.nukkit.utils.BinaryStream;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -47,6 +50,9 @@ public class RuntimeItemMapping {
     @PowerNukkitXOnly
     @Since("1.19.70-r2")
     private final Map<String, Supplier<Item>> namespacedIdItem = new HashMap<>();
+    @PowerNukkitXOnly
+    @Since("1.19.80-r1")
+    private static final BiMap<Integer, String> blockMappings = HashBiMap.create();
     private byte[] itemPalette;
 
     public RuntimeItemMapping(Map<String, MappingEntry> mappings) {
@@ -97,6 +103,33 @@ public class RuntimeItemMapping {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+
+        try (InputStream stream = Server.class.getClassLoader().getResourceAsStream("block_mappings.json")) {
+            if (stream == null) {
+                throw new AssertionError("Unable to load item_mappings.json");
+            }
+            JsonObject itemMapping = JsonParser.parseReader(new InputStreamReader(stream)).getAsJsonObject();
+            for (String legacyID : itemMapping.keySet()) {
+                JsonObject convertData = itemMapping.getAsJsonObject(legacyID);
+                int id = Integer.parseInt(legacyID);
+                for (String damageStr : convertData.keySet()) {
+                    String identifier = convertData.get(damageStr).getAsString();
+                    int damage = Integer.parseInt(damageStr);
+                    blockMappings.put(RuntimeItems.getFullId(id, damage), identifier);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        blockMappings.forEach((id, damage) -> {
+            String identifier = damage.split(";")[0];
+            int runtime = this.name2RuntimeId.getOrDefault(identifier, -1);
+            if (runtime != -1) {
+                this.legacy2Runtime.put(id.intValue(), new RuntimeEntry(identifier, runtime, true, false));
+            }
+        });
     }
 
     private void generatePalette() {
@@ -113,6 +146,12 @@ public class RuntimeItemMapping {
         this.itemPalette = paletteBuffer.getBuffer();
     }
 
+    /**
+     * From runtimeId to get legacy item entry.
+     *
+     * @param runtimeId the runtime id
+     * @return the legacy entry
+     */
     public LegacyEntry fromRuntime(int runtimeId) {
         LegacyEntry legacyEntry = this.runtime2Legacy.get(runtimeId);
         if (legacyEntry == null) {
@@ -121,6 +160,13 @@ public class RuntimeItemMapping {
         return legacyEntry;
     }
 
+    /**
+     * from legacy item id and meta value to get runtimeId
+     *
+     * @param id   the id
+     * @param meta the meta
+     * @return the runtime entry
+     */
     public RuntimeEntry toRuntime(int id, int meta) {
         RuntimeEntry runtimeEntry = this.legacy2Runtime.get(RuntimeItems.getFullId(id, meta));
         if (runtimeEntry == null) {
@@ -133,10 +179,21 @@ public class RuntimeItemMapping {
         return runtimeEntry;
     }
 
+    /**
+     * From identifier to get legacy entry.According to item_mappings.json
+     *
+     * @param identifier the identifier
+     * @return the legacy entry
+     */
     public LegacyEntry fromIdentifier(String identifier) {
         return this.identifier2Legacy.get(identifier);
     }
 
+    /**
+     * Get item palette byte [ ].
+     *
+     * @return the byte [ ]
+     */
     public byte[] getItemPalette() {
         return this.itemPalette;
     }
@@ -364,6 +421,13 @@ public class RuntimeItemMapping {
         Preconditions.checkNotNull(namespacedId, "namespacedId is null");
         Preconditions.checkNotNull(constructor, "constructor is null");
         this.namespacedIdItem.put(namespacedId.toLowerCase(Locale.ENGLISH), constructor);
+    }
+
+    @DoNotModify
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    public static BiMap<Integer, String> getBlockMapping() {
+        return blockMappings;
     }
 
     @NotNull
