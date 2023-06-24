@@ -215,6 +215,10 @@ public class Server {
      */
     public boolean checkLoginTime = true;
 
+    private boolean educationEditionEnabled = false;
+
+    private boolean forceCustomItems = false;
+
     private RCON rcon;
 
     private EntityMetadataStore entityMetadata;
@@ -657,6 +661,7 @@ public class Server {
                 put("force-resources-allow-client-packs", false);
                 put("xbox-auth", true);
                 put("check-login-time", true);
+                put("check-xuid", true);
                 put("disable-auto-bug-report", false);
                 put("allow-shaded", false);
                 put("server-authoritative-movement", "server-auth");// Allowed values: "client-auth", "server-auth", "server-auth-with-rewind"
@@ -729,6 +734,7 @@ public class Server {
         this.safeSpawn = this.getConfig().getBoolean("settings.safe-spawn", true);
         this.forceSkinTrusted = this.getConfig().getBoolean("player.force-skin-trusted", false);
         this.checkMovement = this.getConfig().getBoolean("player.check-movement", true);
+        this.educationEditionEnabled = this.getConfig("level-settings.education-edition", false);
         this.serverAuthoritativeMovementMode = switch (this.properties.get("server-authoritative-movement", "client-auth")) {
             case "client-auth" -> 0;
             case "server-auth" -> 1;
@@ -780,7 +786,7 @@ public class Server {
             ExceptionHandler.registerExceptionHandler();
         }
 
-        log.info(this.getLanguage().tr("nukkit.server.networkStart", new String[]{this.getIp().equals("") ? "*" : this.getIp(), String.valueOf(this.getPort())}));
+        log.info(this.getLanguage().tr("nukkit.server.networkStart", this.getIp().equals("") ? "*" : this.getIp(), String.valueOf(this.getPort())));
         this.serverID = UUID.randomUUID();
 
         this.network = new Network(this);
@@ -792,8 +798,8 @@ public class Server {
 
         this.consoleSender = new ConsoleCommandSender();
 
-        // Initialize metrics
-        NukkitMetrics.startNow(this);
+        // Initialize metrics | disabled for privacy concerns and data manipulation
+        // NukkitMetrics.startNow(this);
 
         this.registerEntities();
         this.registerBlockEntities();
@@ -870,13 +876,14 @@ public class Server {
 
         LevelProviderManager.addProvider(this, Anvil.class);
 
-        Generator.addGenerator(Flat.class, "flat", Generator.TYPE_FLAT);
+        Generator.addGenerator(Empty.class, "empty", Generator.TYPE_EMPTY);
         Generator.addGenerator(Normal.class, "normal", Generator.TYPE_INFINITE);
         if (useTerra) {
             Generator.addGenerator(TerraGeneratorWrapper.class, "terra");
             PNXPlatform.getInstance();
         }
         Generator.addGenerator(Normal.class, "default", Generator.TYPE_INFINITE);
+        Generator.addGenerator(Flat.class, "flat", Generator.TYPE_FLAT);
         Generator.addGenerator(Nether.class, "nether", Generator.TYPE_NETHER);
         Generator.addGenerator(TheEnd.class, "the_end", Generator.TYPE_THE_END);
         //todo: add old generator and hell generator
@@ -1097,7 +1104,7 @@ public class Server {
             if (this.watchdog != null) {
                 this.watchdog.running = false;
             }
-            NukkitMetrics.closeNow(this);
+            // NukkitMetrics.closeNow(this);
             //close computeThreadPool
             this.computeThreadPool.shutdownNow();
 
@@ -1187,6 +1194,155 @@ public class Server {
         }
     }
 
+    public void onPlayerCompleteLoginSequence(Player player) {
+        this.sendFullPlayerListData(player);
+    }
+
+    public void onPlayerLogin(Player player) {
+        if (this.sendUsageTicker > 0) {
+            this.uniquePlayers.add(player.getUniqueId());
+        }
+    }
+
+    public void addPlayer(InetSocketAddress socketAddress, Player player) {
+        this.players.put(socketAddress, player);
+    }
+
+    public void addOnlinePlayer(Player player) {
+        this.playerList.put(player.getUniqueId(), player);
+        this.updatePlayerListData(player.getUniqueId(), player.getId(), player.getDisplayName(), player.getSkin(), player.getLoginChainData().getXUID());
+    }
+
+    public void removeOnlinePlayer(Player player) {
+        if (this.playerList.containsKey(player.getUniqueId())) {
+            this.playerList.remove(player.getUniqueId());
+
+            PlayerListPacket pk = new PlayerListPacket();
+            pk.type = PlayerListPacket.TYPE_REMOVE;
+            pk.entries = new PlayerListPacket.Entry[]{new PlayerListPacket.Entry(player.getUniqueId())};
+
+            Server.broadcastPacket(this.playerList.values(), pk);
+        }
+    }
+
+    /**
+     * @see #updatePlayerListData(UUID, long, String, Skin, String, Player[])
+     */
+    public void updatePlayerListData(UUID uuid, long entityId, String name, Skin skin) {
+        this.updatePlayerListData(uuid, entityId, name, skin, "", this.playerList.values());
+    }
+
+    /**
+     * @see #updatePlayerListData(UUID, long, String, Skin, String, Player[])
+     */
+    public void updatePlayerListData(UUID uuid, long entityId, String name, Skin skin, String xboxUserId) {
+        this.updatePlayerListData(uuid, entityId, name, skin, xboxUserId, this.playerList.values());
+    }
+
+    /**
+     * @see #updatePlayerListData(UUID, long, String, Skin, String, Player[])
+     */
+    public void updatePlayerListData(UUID uuid, long entityId, String name, Skin skin, Player[] players) {
+        this.updatePlayerListData(uuid, entityId, name, skin, "", players);
+    }
+
+
+    /**
+     * 更新指定玩家们(players)的{@link PlayerListPacket}数据包(即玩家列表数据)
+     * <p>
+     * Update {@link PlayerListPacket} data packets (i.e. player list data) for specified players
+     *
+     * @param uuid       uuid
+     * @param entityId   实体id
+     * @param name       名字
+     * @param skin       皮肤
+     * @param xboxUserId xbox用户id
+     * @param players    指定接受数据包的玩家
+     */
+    public void updatePlayerListData(UUID uuid, long entityId, String name, Skin skin, String xboxUserId, Player[] players) {
+        PlayerListPacket pk = new PlayerListPacket();
+        pk.type = PlayerListPacket.TYPE_ADD;
+        pk.entries = new PlayerListPacket.Entry[]{new PlayerListPacket.Entry(uuid, entityId, name, skin, xboxUserId)};
+        Server.broadcastPacket(players, pk);
+    }
+
+    /**
+     * @see #updatePlayerListData(UUID, long, String, Skin, String, Player[])
+     */
+    public void updatePlayerListData(UUID uuid, long entityId, String name, Skin skin, String xboxUserId, Collection<Player> players) {
+        this.updatePlayerListData(uuid, entityId, name, skin, xboxUserId, players.toArray(Player.EMPTY_ARRAY));
+    }
+
+    public void removePlayerListData(UUID uuid) {
+        this.removePlayerListData(uuid, this.playerList.values());
+    }
+
+    /**
+     * 移除玩家数组中所有玩家的玩家列表数据.<p>
+     * Remove player list data for all players in the array.
+     *
+     * @param players 玩家数组
+     */
+    public void removePlayerListData(UUID uuid, Player[] players) {
+        PlayerListPacket pk = new PlayerListPacket();
+        pk.type = PlayerListPacket.TYPE_REMOVE;
+        pk.entries = new PlayerListPacket.Entry[]{new PlayerListPacket.Entry(uuid)};
+        Server.broadcastPacket(players, pk);
+    }
+
+    /**
+     * 移除这个玩家的玩家列表数据.<p>
+     * Remove this player's player list data.
+     *
+     * @param player 玩家
+     */
+    @Since("1.4.0.0-PN")
+    public void removePlayerListData(UUID uuid, Player player) {
+        PlayerListPacket pk = new PlayerListPacket();
+        pk.type = PlayerListPacket.TYPE_REMOVE;
+        pk.entries = new PlayerListPacket.Entry[]{new PlayerListPacket.Entry(uuid)};
+        player.dataPacket(pk);
+    }
+
+    public void removePlayerListData(UUID uuid, Collection<Player> players) {
+        this.removePlayerListData(uuid, players.toArray(Player.EMPTY_ARRAY));
+    }
+
+    /**
+     * 发送玩家列表数据包给一个玩家.<p>
+     * Send a player list packet to a player.
+     *
+     * @param player 玩家
+     */
+    public void sendFullPlayerListData(Player player) {
+        PlayerListPacket pk = new PlayerListPacket();
+        pk.type = PlayerListPacket.TYPE_ADD;
+        pk.entries = this.playerList.values().stream()
+                .map(p -> new PlayerListPacket.Entry(
+                        p.getUniqueId(),
+                        p.getId(),
+                        p.getDisplayName(),
+                        p.getSkin(),
+                        p.getLoginChainData().getXUID()))
+                .toArray(PlayerListPacket.Entry[]::new);
+
+        player.dataPacket(pk);
+    }
+
+    public boolean getCheckXUID() {
+        return this.getPropertyBoolean("check-xuid", true);
+    }
+
+    /**
+     * 发送配方列表数据包给一个玩家.<p>
+     * Send a recipe list packet to a player.
+     *
+     * @param player 玩家
+     */
+    public void sendRecipeList(Player player) {
+        player.dataPacket(CraftingManager.getCraftingPacket());
+    }
+
     private void checkTickUpdates(int currentTick, long tickTime) {
         if (this.alwaysTickPlayers) {
             for (Player p : new ArrayList<>(this.players.values())) {
@@ -1239,9 +1395,9 @@ public class Server {
         if (this.getAutoSave()) {
             Timings.levelSaveTimer.startTiming();
             for (Player player : new ArrayList<>(this.players.values())) {
-                if (player.isOnline()) {
+                if (player.isOnline() && !player.closed) {
                     player.save(true);
-                } else if (!player.isConnected()) {
+                } else if (!player.isConnected() || player.closed) {
                     this.removePlayer(player);
                 }
             }
@@ -1468,12 +1624,11 @@ public class Server {
         return launchTime;
     }
 
-    // endregion
-
-    // region server singleton - Server 单例
-
-    public static Server getInstance() {
-        return instance;
+    /**
+     * @return 服务器网络地址<br>server ip
+     */
+    public String getIp() {
+        return this.getPropertyString("server-ip", this.getPropertyBoolean("xbox-auth") ? "0.0.0.0" : "127.0.0.1");
     }
 
     // endregion
@@ -2359,6 +2514,16 @@ public class Server {
                     break;
                 }
             }
+            if (player.getDisplayName().toLowerCase().startsWith(name)) {
+                int curDelta = player.getDisplayName().length() - name.length();
+                if (curDelta < delta) {
+                    found = player;
+                    delta = curDelta;
+                }
+                if (curDelta == 0) {
+                    break;
+                }
+            }
         }
 
         return found;
@@ -2375,7 +2540,7 @@ public class Server {
     public Player getPlayerExact(String name) {
         name = name.toLowerCase();
         for (Player player : this.getOnlinePlayers().values()) {
-            if (player.getName().toLowerCase().equals(name)) {
+            if (player.getName().toLowerCase().equals(name) | player.getDisplayName().toLowerCase().equals(name)) {
                 return player;
             }
         }
@@ -3276,6 +3441,14 @@ public class Server {
         this.redstoneEnabled = redstoneEnabled;
     }
 
+    public boolean isEducationEditionEnabled() {
+        return educationEditionEnabled;
+    }
+
+    public void setEducationEditionEnabled(boolean educationEditionEnabled) {
+        this.educationEditionEnabled = educationEditionEnabled;
+    }
+
     //Revising later...
     public Config getConfig() {
         return this.config;
@@ -3416,6 +3589,14 @@ public class Server {
     @Since("1.19.30-r2")
     public int getMaximumSizePerChunk() {
         return maximumSizePerChunk;
+    }
+
+    public boolean isForceCustomItems() {
+        return forceCustomItems;
+    }
+
+    public void setForceCustomItems(boolean forceCustomItems) {
+        this.forceCustomItems = forceCustomItems;
     }
 
     @PowerNukkitXOnly

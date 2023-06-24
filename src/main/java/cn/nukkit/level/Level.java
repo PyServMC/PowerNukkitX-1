@@ -713,7 +713,7 @@ public class Level implements ChunkManager, Metadatable {
     public void initLevel(@Nullable DimensionData givenDimensionData) {
         Generator generator = generators.get();
         if (dimensionData == null || givenDimensionData != null) {
-            this.dimensionData = givenDimensionData == null ? generator.getDimensionData() : givenDimensionData;
+            this.dimensionData = givenDimensionData == null ? generator != null ? generator.getDimensionData() : DimensionEnum.OVERWORLD.getDimensionData() : givenDimensionData;
             if (this.requireProvider() instanceof DimensionDataProvider dimensionDataProvider) {
                 dimensionDataProvider.setDimensionData(dimensionData);
             }
@@ -796,6 +796,7 @@ public class Level implements ChunkManager, Metadatable {
     }
 
     public void addSound(Vector3 pos, Sound sound, float volume, float pitch, Player... players) {
+        Preconditions.checkArgument(!sound.isEdu() || this.server.isEducationEditionEnabled(), "Selected sound is from education edition! Enable education edition in nukkit.yml to play this sound.");
         Preconditions.checkArgument(volume >= 0 && volume <= 1, "Sound volume must be between 0 and 1");
         Preconditions.checkArgument(pitch >= 0, "Sound pitch must be higher than 0");
 
@@ -1430,8 +1431,7 @@ public class Level implements ChunkManager, Metadatable {
     }
 
     private void performThunder(long index, FullChunk chunk) {
-        if (areNeighboringChunksLoaded(index)) return;
-        if (ThreadLocalRandom.current().nextInt(10000) == 0) {
+        if (ThreadLocalRandom.current().nextInt(100000) == 0) {
             int LCG = this.getUpdateLCG() >> 2;
 
             int chunkX = chunk.getX() * 16;
@@ -2876,7 +2876,7 @@ public class Level implements ChunkManager, Metadatable {
                     for (Tag v : ((ListTag<? extends Tag>) tag).getAll()) {
                         if (v instanceof StringTag) {
                             Item entry = Item.fromString(((StringTag) v).data);
-                            if (entry.getId() > 0 && entry.getBlock() != null && entry.getBlock().getId() == target.getId()) {
+                            if (entry.getBlock() != null && entry.getBlock().getId() == target.getId()) {
                                 canBreak = true;
                                 break;
                             }
@@ -2991,7 +2991,6 @@ public class Level implements ChunkManager, Metadatable {
         }
 
         if (this.gameRules.getBoolean(GameRule.DO_TILE_DROPS)) {
-
             if (!isSilkTouch && (mustDrop || player != null && ((player.isSurvival() || player.isAdventure()) || setBlockDestroy)) && dropExp > 0 && drops.length != 0) {
                 this.dropExpOrb(vector.add(0.5, 0.5, 0.5), dropExp);
             }
@@ -3093,7 +3092,7 @@ public class Level implements ChunkManager, Metadatable {
         if (player != null) {
             PlayerInteractEvent ev = new PlayerInteractEvent(player, item, target, face, target.getId() == 0 ? Action.RIGHT_CLICK_AIR : Action.RIGHT_CLICK_BLOCK);
 
-            if (player.getGamemode() > 2) {
+            if (player.getGamemode() > 2 && !(target instanceof BlockEntityHolder)) {
                 ev.setCancelled();
             }
             //handle spawn protect
@@ -3198,7 +3197,7 @@ public class Level implements ChunkManager, Metadatable {
                     for (Tag v : ((ListTag<Tag>) tag).getAll()) {
                         if (v instanceof StringTag) {
                             Item entry = Item.fromString(((StringTag) v).data);
-                            if (entry.getId() > 0 && entry.getBlock() != null && entry.getBlock().getId() == target.getId()) {
+                            if (entry.getBlock() != null && entry.getBlock().getId() == target.getId()) {
                                 canPlace = true;
                                 break;
                             }
@@ -4027,6 +4026,10 @@ public class Level implements ChunkManager, Metadatable {
             throw new LevelException("Invalid Entity level");
         }
 
+        if (entity.getId() < 0) {
+            entity.close();
+            return;
+        }
         if (entity instanceof Player) {
             this.players.remove(entity.getId());
             this.checkSleep();

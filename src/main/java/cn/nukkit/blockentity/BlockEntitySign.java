@@ -237,6 +237,11 @@ public class BlockEntitySign extends BlockEntitySpawnable {
         }
     }
 
+
+    public String[] getText() {
+        return text;
+    }
+
     @Override
     public boolean updateCompoundTag(CompoundTag nbt, Player player) {
         if (!nbt.getString("id").equals(BlockEntity.SIGN) && !nbt.getString("id").equals(BlockEntity.HANGING_SIGN)) {
@@ -253,6 +258,17 @@ public class BlockEntitySign extends BlockEntitySpawnable {
         SignChangeEvent signChangeEvent = new SignChangeEvent(this.getBlock(), player, lines);
 
         if (!this.namedTag.contains(TAG_LOCKED_FOR_EDITING_BY) || !Objects.equals(player.getId(), this.getEditorEntityRuntimeId())) {
+            signChangeEvent.setCancelled();
+        }
+
+        boolean empty = true;
+        for (String line : lines) {
+            if (!line.equals("")) {
+                empty = false;
+            }
+        }
+
+        if (empty) {
             signChangeEvent.setCancelled();
         }
 
@@ -358,7 +374,7 @@ public class BlockEntitySign extends BlockEntitySpawnable {
     }
 
     //验证Line Text是否符合要求
-    private static void sanitizeText(String[] lines) {
+    protected static void sanitizeText(String[] lines) {
         for (int i = 0; i < lines.length; i++) {
             // Don't allow excessive text per line.
             if (lines[i] != null) {

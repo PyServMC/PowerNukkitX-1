@@ -90,6 +90,11 @@ public class BlockItemFrame extends BlockTransparentMeta implements BlockEntityH
         return getBooleanValue(HAS_MAP);
     }
 
+    @Override
+    public boolean isSolid() {
+        return false;
+    }
+
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public void setStoringMap(boolean map) {
@@ -242,19 +247,19 @@ public class BlockItemFrame extends BlockTransparentMeta implements BlockEntityH
     @Override
     public Item[] getDrops(Item item) {
         BlockEntityItemFrame itemFrame = getBlockEntity();
-        if (itemFrame != null && ThreadLocalRandom.current().nextFloat() <= itemFrame.getItemDropChance()) {
-            return new Item[]{
-                    toItem(), itemFrame.getItem().clone()
-            };
-        } else {
-            return new Item[]{
-                    toItem()
-            };
+        if (itemFrame != null) {
+            itemFrame.dropItem(null);
         }
+        return new Item[]{toItem()};
     }
 
     @Override
     public Item toItem() {
+        BlockEntityItemFrame itemFrame = this.getBlockEntity();
+        if (itemFrame != null) {
+            Item itemInFrame = itemFrame.getItem();
+            return itemInFrame.isNull() ? new ItemItemFrame() : itemInFrame;
+        }
         return new ItemItemFrame();
     }
 

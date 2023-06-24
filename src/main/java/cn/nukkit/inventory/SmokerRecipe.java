@@ -13,6 +13,8 @@ public class SmokerRecipe implements SmeltingRecipe {
     private Item ingredient;
     private final String recipeId;
 
+    private double experience;
+
     @PowerNukkitOnly
     public SmokerRecipe(Item result, Item ingredient) {
         this(null, result, ingredient);
@@ -21,8 +23,13 @@ public class SmokerRecipe implements SmeltingRecipe {
     @PowerNukkitXOnly
     public SmokerRecipe(@Nullable String recipeId, Item result, Item ingredient) {
         this.recipeId = recipeId == null ? CraftingManager.getMultiItemHash(List.of(ingredient, result)).toString() : recipeId;
+        this(result, ingredient, 0);
+    }
+
+    public SmokerRecipe(Item result, Item ingredient, double experience) {
         this.output = result.clone();
         this.ingredient = ingredient.clone();
+        this.experience = experience;
     }
 
     @Override
@@ -39,6 +46,11 @@ public class SmokerRecipe implements SmeltingRecipe {
     @Override
     public Item getInput() {
         return this.ingredient.clone();
+    }
+
+    @Override
+    public double getExperience() {
+        return experience;
     }
 
     @Override
