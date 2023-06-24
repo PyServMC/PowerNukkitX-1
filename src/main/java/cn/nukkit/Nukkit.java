@@ -53,7 +53,7 @@ public class Nukkit {
     @PowerNukkitOnly
     public final static String GIT_COMMIT = getGitCommit();
     public final static String API_VERSION = dynamic("1.0.14");
-    public final static String CODENAME = dynamic("PowerNukkitX");
+    public final static String CODENAME = dynamic("PowerNukkitX × CUSTOM");
     @Deprecated
     public final static String MINECRAFT_VERSION = ProtocolInfo.MINECRAFT_VERSION;
     @Deprecated
