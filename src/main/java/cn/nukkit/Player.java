@@ -402,8 +402,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     @Since("1.19.30-r1")
     protected Entity lastBeAttackEntity = null;
 
-    private boolean foodEnabled = true;
-
     @Since("1.19.80-r1")
     @PowerNukkitXOnly
     private final @NotNull PlayerHandle playerHandle = new PlayerHandle(this);
