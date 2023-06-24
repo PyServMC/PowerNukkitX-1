@@ -29,7 +29,6 @@ import java.util.Objects;
 @PowerNukkitXOnly
 @Since("1.6.0.0-PNX")
 public abstract class EntityIntelligent extends EntityPhysical implements LogicalUtils, EntityControlUtils {
-
     public static final IBehaviorGroup EMPTY_BEHAVIOR_GROUP = new EmptyBehaviorGroup();
 
     @Since("1.19.60-r1")
@@ -43,7 +42,6 @@ public abstract class EntityIntelligent extends EntityPhysical implements Logica
 
     public EntityIntelligent(FullChunk chunk, CompoundTag nbt) {
         super(chunk, nbt);
-        this.behaviorGroup = requireBehaviorGroup();
         var storage = getMemoryStorage();
         if (storage != null) {
             storage.put(CoreMemoryTypes.ENTITY_SPAWN_TIME, Server.getInstance().getTick());
@@ -53,10 +51,15 @@ public abstract class EntityIntelligent extends EntityPhysical implements Logica
                 var data = Objects.requireNonNull(codec).getDecoder().apply(this.namedTag);
                 if (data != null) {
                     storage.put(mem, data);
-                    codec.init(data, this);
                 }
             });
         }
+    }
+
+    @Override
+    protected void initEntity() {
+        super.initEntity();
+        this.behaviorGroup = requireBehaviorGroup();
     }
 
     /**
@@ -145,12 +148,33 @@ public abstract class EntityIntelligent extends EntityPhysical implements Logica
     }
 
     /**
-     * 返回实体最大的跳跃高度，返回值会用在移动处理上
+     * 返回实体在跳跃时要增加的motion y
      *
-     * @return 实体最大跳跃高度
+     * @param jumpY 跳跃的高度
+     * @return 实体要增加的motion y
      */
-    public float getJumpingHeight() {
-        return 1.0f;
+    public double getJumpingMotion(double jumpY) {
+        if (this.isTouchingWater()) {
+            if (jumpY > 0 && jumpY < 0.2) {
+                return 0.25;
+            } else if (jumpY < 0.51) {
+                return 0.45;
+            } else if (jumpY < 1.01) {
+                return 0.6;
+            } else {
+                return 0.7;
+            }
+        } else {
+            if (jumpY > 0 && jumpY < 0.2) {
+                return 0.15;
+            } else if (jumpY < 0.51) {
+                return 0.35;
+            } else if (jumpY < 1.01) {
+                return 0.5;
+            } else {
+                return 0.6;
+            }
+        }
     }
 
     @Override

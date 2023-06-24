@@ -4,7 +4,6 @@ import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.blockstate.BlockState;
-import cn.nukkit.utils.BlockColor;
 import org.jetbrains.annotations.NotNull;
 
 @PowerNukkitXOnly
@@ -40,11 +39,6 @@ public class BlockMangroveLog extends BlockLog {
     }
 
     @Override
-    public BlockColor getColor() {
-        return BlockColor.BROWNISH_RED;
-    }
-
-    @Override
     public String getName() {
         return "mangrove log";
     }
@@ -61,7 +55,7 @@ public class BlockMangroveLog extends BlockLog {
     }
 
     @Override
-    protected BlockState getStrippedState() {
+    public BlockState getStrippedState() {
         return getCurrentState().withBlockId(STRIPPED_MANGROVE_LOG);
     }
 }

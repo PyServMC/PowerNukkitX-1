@@ -8009,6 +8009,34 @@
       },
       {
         "meta": 32767,
+        "name": "minecraft:torchflower"
+      }
+    ],
+    "output": [
+      {
+        "meta": 10,
+        "name": "minecraft:suspicious_stew"
+      }
+    ],
+    "priority": 0
+  },
+  {
+    "block": "crafting_table",
+    "input": [
+      {
+        "meta": 32767,
+        "name": "minecraft:brown_mushroom"
+      },
+      {
+        "meta": 32767,
+        "name": "minecraft:red_mushroom"
+      },
+      {
+        "meta": 32767,
+        "name": "minecraft:bowl"
+      },
+      {
+        "meta": 32767,
         "name": "minecraft:wither_rose"
       }
     ],
@@ -8445,6 +8473,25 @@
       {
         "block_states": "CgAAAwcAY2FuZGxlcwAAAAABAwBsaXQAAA==",
         "name": "minecraft:yellow_candle"
+      }
+    ],
+    "priority": 0
+  },
+  {
+    "block": "crafting_table",
+    "input": [
+      {
+        "meta": 32767,
+        "name": "minecraft:chest"
+      },
+      {
+        "meta": 32767,
+        "name": "minecraft:cherry_boat"
+      }
+    ],
+    "output": [
+      {
+        "name": "minecraft:cherry_chest_boat"
       }
     ],
     "priority": 0
@@ -13390,6 +13437,37 @@
     "input": [
       {
         "meta": 32767,
+        "name": "minecraft:pink_petals"
+      }
+    ],
+    "output": [
+      {
+        "name": "minecraft:pink_dye"
+      }
+    ],
+    "priority": 0
+  },
+  {
+    "block": "crafting_table",
+    "input": [
+      {
+        "meta": 32767,
+        "name": "minecraft:pitcher_plant"
+      }
+    ],
+    "output": [
+      {
+        "count": 2,
+        "name": "minecraft:cyan_dye"
+      }
+    ],
+    "priority": 0
+  },
+  {
+    "block": "crafting_table",
+    "input": [
+      {
+        "meta": 32767,
         "name": "minecraft:pumpkin"
       },
       {
@@ -13967,6 +14045,21 @@
     "output": [
       {
         "name": "minecraft:fermented_spider_eye"
+      }
+    ],
+    "priority": 0
+  },
+  {
+    "block": "crafting_table",
+    "input": [
+      {
+        "meta": 32767,
+        "name": "minecraft:torchflower"
+      }
+    ],
+    "output": [
+      {
+        "name": "minecraft:orange_dye"
       }
     ],
     "priority": 0

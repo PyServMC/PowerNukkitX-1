@@ -6,8 +6,6 @@ import cn.nukkit.api.Since;
 import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemTool;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import static cn.nukkit.blockproperty.CommonBlockProperties.PILLAR_AXIS;
@@ -81,9 +79,5 @@ public class BlockInfestedDeepslate extends BlockSolidMeta {
     public Item[] getDrops(Item item) {
         return Item.EMPTY_ARRAY;
     }
-    
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.DEEPSLATE_GRAY;
-    }
+
 }

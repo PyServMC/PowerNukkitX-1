@@ -21,6 +21,10 @@ public interface ModProcessRecipe extends Recipe {
     @NotNull
     List<Item> getExtraResults();
 
+    default String getRecipeId() {
+        return CraftingManager.getShapelessItemDescriptorHash(getIngredients()).toString();
+    }
+
     @Nullable
     default EnergyType getEnergyType() {
         return null;
@@ -57,13 +61,13 @@ public interface ModProcessRecipe extends Recipe {
     }
 
     default boolean matchItems(@NotNull List<Item> inputItems) {
-        for (var item : inputItems) {
-            if (item == null || item.isNull()) {
+        for (var each : getIngredients()) {
+            if (each == null) {
                 continue;
             }
             var found = false;
-            for (var each : getIngredients()) {
-                if (each.match(item)) {
+            for (var input : inputItems) {
+                if (input != null && !input.isNull() && each.match(input)) {
                     found = true;
                     break;
                 }

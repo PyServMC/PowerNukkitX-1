@@ -5,8 +5,6 @@ import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.item.ItemTool;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 @PowerNukkitXOnly
@@ -69,8 +67,4 @@ public class BlockSlabMangrove extends BlockSlab {
         return ItemTool.TYPE_AXE;
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.BROWNISH_RED;
-    }
 }

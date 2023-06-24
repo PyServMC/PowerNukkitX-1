@@ -12,6 +12,7 @@ import cn.nukkit.block.customblock.CustomBlock;
 import cn.nukkit.blockproperty.*;
 import cn.nukkit.blockproperty.exception.BlockPropertyNotFoundException;
 import cn.nukkit.blockstate.exception.InvalidBlockStateException;
+import cn.nukkit.item.RuntimeItemMapping;
 import cn.nukkit.item.RuntimeItems;
 import cn.nukkit.nbt.NBTIO;
 import cn.nukkit.nbt.tag.CompoundTag;
@@ -22,8 +23,6 @@ import cn.nukkit.utils.HumanStringComparator;
 import cn.nukkit.utils.MinecraftNamespaceComparator;
 import cn.nukkit.utils.OK;
 import com.google.common.base.Preconditions;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import lombok.AllArgsConstructor;
@@ -42,6 +41,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -56,45 +56,19 @@ public class BlockStateRegistry {
     public final int BIG_META_MASK = 0xFFFFFFFF;
     private final ExecutorService asyncStateRemover = Executors.newSingleThreadExecutor(t -> new Thread(t, "BlockStateRegistry#asyncStateRemover"));
     private final Pattern BLOCK_ID_NAME_PATTERN = Pattern.compile("^blockid:(\\d+)$");
-
     private Registration updateBlockRegistration;
-
     private final Map<BlockState, Registration> blockStateRegistration = new ConcurrentHashMap<>();
     private final Map<String, Registration> stateIdRegistration = new ConcurrentHashMap<>();
     private final Int2ObjectMap<Registration> runtimeIdRegistration = new Int2ObjectOpenHashMap<>();
-
     private final Int2ObjectMap<String> blockIdToPersistenceName = new Int2ObjectOpenHashMap<>();
     private final Map<String, Integer> persistenceNameToBlockId = new LinkedHashMap<>();
-
     private byte[] blockPaletteBytes;
-
     private List<String> knownStateIds;
-
-    @PowerNukkitXOnly
-    private final Int2ObjectOpenHashMap<String> mappingEntries = new Int2ObjectOpenHashMap<>();
+    public static final AtomicInteger blockPaletteVersion = new AtomicInteger(0);
 
     //<editor-fold desc="static initialization" defaultstate="collapsed">
     static {
         init();
-
-        try (InputStream stream = Server.class.getClassLoader().getResourceAsStream("block_mappings.json")) {
-            if (stream == null) {
-                throw new AssertionError("Unable to load item_mappings.json");
-            }
-            JsonObject itemMapping = JsonParser.parseReader(new InputStreamReader(stream)).getAsJsonObject();
-            for (String legacyID : itemMapping.keySet()) {
-                JsonObject convertData = itemMapping.getAsJsonObject(legacyID);
-                int id = Integer.parseInt(legacyID);
-                for (String damageStr : convertData.keySet()) {
-                    String identifier = convertData.get(damageStr).getAsString();
-                    int damage = Integer.parseInt(damageStr);
-                    mappingEntries.put(RuntimeItems.getFullId(id, damage), identifier);
-                }
-            }
-            mappingEntries.trim();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
     //</editor-fold>
 
@@ -133,7 +107,7 @@ public class BlockStateRegistry {
 
         //<editor-fold desc="Loading canonical_block_states.nbt" defaultstate="collapsed">
         List<CompoundTag> tags = new ArrayList<>();
-        List<String> loadingKnownStateIds = new ArrayList<>();
+        knownStateIds = new ArrayList<>();
         try (InputStream stream = Server.class.getModule().getResourceAsStream("canonical_block_states.nbt")) {
             if (stream == null) {
                 throw new AssertionError("Unable to locate block state nbt");
@@ -146,10 +120,8 @@ public class BlockStateRegistry {
                     tag.putInt("runtimeId", runtimeId++);
                     tag.putInt("blockId", persistenceNameToBlockId.getOrDefault(tag.getString("name").toLowerCase(Locale.ENGLISH), -1));
                     tags.add(tag);
-                    loadingKnownStateIds.add(getStateId(tag));
                 }
             }
-            knownStateIds = loadingKnownStateIds;
         } catch (IOException e) {
             throw new AssertionError(e);
         }
@@ -172,8 +144,10 @@ public class BlockStateRegistry {
                 registerPersistenceName(blockId, name);
                 registerStateId(state, runtimeId);
             } else if (blockId == -1) {
-                if (warned.add(name)) {
-                    log.warn("Unknown block id for the block named {}", name);
+                if (RuntimeItems.getRuntimeMapping().fromIdentifier(name) == null) {
+                    if (warned.add(name)) {
+                        log.warn("Unknown block id for the block named {}", name);
+                    }
                 }
                 registerStateId(state, runtimeId);
             }
@@ -193,6 +167,8 @@ public class BlockStateRegistry {
             }
         }*/
 
+        blockPaletteVersion.set(tags.get(0).getInt("version"));
+
         if (infoUpdateRuntimeId == null) {
             throw new IllegalStateException("Could not find the minecraft:info_update runtime id!");
         }
@@ -204,12 +180,6 @@ public class BlockStateRegistry {
         } catch (IOException e) {
             throw new ExceptionInInitializerError(e);
         }
-    }
-
-    @Nullable
-    @PowerNukkitXOnly
-    public static String getBlockMapping(int blockLegacyFullId) {
-        return mappingEntries.get(blockLegacyFullId);
     }
 
     private boolean isNameOwnerOfId(String name, int blockId) {
@@ -347,23 +317,11 @@ public class BlockStateRegistry {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public int getRuntimeId(BlockState state) {
-        if (state.getBlockId() > Block.MAX_BLOCK_ID && !Block.ID_TO_CUSTOM_BLOCK.containsKey(state.getBlockId())) {
-            return stateIdRegistration.get(blockIdToPersistenceName.get(state.getBlockId())).runtimeId;
+        String blockMapping = RuntimeItemMapping.getBlockMapping().getOrDefault(RuntimeItems.getFullId(state.getBlockId(), state.getDataStorage().intValue()), null);
+        if (blockMapping != null) {
+            return stateIdRegistration.get(blockMapping).runtimeId;
         }
-        return getRegistration(convertToNewState(state)).runtimeId;
-    }
-
-    private BlockState convertToNewState(BlockState oldState) {
-        // Check OldWoodBarkUpdater.java and https://minecraft.fandom.com/wiki/Log#Metadata
-        // The Only bark variant is replaced in the client side to minecraft:wood with the same wood type
-        if (oldState.getBitSize() == 4 && (oldState.getBlockId() == BlockID.LOG || oldState.getBlockId() == BlockID.LOG2)) {
-            int exactInt = oldState.getExactIntStorage();
-            if ((exactInt & 0b1100) == 0b1100) {
-                int increment = oldState.getBlockId() == BlockID.LOG ? 0b000 : 0b100;
-                return BlockState.of(BlockID.WOOD_BARK, (exactInt & 0b11) + increment);
-            }
-        }
-        return oldState;
+        return getRegistration(state).runtimeId;
     }
 
     private Registration getRegistration(BlockState state) {
@@ -501,8 +459,9 @@ public class BlockStateRegistry {
         blockStateRegistration.clear();
         stateIdRegistration.clear();
         runtimeIdRegistration.clear();
+        knownStateIds.clear();
         //按照每组方块(因为每个方块可能有多种状态,将他们归为一个List)的namespace(形如minecraft:xxx)升序排序(遍历时Hash值小的在前面)
-        SortedMap<String, List<CompoundTag>> namespace2Nbt = new TreeMap<>(getBlockIdComparator());
+        SortedMap<String, List<CompoundTag>> namespace2Nbt = new TreeMap<>(MinecraftNamespaceComparator::compareFNV);
         //处理原版方块
         try (InputStream stream = Server.class.getModule().getResourceAsStream("canonical_block_states.nbt")) {
             if (stream == null) {
@@ -524,17 +483,15 @@ public class BlockStateRegistry {
             return new OK<>(false, e);
         }
 
-        var version = -1;
         //处理自定义方块
         for (var blockCustom : blockCustoms) {
             var namespace = blockCustom.getNamespaceId();
             blockIdToPersistenceName.put(blockCustom.getId(), namespace);
             persistenceNameToBlockId.put(namespace, blockCustom.getId());
-            if (!knownStateIds.contains(namespace)) knownStateIds.add(namespace);
             CompoundTag nbt = new CompoundTag()
                     .putInt("blockId", blockCustom.getId())
                     .putString("name", namespace)
-                    .putInt("version", version == -1 ? version = namespace2Nbt.values().stream().findFirst().get().get(0).getInt("version") : version)
+                    .putInt("version", blockPaletteVersion.get())
                     .putCompound("states", new CompoundTag("states"));
             var nbtList = new ArrayList<CompoundTag>();
 
@@ -555,7 +512,7 @@ public class BlockStateRegistry {
                             }
                         } else if (eachProperty instanceof UnsignedIntBlockProperty unsignedIntBlockProperty) {
                             for (long i = unsignedIntBlockProperty.getMinValue(); i <= unsignedIntBlockProperty.getMaxValue(); i++) {
-                                newStateNbtList.add(new LinkedCompoundTag("states").putLong(eachProperty.getName(), i));
+                                newStateNbtList.add(new LinkedCompoundTag("states").putInt(eachProperty.getName(), (int) i));
                             }
                         } else if (eachProperty instanceof ArrayBlockProperty<?> arrayBlockProperty) {
                             if (arrayBlockProperty.isOrdinal()) {
@@ -580,7 +537,7 @@ public class BlockStateRegistry {
                                 }
                             } else if (eachProperty instanceof UnsignedIntBlockProperty unsignedIntBlockProperty) {
                                 for (long i = unsignedIntBlockProperty.getMinValue(); i <= unsignedIntBlockProperty.getMaxValue(); i++) {
-                                    newStateNbtList.add(stateNbt.copy().putLong(eachProperty.getName(), i));
+                                    newStateNbtList.add(stateNbt.copy().putInt(eachProperty.getName(), (int) i));
                                 }
                             } else if (eachProperty instanceof ArrayBlockProperty<?> arrayBlockProperty) {
                                 if (arrayBlockProperty.isOrdinal()) {
@@ -629,8 +586,10 @@ public class BlockStateRegistry {
                     //注册stateIdRegistration和runtimeIdRegistration
                     registerStateId(nbt, runtimeId);
                 } else if (block == -1) {
-                    if (warned.add(name)) {
-                        log.warn("Unknown block id for the block named {}", name);
+                    if (RuntimeItems.getRuntimeMapping().fromIdentifier(name) == null) {
+                        if (warned.add(name)) {
+                            log.warn("Unknown block id for the block named {}", name);
+                        }
                     }
                     registerStateId(nbt, runtimeId);
                 }
@@ -672,7 +631,7 @@ public class BlockStateRegistry {
         if (old != null && !old.equals(registration)) {
             throw new UnsupportedOperationException("The persistence NBT registration tried to replaced a runtime id. Old:" + old + ", New:" + runtimeId + ", State:" + stateId);
         }
-
+        knownStateIds.add(stateId);
         runtimeIdRegistration.put(runtimeId, registration);
     }
 
@@ -808,10 +767,6 @@ public class BlockStateRegistry {
     @Since("1.19.50-r1")
     public static void close() {
         asyncStateRemover.shutdownNow();
-    }
-
-    private Comparator<String> getBlockIdComparator() {
-        return MinecraftNamespaceComparator::compareFNV;
     }
 
     @AllArgsConstructor

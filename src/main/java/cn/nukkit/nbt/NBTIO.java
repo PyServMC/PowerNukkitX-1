@@ -6,7 +6,8 @@ import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockUnknown;
-import cn.nukkit.blockproperty.UnknownRuntimeIdException;
+import cn.nukkit.block.customblock.CustomBlock;
+import cn.nukkit.blockproperty.*;
 import cn.nukkit.blockproperty.exception.BlockPropertyNotFoundException;
 import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.blockstate.BlockStateRegistry;
@@ -29,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.NoSuchElementException;
+import java.util.TreeMap;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPInputStream;
@@ -47,13 +49,12 @@ public class NBTIO {
         return putItemHelper(item, null);
     }
 
-    @PowerNukkitXDifference(info = "Remove the name from the tag, this function will be removed in the future")
     public static CompoundTag putItemHelper(Item item, Integer slot) {
         CompoundTag tag = new CompoundTag((String) null)
                 .putByte("Count", item.getCount())
                 .putShort("Damage", item.getDamage());
         int id = item.getId();
-        if (id == ItemID.STRING_IDENTIFIED_ITEM) {
+        if (id == ItemID.STRING_IDENTIFIED_ITEM || Block.ID_TO_CUSTOM_BLOCK.containsKey(255 - id)) {
             tag.putString("Name", item.getNamespaceId());
         } else {
             tag.putShort("id", item.getId());
@@ -69,7 +70,6 @@ public class NBTIO {
         return tag;
     }
 
-    @PowerNukkitXDifference(info = "Remove the name from the tag, this function will be removed in the future")
     @PowerNukkitXDifference(info = "not limit name and id because the return value of fromString not null")
     public static Item getItemHelper(CompoundTag tag) {
         if (!tag.containsByte("Count")) {
@@ -118,21 +118,51 @@ public class NBTIO {
     @PowerNukkitXOnly
     @Since("1.19.60-r1")
     public static CompoundTag putBlockHelper(Block block) {
-        var states = new CompoundTag();
-        for (var str : block.getProperties().getNames()) {
-            Class<?> type = block.getCurrentState().getProperty(str).getValueClass();
-            if (type == Boolean.class) {
-                states.putBoolean(str, block.getCurrentState().getBooleanValue(str));
-            } else if (type == Integer.class) {
-                states.putInt(str, block.getCurrentState().getIntValue(str));
-            } else {
-                states.putString(str, block.getCurrentState().getPersistenceValue(str));
+        return putBlockHelper(block, "Block");
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.80-r3")
+    public static CompoundTag putBlockHelper(Block block, String nbtName) {
+        String[] states = BlockStateRegistry.getKnownBlockStateIdByRuntimeId(block.getRuntimeId()).split(";");
+        CompoundTag result = new CompoundTag(nbtName).putString("name", states[0]);
+        var nbt = new CompoundTag("", new TreeMap<>());
+        if (block instanceof CustomBlock) {
+            for (var str : block.getProperties().getNames()) {
+                BlockProperty<?> property = block.getCurrentState().getProperty(str);
+                if (property instanceof BooleanBlockProperty) {
+                    nbt.putBoolean(str, block.getCurrentState().getBooleanValue(str));
+                } else if (property instanceof IntBlockProperty) {
+                    nbt.putInt(str, block.getCurrentState().getIntValue(str));
+                } else if (property instanceof UnsignedIntBlockProperty) {
+                    nbt.putInt(str, block.getCurrentState().getIntValue(str));
+                } else if (property instanceof ArrayBlockProperty<?> arrayBlockProperty) {
+                    if (arrayBlockProperty.isOrdinal()) {
+                        if (property.getBitSize() > 1) {
+                            nbt.putInt(str, Integer.parseInt(block.getCurrentState().getPersistenceValue(str)));
+                        } else {
+                            nbt.putBoolean(str, !block.getCurrentState().getPersistenceValue(str).equals("0"));
+                        }
+                    } else {
+                        nbt.putString(str, block.getCurrentState().getPersistenceValue(str));
+                    }
+                }
+            }
+        } else {
+            for (int i = 1, len = states.length; i < len; ++i) {
+                String[] split = states[i].split("=");
+                String propertyTypeString = PropertyTypes.getPropertyTypeString(split[0]);
+                if (propertyTypeString != null) {
+                    switch (propertyTypeString) {
+                        case "BOOLEAN" -> nbt.putBoolean(split[0], Integer.parseInt(split[1]) == 1);
+                        case "ENUM" -> nbt.putString(split[0], split[1]);
+                        case "INTEGER" -> nbt.putInt(split[0], Integer.parseInt(split[1]));
+                    }
+                }
             }
         }
-        return new CompoundTag("Block")
-                .putString("name", block.getPersistenceName())
-                .putCompound("states", states)
-                .putInt("version", 17959425);
+        result.putCompound("states", nbt);
+        return result.putInt("version", BlockStateRegistry.blockPaletteVersion.get());
     }
 
     @PowerNukkitXOnly
@@ -172,6 +202,56 @@ public class NBTIO {
 
 
     private static Item fixWoolItem(int id, int damage, int count) {
+        //TODO 回退之前的方块更新方案，现在有更好的解决方式，下个版本移除这段代码
+        if (damage == 0) {
+            switch (id) {
+                case -552 -> {
+                    return Item.get(35, 8, count);
+                }
+                case -553 -> {
+                    return Item.get(35, 7, count);
+                }
+                case -554 -> {
+                    return Item.get(35, 15, count);
+                }
+                case -555 -> {
+                    return Item.get(35, 12, count);
+                }
+                case -556 -> {
+                    return Item.get(35, 14, count);
+                }
+                case -557 -> {
+                    return Item.get(35, 1, count);
+                }
+                case -558 -> {
+                    return Item.get(35, 4, count);
+                }
+                case -559 -> {
+                    return Item.get(35, 5, count);
+                }
+                case -560 -> {
+                    return Item.get(35, 13, count);
+                }
+                case -561 -> {
+                    return Item.get(35, 9, count);
+                }
+                case -562 -> {
+                    return Item.get(35, 3, count);
+                }
+                case -563 -> {
+                    return Item.get(35, 11, count);
+                }
+                case -564 -> {
+                    return Item.get(35, 10, count);
+                }
+                case -565 -> {
+                    return Item.get(35, 2, count);
+                }
+                case -566 -> {
+                    return Item.get(35, 6, count);
+                }
+            }
+        }
         return Item.get(id, damage, count);
     }
 

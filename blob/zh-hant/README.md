@@ -2,13 +2,13 @@
 
 <h2>🌐Need to switch languages?&ensp;/&ensp;多語言文檔</h2>
 
-[![Discord](https://img.shields.io/discord/944227466912870410?style=flat-square)](https://discord.gg/BcPhZCVJHJ)
-[![English](https://img.shields.io/badge/English-100%25-green?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/README.md)
-[![简体中文](https://img.shields.io/badge/简体中文-100%25-green?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/blob/zh-hans/README.md)
-[![繁體中文](https://img.shields.io/badge/繁體中文-100%25-green?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/blob/zh-hant/README.md)
+[![Discord](https://img.shields.io/discord/944227466912870410?color=7289da&logo=discord&logoColor=white&style=flat-square)](https://discord.gg/BcPhZCVJHJ)
+[![English](https://img.shields.io/badge/English-Click%20me-purple?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/README.md)
+[![简体中文](https://img.shields.io/badge/简体中文-Click%20me-purple?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/blob/zh-hans/README.md)
+[![繁體中文](https://img.shields.io/badge/繁體中文-Click%20me-purple?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/blob/zh-hant/README.md)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/LICENSE)
 [![ChangeLog](https://img.shields.io/badge/ChangeLog-blue?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/blob/zh-hant/CHANGELOG.md)
-[![FAQ](https://img.shields.io/badge/FAQ-blue?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/wiki/FAQ)
+[![FAQ](https://img.shields.io/badge/FAQ-blue?style=flat-square)](https://doc.powernukkitx.cn/zh-cn/faq/common.html)
 [![PNX-DOC](https://img.shields.io/badge/PNX-DOC文檔庫-blue?style=flat-square)](https://doc.powernukkitx.cn)
 [![Maven Central](https://img.shields.io/maven-central/v/cn.powernukkitx/powernukkitx.svg?label=Maven%20Central&style=flat-square)](https://search.maven.org/search?q=g:%22cn.powernukkitx%22%20AND%20a:%22powernukkitx%22)
 [![](https://www.jitpack.io/v/PowerNukkitX/PowerNukkitX.svg)](https://www.jitpack.io/#PowerNukkitX/PowerNukkitX)
@@ -24,15 +24,14 @@
 
 PowerNukkitX的優勢：
 
-1. 支持1.19.70協議。
+1. 支持1.20.0協議。
 2. 原生支持384限高（目前僅限主世界，其餘則為256格限高）。
 3. 原生支持地獄世界，無需另外安裝插件補丁等。
 4. 支持3D生物群系（完善中）。<!--自定義維度接口 TODO-->
 5. 原生支持香草命令和命令方塊等（完善中）。
-6. 內置[Terra](https://github.com/PolyhedralDev/Terra)
-   地形生成器（如有問題[點此查看](https://doc.powernukkitx.cn/zh-cn/faq/Terra%E9%97%AE%E9%A2%98.html)）。
+6. 內置[Terra](https://github.com/PolyhedralDev/Terra)地形生成器（如有問題[點此查看](https://doc.powernukkitx.cn/zh-cn/faq/terra.html)）。
 7. 支持使用JavaSrcipt語言編寫插件
-   （初步完成，可在[此處](https://doc.powernukkitx.cn/zh-cn/plugin-dev/js/%E6%A6%82%E8%BF%B0.html)查找開發文檔）。
+   （初步完成，可在[此處](https://doc.powernukkitx.cn/zh-cn/dev/js/setup_dev_env.html)查找開發文檔）。
 8. 支持自定義方塊 / 物品 / 實體（完善中，[檔案](https://doc.powernukkitx.cn)待補充）。
 9. 內置生物AI，無需安裝MobPlugin（開發中，未完善）。
 10. Todo...
@@ -44,9 +43,9 @@ PowerNukkitX的優勢：
 ### 1.从[PNX-CLI](https://github.com/PowerNukkitX/PNX-CLI)啟動:
 
 1. 从[release](https://github.com/PowerNukkitX/PNX-CLI/releases)下載`PNX-CLI-Jar.zip`最新版本
-2. 運行`java -jar PNX-CLI-0.0.1-alpha.jar`
+2. 運行`java -jar PNX-CLI-0.1.6.jar`
 
-您还可以在[此處](https://doc.powernukkitx.cn/zh-cn/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8.html)查阅更多信息。
+您还可以在[此處](https://doc.powernukkitx.cn/zh-cn/Get_Started.html)查阅更多信息。
 
 ### 2.从命令啟動:
 
@@ -66,7 +65,7 @@ java -Dfile.encoding=UTF-8 ^
 -XX:+UseG1GC ^
 -XX:+UseStringDeduplication ^
 -XX:+EnableJVMCI ^
---module-path=.\libs\graal-sdk-22.2.0.jar;.\libs\truffle-api-22.2.0.jar; ^
+--module-path=.\libs\graal-sdk-23.0.0.jar;.\libs\truffle-api-23.0.0.jar; ^
 --add-opens java.base/java.lang=ALL-UNNAMED ^
 --add-opens java.base/java.io=ALL-UNNAMED ^
 -cp .\powernukkitx.jar;.\libs\* ^
@@ -83,7 +82,7 @@ java -Dfile.encoding=UTF-8 \
 -XX:+UseG1GC \
 -XX:+UseStringDeduplication \
 -XX:+EnableJVMCI \
---module-path=./libs/truffle-api-22.2.0.jar:./libs/graal-sdk-22.2.0.jar: \
+--module-path=./libs/truffle-api-23.0.0.jar:./libs/graal-sdk-23.0.0.jar: \
 --add-opens java.base/java.lang=ALL-UNNAMED \
 --add-opens java.base/java.io=ALL-UNNAMED \
 -cp ./powernukkitx.jar:./libs/* \
@@ -135,7 +134,7 @@ repositories {
 }
 
 dependencies {
-    compile group: 'cn.powernukkitx', name: 'powernukkitx', version: '1.19.63-r1'
+    compile group: 'cn.powernukkitx', name: 'powernukkitx', version: '1.20.0-r2'
 }
 ```
 
@@ -146,7 +145,7 @@ dependencies {
     <dependency>
         <groupId>cn.powernukkitx</groupId>
         <artifactId>powernukkitx</artifactId>
-        <version>1.19.70-r1</version>
+        <version>1.20.0-r2</version>
     </dependency>
 </dependencies>
 ```
@@ -175,6 +174,7 @@ dependencies {
 - __[🌐 PowerNukkitX官網](https://powernukkitx.cn/)__
 - __[👩🏽‍💻 PowerNukkitX文檔庫](https://doc.powernukkitx.cn/)__
 - __[💬 PowerNukkitX Discord](https://discord.gg/BcPhZCVJHJ)__
+- __[💾 下載正式版PowerNukkitX](https://github.com/PowerNukkitX/PowerNukkitX/releases)__
 - __[💾 下載測試版PowerNukkitX](https://ci.lt-name.com/job/PowerNukkitX/)__
 - __[🔌 Cloudburst Nukkit 插件中心](https://cloudburstmc.org/resources/categories/nukkit-plugins.1/)__
 - __[🔌 PowerNukkit 插件中心](https://discuss.powernukkit.org/c/plugins/powernukkit-plugins/14/)__
@@ -186,5 +186,9 @@ dependencies {
 [![Issues-Closed](https://img.shields.io/github/issues-closed/PowerNukkitX/PowerNukkitX?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/issues?q=is%3Aissue+is%3Aclosed)
 [![Pull-pr](https://img.shields.io/github/issues-pr/PowerNukkitX/PowerNukkitX?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/pulls)
 [![Pull-pr-closed](https://img.shields.io/github/issues-pr-closed/PowerNukkitX/PowerNukkitX?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/pulls?q=is%3Apr+is%3Aclosed)
+
+## ⭐ Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/PowerNukkitX/PowerNukkitX.svg)](https://starchart.cc/PowerNukkitX/PowerNukkitX)
 
 2019 - 2023 © [BlocklyNukkit](https://wiki.blocklynukkit.com) | [PowerNukkitX](https://www.powernukkitx.com)

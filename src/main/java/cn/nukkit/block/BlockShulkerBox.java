@@ -5,9 +5,7 @@ import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.blockproperty.CommonBlockProperties;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.DyeColor;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -46,11 +44,6 @@ public class BlockShulkerBox extends BlockUndyedShulkerBox {
     @Override
     public String getName() {
         return this.getDyeColor().getName() + " Shulker Box";
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return this.getDyeColor().getColor();
     }
 
     public DyeColor getDyeColor() {

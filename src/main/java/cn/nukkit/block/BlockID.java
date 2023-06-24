@@ -44,7 +44,7 @@ public interface BlockID {
             reason = "Wrong Minecraft block name")
     int WATER = FLOWING_WATER;
     int STILL_WATER = 9;
-    @Since("FUTURE")
+
     @PowerNukkitOnly
     int FLOWING_LAVA = 10;
     @Deprecated
@@ -90,9 +90,6 @@ public interface BlockID {
     int DEAD_BUSH = 32;
     int PISTON = 33;
     int PISTON_ARM_COLLISION = 34;
-    @Deprecated
-    @DeprecationDetails(by = "PowerNukkitX", since = "1.19.70-r1",
-            replaceWith = "WHITE_WOOL", reason = "Wrong Minecraft block name")
     int WOOL = 35;
     @Since("1.19.70-r1")
     @PowerNukkitXOnly
@@ -1735,50 +1732,148 @@ public interface BlockID {
     @Since("1.6.0.0-PNX")
     @PowerNukkitXOnly
     int DOUBLE_MANGROVE_SLAB = 754;
-
-    @Since("1.19.70-r1")
     @PowerNukkitXOnly
-    int LIGHT_GRAY_WOOL = 807;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int OAK_HANGING_SIGN = 755;
     @PowerNukkitXOnly
-    int GRAY_WOOL = 808;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int SPRUCE_HANGING_SIGN = 756;
     @PowerNukkitXOnly
-    int BLACK_WOOL = 809;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int BIRCH_HANGING_SIGN = 757;
     @PowerNukkitXOnly
-    int BROWN_WOOL = 810;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int JUNGLE_HANGING_SIGN = 758;
     @PowerNukkitXOnly
-    int RED_WOOL = 811;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int ACACIA_HANGING_SIGN = 759;
     @PowerNukkitXOnly
-    int ORANGE_WOOL = 812;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int DARK_OAK_HANGING_SIGN = 760;
     @PowerNukkitXOnly
-    int YELLOW_WOOL = 813;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int CRIMSON_HANGING_SIGN = 761;
     @PowerNukkitXOnly
-    int LIME_WOOL = 814;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int WARPED_HANGING_SIGN = 762;
     @PowerNukkitXOnly
-    int GREEN_WOOL = 815;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int MANGROVE_HANGING_SIGN = 763;
     @PowerNukkitXOnly
-    int CYAN_WOOL = 816;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int BAMBOO_MOSAIC = 764;
     @PowerNukkitXOnly
-    int LIGHT_BLUE_WOOL = 817;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int BAMBOO_PLANKS = 765;
     @PowerNukkitXOnly
-    int BLUE_WOOL = 818;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int BAMBOO_BUTTON = 766;
     @PowerNukkitXOnly
-    int PURPLE_WOOL = 819;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int BAMBOO_STAIRS = 767;
     @PowerNukkitXOnly
-    int MAGENTA_WOOL = 820;
-    @Since("1.19.70-r1")
+    @Since("1.20.0-r2")
+    int BAMBOO_SLAB = 768;
     @PowerNukkitXOnly
-    int PINK_WOOL = 821;
+    @Since("1.20.0-r2")
+    int BAMBOO_PRESSURE_PLATE = 769;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int BAMBOO_FENCE = 770;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int BAMBOO_FENCE_GATE = 771;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int BAMBOO_DOOR = 772;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int BAMBOO_STANDING_SIGN = 773;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int BAMBOO_WALL_SIGN = 774;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int BAMBOO_TRAPDOOR = 775;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int BAMBOO_DOUBLE_SLAB = 776;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int BAMBOO_HANGING_SIGN = 777;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int BAMBOO_MOSAIC_STAIRS = 778;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int BAMBOO_MOSAIC_SLAB = 779;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int BAMBOO_MOSAIC_DOUBLE_SLAB = 780;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHISELED_BOOKSHELF = 781;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int BAMBOO_BLOCK = 782;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int STRIPPED_BAMBOO_BLOCK = 783;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int SUSPICIOUS_SAND = 784;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_BUTTON = 785;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_DOOR = 786;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_FENCE = 787;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_FENCE_GATE = 788;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int STRIPPED_CHERRY_LOG = 790;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_LOG = 791;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_PLANKS = 792;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_PRESSURE_PLATE = 793;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_SLAB = 794;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int DOUBLE_CHERRY_SLAB = 795;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_STAIRS = 796;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_STANDING_SIGN = 797;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_TRAPDOOR = 798;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_WALL_SIGN = 799;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int STRIPPED_CHERRY_WOOD = 800;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_WOOD = 801;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_SAPLING = 802;
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    int CHERRY_LEAVES = 803;
 }

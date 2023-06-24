@@ -35,8 +35,10 @@ import java.util.stream.Stream;
  * 添加原版新物品时一定不要忘记在这里补上命名空间的枚举(例如 minecraft:quartz_bricks 这里填写QUARTZ_BRICKS)
  *
  * @author joserobjr
+ * @since 2023-06-09 v1.20.0-r1 现在已经弃用，不需要再添加物品名称
  * @since 2020-12-20
  */
+@Deprecated
 @PowerNukkitOnly
 @Since("1.4.0.0-PN")
 public enum MinecraftItemID {
@@ -1086,11 +1088,10 @@ public enum MinecraftItemID {
     @PowerNukkitOnly RAW_GOLD,
     @PowerNukkitOnly RAW_COPPER,
     @PowerNukkitOnly GLOW_FRAME(false),
-    //todo 20220709 完成山羊角后取消实现
-    // @PowerNukkitOnly @Since("FUTURE") GOAT_HORN,
-    @PowerNukkitOnly @Since("FUTURE") AMETHYST_SHARD,
-    @PowerNukkitOnly @Since("FUTURE") SPYGLASS,
-    @PowerNukkitOnly @Since("FUTURE") GLOW_BERRIES,
+    @PowerNukkitXOnly @Since("1.19.80-r3") GOAT_HORN,
+    @PowerNukkitOnly AMETHYST_SHARD,
+    @PowerNukkitOnly SPYGLASS,
+    @PowerNukkitOnly GLOW_BERRIES,
     @PowerNukkitXOnly @Since("1.19.20-r4") MANGROVE_STAIRS,
     @PowerNukkitXOnly @Since("1.19.20-r4") MANGROVE_TRAPDOOR,
     @PowerNukkitXOnly @Since("1.19.20-r4") MANGROVE_ROOTS,
@@ -1203,7 +1204,179 @@ public enum MinecraftItemID {
     MAGENTA_WOOL,
     @Since("1.19.70-r1")
     @PowerNukkitXOnly
-    PINK_WOOL;
+    PINK_WOOL,
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    OAK_FENCE,
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    SPRUCE_FENCE,
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    BIRCH_FENCE,
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    JUNGLE_FENCE,
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    ACACIA_FENCE,
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    DARK_OAK_FENCE,
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    OAK_LOG,
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    SPRUCE_LOG,
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    BIRCH_LOG,
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    JUNGLE_LOG,
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    ACACIA_LOG,
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    DARK_OAK_LOG,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    WHITE_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    ORANGE_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    MAGENTA_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    LIGHT_BLUE_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    YELLOW_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    LIME_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    PINK_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    GRAY_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    LIGHT_GRAY_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CYAN_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    PURPLE_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    BLUE_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    BROWN_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    GREEN_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    RED_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    BLACK_CARPET,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    TUBE_CORAL,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    BRAIN_CORAL,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    BUBBLE_CORAL,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    FIRE_CORAL,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    HORN_CORAL,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    DEAD_TUBE_CORAL,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    DEAD_BRAIN_CORAL,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    DEAD_BUBBLE_CORAL,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    DEAD_FIRE_CORAL,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    DEAD_HORN_CORAL,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_BUTTON,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_DOOR,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_FENCE,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_FENCE_GATE,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_HANGING_SIGN,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    STRIPPED_CHERRY_LOG,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_LOG,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_PLANKS,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_PRESSURE_PLATE,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_SLAB,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_DOUBLE_SLAB,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_STAIRS,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_STANDING_SIGN,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_TRAPDOOR,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_WALL_SIGN,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    STRIPPED_CHERRY_WOOD,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_WOOD,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_SAPLING,
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    CHERRY_LEAVES;
+
 
     private static final Map<String, MinecraftItemID> namespacedIdMap = Arrays.stream(values())
             .flatMap(id ->

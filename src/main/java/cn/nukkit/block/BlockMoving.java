@@ -7,7 +7,6 @@ import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.blockentity.BlockEntityMovingBlock;
 import cn.nukkit.item.Item;
 import cn.nukkit.math.BlockFace;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -81,4 +80,5 @@ public class BlockMoving extends BlockTransparent implements BlockEntityHolder<B
     public boolean isSolid() {
         return false;
     }
+
 }

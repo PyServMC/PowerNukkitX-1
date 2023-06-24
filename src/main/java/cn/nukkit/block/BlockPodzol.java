@@ -9,8 +9,6 @@ import cn.nukkit.blockproperty.exception.InvalidBlockPropertyValueException;
 import cn.nukkit.blockproperty.value.DirtType;
 import cn.nukkit.item.Item;
 import cn.nukkit.level.Sound;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -88,8 +86,4 @@ public class BlockPodzol extends BlockDirt {
         return false;
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.SPRUCE_BLOCK_COLOR;
-    }
 }

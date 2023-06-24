@@ -16,7 +16,6 @@ import cn.nukkit.item.ItemTool;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.Sound;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
 import cn.nukkit.utils.RedstoneComponent;
 import org.jetbrains.annotations.NotNull;
@@ -151,6 +150,7 @@ public class BlockLectern extends BlockTransparentMeta implements RedstoneCompon
     @PowerNukkitOnly
     @Override
     public int onTouch(@Nullable Player player, Action action) {
+        onUpdate(Level.BLOCK_UPDATE_TOUCH);
         if (player != null && action == Action.LEFT_CLICK_BLOCK && player.isSurvival()) {
             dropBook(player);
             return 1;
@@ -246,11 +246,6 @@ public class BlockLectern extends BlockTransparentMeta implements RedstoneCompon
         }
 
         return 0;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.WOOD_BLOCK_COLOR;
     }
 
     @PowerNukkitOnly

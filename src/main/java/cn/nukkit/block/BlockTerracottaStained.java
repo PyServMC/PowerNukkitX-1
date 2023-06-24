@@ -5,9 +5,7 @@ import cn.nukkit.api.Since;
 import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.blockproperty.CommonBlockProperties;
 import cn.nukkit.item.ItemTool;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.DyeColor;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -70,11 +68,6 @@ public class BlockTerracottaStained extends BlockSolidMeta {
     @Override
     public int getToolTier() {
         return ItemTool.TIER_WOODEN;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return DyeColor.getByWoolData(getDamage()).getColor();
     }
 
     public DyeColor getDyeColor() {

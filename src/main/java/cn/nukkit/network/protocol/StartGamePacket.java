@@ -118,7 +118,27 @@ public class StartGamePacket extends DataPacket {
      */
     public boolean emoteChatMuted;
 
+    /**
+     * Whether block runtime IDs should be replaced by 32-bit integer hashes of the NBT block state.
+     * Unlike runtime IDs, this hashes should be persistent across versions and should make support for data-driven/custom blocks easier.
+     *
+     * @since v582
+     */
+    public boolean blockNetworkIdsHashed;
+    /**
+     * @since v582
+     */
+    public boolean createdInEditor;
+    /**
+     * @since v582
+     */
+    public boolean exportedFromEditor;
+    public byte chatRestrictionLevel;
     public boolean disablePlayerInteractions;
+    /**
+     * @since v589
+     */
+    public boolean isSoundsServerAuthoritative;
 
     @Override
     public void decode() {
@@ -145,6 +165,8 @@ public class StartGamePacket extends DataPacket {
         this.putBlockVector3(this.spawnX, this.spawnY, this.spawnZ);
         this.putBoolean(this.hasAchievementsDisabled);
         this.putBoolean(this.worldEditor);
+        this.putBoolean(this.createdInEditor);
+        this.putBoolean(this.exportedFromEditor);
         this.putVarInt(this.dayCycleStopTime);
         this.putVarInt(this.eduEditionOffer);
         this.putBoolean(this.hasEduFeaturesEnabled);
@@ -160,7 +182,7 @@ public class StartGamePacket extends DataPacket {
         this.putBoolean(this.isTexturePacksRequired);
         this.putGameRules(this.gameRules);
         if (Server.getInstance().isEnableExperimentMode() && !Server.getInstance().getConfig("settings.waterdogpe", false)) {
-            this.putLInt(3); // Experiment count
+            this.putLInt(4); // Experiment count
             {
                 this.putString("data_driven_items");
                 this.putBoolean(true);
@@ -171,6 +193,8 @@ public class StartGamePacket extends DataPacket {
                 //this.putString("gametest");
                 //this.putBoolean(true);
                 this.putString("experimental_molang_features");
+                this.putBoolean(true);
+                this.putString("cameras");
                 this.putBoolean(true);
             }
             this.putBoolean(true); // Were experiments previously toggled
@@ -243,5 +267,7 @@ public class StartGamePacket extends DataPacket {
         this.putLLong(0); // blockRegistryChecksum
         this.putUUID(new UUID(0, 0)); // worldTemplateId
         this.putBoolean(this.clientSideGenerationEnabled);
+        this.putBoolean(this.blockNetworkIdsHashed); // blockIdsAreHashed
+        this.putBoolean(this.isSoundsServerAuthoritative); // serverAuthSounds
     }
 }

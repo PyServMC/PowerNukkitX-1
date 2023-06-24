@@ -9,8 +9,6 @@ import cn.nukkit.item.ItemBlock;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.math.NukkitRandom;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -89,8 +87,4 @@ public class BlockHugeMushroomBrown extends BlockSolidMeta {
         return true;
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.DIRT_BLOCK_COLOR;
-    }
 }
