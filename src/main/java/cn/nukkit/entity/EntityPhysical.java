@@ -16,6 +16,7 @@ import cn.nukkit.nbt.tag.CompoundTag;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @PowerNukkitXOnly
@@ -34,9 +35,9 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
     /**
      * 提供实时最新碰撞箱位置
      */
-    protected final AxisAlignedBB offsetBoundingBox = new SimpleAxisAlignedBB(0, 0, 0, 0, 0, 0);
-    protected final Vector3 previousCollideMotion = new Vector3();
-    protected final Vector3 previousCurrentMotion = new Vector3();
+    protected final AxisAlignedBB offsetBoundingBox;
+    protected final Vector3 previousCollideMotion;
+    protected final Vector3 previousCurrentMotion;
     /**
      * 实体自由落体运动的时间
      */
@@ -47,6 +48,9 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
     public EntityPhysical(FullChunk chunk, CompoundTag nbt) {
         super(chunk, nbt);
         this.tickSpread = globalCycleTickSpread.getAndIncrement() & 0xf;
+        this.offsetBoundingBox = new SimpleAxisAlignedBB(0, 0, 0, 0, 0, 0);
+        previousCollideMotion = new Vector3();
+        previousCurrentMotion = new Vector3();
     }
 
     @Override
@@ -233,7 +237,8 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
     }
 
     protected void addPreviousLiquidMovement() {
-        addTmpMoveMotion(previousCurrentMotion);
+        if (previousCurrentMotion != null)
+            addTmpMoveMotion(previousCurrentMotion);
     }
 
     protected void handleFloatingMovement() {
@@ -367,7 +372,7 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
     }
 
     public AxisAlignedBB getOffsetBoundingBox() {
-        return this.offsetBoundingBox;
+        return Objects.requireNonNullElseGet(this.offsetBoundingBox, () -> new SimpleAxisAlignedBB(0, 0, 0, 0, 0, 0));
     }
 
     public void resetFallDistance() {

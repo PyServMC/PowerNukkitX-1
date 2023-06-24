@@ -6,9 +6,7 @@ import cn.nukkit.event.redstone.RedstoneUpdateEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.RedstoneComponent;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -137,8 +135,4 @@ public class BlockRedstoneTorch extends BlockTorch implements RedstoneComponent 
         return true;
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.AIR_BLOCK_COLOR;
-    }
 }

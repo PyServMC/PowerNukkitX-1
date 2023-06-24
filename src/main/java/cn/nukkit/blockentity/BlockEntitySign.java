@@ -1,6 +1,7 @@
 package cn.nukkit.blockentity;
 
 import cn.nukkit.Player;
+import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockSignPost;
@@ -9,9 +10,9 @@ import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.DyeColor;
+import cn.nukkit.utils.StringUtils;
 import cn.nukkit.utils.TextFormat;
 
-import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -75,21 +76,39 @@ public class BlockEntitySign extends BlockEntitySpawnable {
             this.setGlowing(false, false);
         }
         updateLegacyCompoundTag();
+        this.setEditorEntityRuntimeId(null);
     }
 
     @Override
     public void saveNBT() {
         super.saveNBT();
         this.namedTag.getCompound(TAG_FRONT_TEXT)
-                .putString(TAG_TEXT_BLOB, String.join("\n", frontText))
+                .putString(TAG_TEXT_BLOB, StringUtils.joinNotNull("\n", frontText))
                 .putByte(TAG_PERSIST_FORMATTING, 1);
-        //todo 由于1.19.80还没有更新sign新ui，所以暂时不启用反面文本
-        /*this.namedTag.getCompound(TAG_BACK_TEXT)
-                .putString(TAG_TEXT_BLOB, String.join("\n", backText))
-                .putByte(TAG_PERSIST_FORMATTING, 1);*/
+        this.namedTag.getCompound(TAG_BACK_TEXT)
+                .putString(TAG_TEXT_BLOB, StringUtils.joinNotNull("\n", backText))
+                .putByte(TAG_PERSIST_FORMATTING, 1);
         this.namedTag.putBoolean(TAG_LEGACY_BUG_RESOLVE, true)
                 .putByte(TAG_WAXED, 0)
                 .putLong(TAG_LOCKED_FOR_EDITING_BY, getEditorEntityRuntimeId());
+    }
+
+    /**
+     * @return If the sign is waxed, once a sign is waxed it cannot be modified
+     */
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    public boolean isWaxed() {
+        return this.namedTag.getByte(TAG_WAXED) == 1;
+    }
+
+    /**
+     * @param waxed If the sign is waxed, once a sign is waxed it cannot be modified
+     */
+    @Since("1.20.0-r2")
+    @PowerNukkitXOnly
+    public void setWaxed(boolean waxed) {
+        this.namedTag.putByte(TAG_WAXED, waxed ? (byte) 1 : (byte) 0);
     }
 
     @Override
@@ -117,7 +136,7 @@ public class BlockEntitySign extends BlockEntitySpawnable {
                 else
                     frontText[i] = "";
             }
-            this.namedTag.getCompound(TAG_FRONT_TEXT).putString(TAG_TEXT_BLOB, String.join("\n", lines));
+            this.namedTag.getCompound(TAG_FRONT_TEXT).putString(TAG_TEXT_BLOB, StringUtils.joinNotNull("\n", lines));
         } else {
             for (int i = 0; i < 4; i++) {
                 if (i < lines.length)
@@ -125,7 +144,7 @@ public class BlockEntitySign extends BlockEntitySpawnable {
                 else
                     backText[i] = "";
             }
-            this.namedTag.getCompound(TAG_BACK_TEXT).putString(TAG_TEXT_BLOB, String.join("\n", lines));
+            this.namedTag.getCompound(TAG_BACK_TEXT).putString(TAG_TEXT_BLOB, StringUtils.joinNotNull("\n", lines));
         }
         this.spawnToAll();
         if (this.chunk != null) {
@@ -141,6 +160,18 @@ public class BlockEntitySign extends BlockEntitySpawnable {
 
     public String[] getText(boolean front) {
         return front ? frontText : backText;
+    }
+
+    public boolean isEmpty() {
+        return isEmpty(true);
+    }
+
+    public boolean isEmpty(boolean front) {
+        if (front) {
+            return (frontText[0] == null || frontText[0].isEmpty()) && frontText[1] == null && frontText[2] == null && frontText[3] == null;
+        } else {
+            return (backText[0] == null || backText[0].isEmpty()) && backText[1] == null && backText[2] == null && backText[3] == null;
+        }
     }
 
     /**
@@ -208,12 +239,13 @@ public class BlockEntitySign extends BlockEntitySpawnable {
 
     @Override
     public boolean updateCompoundTag(CompoundTag nbt, Player player) {
-        if (!nbt.getString("id").equals(BlockEntity.SIGN)) {
+        if (!nbt.getString("id").equals(BlockEntity.SIGN) && !nbt.getString("id").equals(BlockEntity.HANGING_SIGN)) {
             return false;
         }
+        if (player.isOpenSignFront() == null) return false;
         String[] lines = new String[4];
-        Arrays.fill(lines, "");
-        String[] splitLines = nbt.getCompound(TAG_FRONT_TEXT).getString(TAG_TEXT_BLOB).split("\n", 4);
+        String[] splitLines = player.isOpenSignFront() ? nbt.getCompound(TAG_FRONT_TEXT).getString(TAG_TEXT_BLOB).split("\n", 4)
+                : nbt.getCompound(TAG_BACK_TEXT).getString(TAG_TEXT_BLOB).split("\n", 4);
         System.arraycopy(splitLines, 0, lines, 0, splitLines.length);
 
         sanitizeText(lines);
@@ -232,12 +264,13 @@ public class BlockEntitySign extends BlockEntitySpawnable {
 
         this.server.getPluginManager().callEvent(signChangeEvent);
 
-        if (!signChangeEvent.isCancelled()) {
-            this.setText(signChangeEvent.getLines());
+        if (!signChangeEvent.isCancelled() && player.isOpenSignFront() != null) {
+            this.setText(player.isOpenSignFront(), signChangeEvent.getLines());
             this.setEditorEntityRuntimeId(null);
+            player.setOpenSignFront(null);
             return true;
         }
-
+        player.setOpenSignFront(null);
         return false;
     }
 
@@ -251,13 +284,12 @@ public class BlockEntitySign extends BlockEntitySpawnable {
                         .putBoolean(TAG_GLOWING_TEXT, this.isGlowing())
                         .putBoolean(TAG_PERSIST_FORMATTING, true)
                 )
-                //todo 由于1.19.80还没有更新sign新ui，所以暂时不启用反面文本
-                /*.putCompound(new CompoundTag(TAG_BACK_TEXT)
+                .putCompound(new CompoundTag(TAG_BACK_TEXT)
                         .putString(TAG_TEXT_BLOB, this.namedTag.getCompound(TAG_BACK_TEXT).getString(TAG_TEXT_BLOB))
                         .putInt(TAG_TEXT_COLOR, this.getColor(false).getARGB())
                         .putBoolean(TAG_GLOWING_TEXT, this.isGlowing(false))
                         .putBoolean(TAG_PERSIST_FORMATTING, true)
-                )*/
+                )
                 .putBoolean(TAG_LEGACY_BUG_RESOLVE, true)
                 .putInt("x", (int) this.x)
                 .putInt("y", (int) this.y)
@@ -297,7 +329,7 @@ public class BlockEntitySign extends BlockEntitySpawnable {
                 else
                     frontText[i] = "";
             }
-            this.namedTag.getCompound(TAG_FRONT_TEXT).putString(TAG_TEXT_BLOB, String.join("\n", frontText));
+            this.namedTag.getCompound(TAG_FRONT_TEXT).putString(TAG_TEXT_BLOB, StringUtils.joinNotNull("\n", frontText));
             this.namedTag.remove(TAG_TEXT_BLOB);
         } else {
             int count = 0;
@@ -311,7 +343,7 @@ public class BlockEntitySign extends BlockEntitySpawnable {
                 }
             }
             if (count == 4) {
-                this.namedTag.getCompound(TAG_FRONT_TEXT).putString(TAG_TEXT_BLOB, String.join("\n", frontText));
+                this.namedTag.getCompound(TAG_FRONT_TEXT).putString(TAG_TEXT_BLOB, StringUtils.joinNotNull("\n", frontText));
             }
         }
         if (this.namedTag.contains(TAG_GLOWING_TEXT)) {
@@ -321,11 +353,6 @@ public class BlockEntitySign extends BlockEntitySpawnable {
         if (this.namedTag.contains(TAG_TEXT_COLOR)) {
             this.setColor(true, new BlockColor(this.namedTag.getInt(TAG_TEXT_COLOR), true));
             this.namedTag.remove(TAG_TEXT_COLOR);
-        }
-
-        //todo 由于1.19.80还没有更新sign新ui，所以暂时不启用反面文本
-        if (this.namedTag.contains(TAG_BACK_TEXT)) {
-            this.namedTag.remove(TAG_BACK_TEXT);
         }
         this.namedTag.remove("Creator");
     }
@@ -339,4 +366,6 @@ public class BlockEntitySign extends BlockEntitySpawnable {
             }
         }
     }
+
+
 }

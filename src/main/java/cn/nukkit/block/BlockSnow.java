@@ -4,7 +4,7 @@ import cn.nukkit.Player;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemSnowball;
 import cn.nukkit.item.ItemTool;
-import cn.nukkit.utils.BlockColor;
+import org.jetbrains.annotations.NotNull;
 
 public class BlockSnow extends BlockSolid {
 
@@ -23,7 +23,7 @@ public class BlockSnow extends BlockSolid {
 
     @Override
     public double getHardness() {
-        return 0.2;
+        return 0.6;
     }
 
     @Override
@@ -47,11 +47,6 @@ public class BlockSnow extends BlockSolid {
         }
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.SNOW_BLOCK_COLOR;
-    }
-
 
     @Override
     public boolean canHarvestWithHand() {
@@ -69,7 +64,7 @@ public class BlockSnow extends BlockSolid {
     }
 
     @Override
-    public boolean onActivate(Item item, Player player) {
+    public boolean onActivate(@NotNull Item item, Player player) {
         if (item.isShovel()) {
             item.useOn(this);
             this.level.useBreakOn(this, item.clone().clearNamedTag(), null, true);

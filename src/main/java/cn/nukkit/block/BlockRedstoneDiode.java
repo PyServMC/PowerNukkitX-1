@@ -10,10 +10,8 @@ import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.SimpleAxisAlignedBB;
 import cn.nukkit.math.Vector3;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
 import cn.nukkit.utils.RedstoneComponent;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -252,8 +250,4 @@ public abstract class BlockRedstoneDiode extends BlockFlowable implements Redsto
         return BlockFace.fromHorizontalIndex(this.getDamage() & 0x07);
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.AIR_BLOCK_COLOR;
-    }
 }

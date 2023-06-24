@@ -9,8 +9,6 @@ import cn.nukkit.blockproperty.value.WoodType;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.SimpleAxisAlignedBB;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -144,8 +142,4 @@ public class BlockFence extends BlockTransparentMeta implements BlockConnectable
         return block instanceof BlockFenceGate || block.isSolid() && !block.isTransparent();
     }
 
-    @Override
-    public BlockColor getColor() {
-        return getPropertyValue(WoodType.PROPERTY).getColor();
-    }
 }

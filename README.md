@@ -3,12 +3,12 @@
 <h2>🌐Need to switch languages?&ensp;/&ensp;多语言文档</h2>
 
 [![Discord](https://img.shields.io/discord/944227466912870410?color=7289da&logo=discord&logoColor=white&style=flat-square)](https://discord.gg/BcPhZCVJHJ)
-[![English](https://img.shields.io/badge/English-100%25-green?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/README.md)
-[![简体中文](https://img.shields.io/badge/简体中文-100%25-green?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/blob/zh-hans/README.md)
-[![繁體中文](https://img.shields.io/badge/繁體中文-100%25-green?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/blob/zh-hant/README.md)
+[![English](https://img.shields.io/badge/English-Click%20me-purple?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/README.md)
+[![简体中文](https://img.shields.io/badge/简体中文-Click%20me-purple?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/blob/zh-hans/README.md)
+[![繁體中文](https://img.shields.io/badge/繁體中文-Click%20me-purple?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/blob/zh-hant/README.md)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/LICENSE)
 [![ChangeLog](https://img.shields.io/badge/ChangeLog-blue?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/blob/master/CHANGELOG.md)
-[![FAQ](https://img.shields.io/badge/FAQ-blue?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/wiki/FAQ)
+[![FAQ](https://img.shields.io/badge/FAQ-blue?style=flat-square)](https://www.powernukkitx.com/doc/en-us/faq/common.html)
 [![PNX-DOC](https://img.shields.io/badge/PNX-DOC-blue?style=flat-square)](https://doc.powernukkitx.cn)
 [![Maven Central](https://img.shields.io/maven-central/v/cn.powernukkitx/powernukkitx.svg?label=Maven%20Central&style=flat-square)](https://search.maven.org/search?q=g:%22cn.powernukkitx%22%20AND%20a:%22powernukkitx%22)
 [![](https://www.jitpack.io/v/PowerNukkitX/PowerNukkitX.svg)](https://www.jitpack.io/#PowerNukkitX/PowerNukkitX)
@@ -24,15 +24,15 @@ Join US:
 
 What's new in PowerNukkitX? Let's See：
 
-1. Support for 1.19.80 protocol.
+1. Support for 1.20.0 protocol.
 2. Support for 384 world height.
 3. Support for The Nether world, no need to install additional plugin.
 4. Support 3D biomes.<!--Custom dimension interface TODO-->
 5. Support for vanilla commands and command block.
 6. Built-in [Terra](https://github.com/PolyhedralDev/Terra) generator (if you have
-   questions [click here to view](https://doc.powernukkitx.cn/en-us/faq/Terra_faq.html)) .
+   questions [click here to view](https://www.powernukkitx.com/doc/en-us/faq/terra.html)) .
 7. Support for writing plugins using the JavaScript language (development documentation can be
-   found [here](https://doc.powernukkitx.cn/zh-cn/plugin-dev/js/%E6%A6%82%E8%BF%B0.html)).
+   found [here](https://www.powernukkitx.com/doc/en-us/dev/js/setup_dev_env.html)).
 8. Support custom blocks / items / entity (refinement in progress, [documentation](https://doc.powernukkitx.cn/) to be
    added).
 9. Original Entity AI framework, no need to install MobPlugin (under development, Not all creature completed).
@@ -45,9 +45,9 @@ What's new in PowerNukkitX? Let's See：
 ### 1.Run from [PNX-CLI](https://github.com/PowerNukkitX/PNX-CLI):
 
 1. Download the `PNX-CLI-Jar.zip` latest version from [release](https://github.com/PowerNukkitX/PNX-CLI/releases)
-2. Run `java -jar PNX-CLI-0.0.1-alpha.jar`
+2. Run `java -jar PNX-CLI-0.1.6.jar`
 
-you can [click here](https://doc.powernukkitx.cn/en-us/Get_Started.html) to get more information.
+you can [click here](https://www.powernukkitx.com/doc/en-us/Get_Started.html) to get more information.
 
 ### 2.Run from command:
 
@@ -68,7 +68,7 @@ java -Dfile.encoding=UTF-8 ^
 -XX:+UseG1GC ^
 -XX:+UseStringDeduplication ^
 -XX:+EnableJVMCI ^
---module-path=.\libs\graal-sdk-22.2.0.jar;.\libs\truffle-api-22.2.0.jar; ^
+--module-path=.\libs\graal-sdk-23.0.0.jar;.\libs\truffle-api-23.0.0.jar; ^
 --add-opens java.base/java.lang=ALL-UNNAMED ^
 --add-opens java.base/java.io=ALL-UNNAMED ^
 -cp .\powernukkitx.jar;.\libs\* ^
@@ -85,7 +85,7 @@ java -Dfile.encoding=UTF-8 \
 -XX:+UseG1GC \
 -XX:+UseStringDeduplication \
 -XX:+EnableJVMCI \
---module-path=./libs/truffle-api-22.2.0.jar:./libs/graal-sdk-22.2.0.jar: \
+--module-path=./libs/truffle-api-23.0.0.jar:./libs/graal-sdk-23.0.0.jar: \
 --add-opens java.base/java.lang=ALL-UNNAMED \
 --add-opens java.base/java.io=ALL-UNNAMED \
 -cp ./powernukkitx.jar:./libs/* \
@@ -146,7 +146,7 @@ repositories {
 }
 
 dependencies {
-    compile group: 'cn.powernukkitx', name: 'powernukkitx', version: '1.19.80-r2'
+    compile group: 'cn.powernukkitx', name: 'powernukkitx', version: '1.20.0-r2'
 }
 ```
 
@@ -156,7 +156,7 @@ dependencies {
     <dependency>
         <groupId>cn.powernukkitx</groupId>
         <artifactId>powernukkitx</artifactId>
-        <version>1.19.80-r2</version>
+        <version>1.20.0-r2</version>
     </dependency>
 </dependencies>
 ```
@@ -198,7 +198,7 @@ Please read the [CONTRIBUTING](https://github.com/PowerNukkitX/PowerNukkitX/blob
 [![Pull-pr](https://img.shields.io/github/issues-pr/PowerNukkitX/PowerNukkitX?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/pulls)
 [![Pull-pr-closed](https://img.shields.io/github/issues-pr-closed/PowerNukkitX/PowerNukkitX?style=flat-square)](https://github.com/PowerNukkitX/PowerNukkitX/pulls?q=is%3Apr+is%3Aclosed)
 
-## Stargazers over time
+## ⭐ Stargazers over time
 
 [![Stargazers over time](https://starchart.cc/PowerNukkitX/PowerNukkitX.svg)](https://starchart.cc/PowerNukkitX/PowerNukkitX)
 

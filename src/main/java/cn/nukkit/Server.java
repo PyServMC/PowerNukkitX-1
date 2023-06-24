@@ -1796,7 +1796,11 @@ public class Server {
         } else {
             try {
                 byte[] data = Binary.appendBytes(payload);
-                this.broadcastPacketsCallback(Network.deflateRaw(data, this.networkCompressionLevel), targets);
+                if (Server.getInstance().isEnableSnappy()) {
+                    this.broadcastPacketsCallback(SnappyCompression.compress(data), targets);
+                } else {
+                    this.broadcastPacketsCallback(Network.deflateRaw(data, this.networkCompressionLevel), targets);
+                }
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -1814,6 +1818,7 @@ public class Server {
             }
         }
     }
+
     public void handlePacket(InetSocketAddress address, ByteBuf payload) {
         try {
             if (!payload.isReadable(3)) {
@@ -1882,6 +1887,7 @@ public class Server {
     public void disablePlugins() {
         this.pluginManager.disablePlugins();
     }
+
     public PluginManager getPluginManager() {
         return this.pluginManager;
     }
@@ -3259,6 +3265,7 @@ public class Server {
     public boolean isLanguageForced() {
         return forceLanguage;
     }
+
     @PowerNukkitOnly
     public boolean isRedstoneEnabled() {
         return redstoneEnabled;
@@ -3345,6 +3352,7 @@ public class Server {
         this.properties.set(variable, value ? "1" : "0");
         this.properties.save();
     }
+
     public boolean shouldSavePlayerData() {
         return this.getConfig("player.save-player-data", true);
     }
@@ -3414,6 +3422,12 @@ public class Server {
     @Since("1.19.40-r3")
     public int getServerAuthoritativeMovement() {
         return serverAuthoritativeMovementMode;
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    public boolean isEnableSnappy() {
+        return this.getConfig("network.snappy", false);
     }
 
     // endregion

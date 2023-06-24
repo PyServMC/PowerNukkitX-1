@@ -18,8 +18,6 @@ import cn.nukkit.level.generator.object.ObjectTallGrass;
 import cn.nukkit.level.particle.BoneMealParticle;
 import cn.nukkit.math.NukkitRandom;
 import cn.nukkit.math.Vector3;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -175,11 +173,6 @@ public class BlockGrass extends BlockDirt {
             return type;
         }
         return 0;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.GRASS_BLOCK_COLOR;
     }
 
     @Override

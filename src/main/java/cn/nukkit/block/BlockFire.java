@@ -24,8 +24,6 @@ import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.potion.Effect;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Random;
@@ -325,11 +323,6 @@ public class BlockFire extends BlockFlowable {
     @Override
     public int tickRate() {
         return 30;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.LAVA_BLOCK_COLOR;
     }
 
     @Override

@@ -2,6 +2,7 @@ package cn.nukkit.block.customblock.data;
 
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
+import cn.nukkit.math.Vector3;
 import cn.nukkit.math.Vector3f;
 import cn.nukkit.nbt.tag.CompoundTag;
 import lombok.Builder;
@@ -32,7 +33,7 @@ public class Component implements NBTData {
     @Nullable
     Integer lightDampening;
     @Nullable
-    Integer friction;
+    Float friction;
     @Nullable
     Geometry geometry;
     @Nullable
@@ -43,6 +44,9 @@ public class Component implements NBTData {
     Boolean unitCube;
     @Nullable
     Vector3f rotation;
+    @Since("1.20.0-r2")
+    @Nullable
+    Float clientFriction;
 
     public CompoundTag toCompoundTag() {
         if (unitCube != null) {
@@ -79,7 +83,7 @@ public class Component implements NBTData {
         }
         if (friction != null) {
             this.result.putCompound("minecraft:friction", new CompoundTag()
-                    .putByte("value", friction.byteValue()));
+                    .putFloat("value", (float) Math.min(friction, 0.9)));
         }
         if (this.geometry != null) {
             this.result.putCompound(geometry.toCompoundTag());
@@ -94,10 +98,11 @@ public class Component implements NBTData {
             this.result.putCompound(transformation.toCompoundTag());
         }
         if (rotation != null) {
-            this.result.putCompound("minecraft:rotation", new CompoundTag()
-                    .putFloat("x", rotation.x)
-                    .putFloat("y", rotation.y)
-                    .putFloat("z", rotation.z));
+            this.result.putCompound(new Transformation(new Vector3(0, 0, 0), new Vector3(1, 1, 1), rotation.asVector3()).toCompoundTag());
+        }
+        if (clientFriction != null) {
+            this.result.putCompound("minecraft:friction", new CompoundTag()
+                    .putFloat("value", clientFriction));
         }
         return this.result;
     }

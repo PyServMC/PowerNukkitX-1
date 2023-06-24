@@ -9,8 +9,6 @@ import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemID;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -97,8 +95,4 @@ public class BlockNetherReactor extends BlockSolid implements BlockEntityHolder<
         return BlockEntityHolder.setBlockAndCreateEntity(this) != null;
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.IRON_BLOCK_COLOR;
-    }
 }

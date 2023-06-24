@@ -7,6 +7,7 @@ import cn.nukkit.block.customblock.CustomBlock;
 import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.blockentity.BlockEntitySign;
 import cn.nukkit.blockentity.BlockEntitySpawnable;
+import cn.nukkit.camera.data.CameraPreset;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandDataVersions;
@@ -407,6 +408,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     @PowerNukkitXOnly
     private final @NotNull PlayerHandle playerHandle = new PlayerHandle(this);
 
+    @Since("1.19.80-r3")
+    @PowerNukkitXOnly
+    private boolean needDimensionChangeACK = false;
+    private Boolean openSignFront = null;
+
 
     /**
      * 单元测试用的构造函数
@@ -485,7 +491,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
     @SneakyThrows
     private List<DataPacket> unpackBatchedPackets(BatchPacket packet) {
-        return this.server.getNetwork().unpackBatchedPackets(packet, CompressionProvider.ZLIB);
+        return this.server.getNetwork().unpackBatchedPackets(packet, this.server.isEnableSnappy() ? CompressionProvider.SNAPPY : CompressionProvider.ZLIB);
     }
 
     @PowerNukkitXDifference(since = "1.19.60-r1", info = "Auto-break custom blocks if client doesn't send the break data-pack.")
@@ -691,6 +697,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         pk.y = (float) this.y;
         pk.z = (float) this.z;
         this.dataPacket(pk);
+
+        this.needDimensionChangeACK = true;
     }
 
     private void updateBlockingFlag() {
@@ -836,6 +844,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         this.dataPacket(pk);
 
         this.sendFogStack();
+        this.sendCameraPresets();
         if (this.getHealth() < 1) {
             this.setHealth(0);
         }
@@ -2338,7 +2347,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         Map<String, CommandDataVersions> data = new HashMap<>();
         int count = 0;
         for (Command command : this.server.getCommandMap().getCommands().values()) {
-            if (!command.testPermissionSilent(this) || !command.isRegistered()) {
+            if (!command.testPermissionSilent(this) || !command.isRegistered() || command.isServerSideOnly()) {
                 continue;
             }
             ++count;
@@ -2697,31 +2706,25 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                 }
             }
         }
+
+        if (this.needDimensionChangeACK) {
+            this.needDimensionChangeACK = false;
+
+            PlayerActionPacket playerActionPacket = new PlayerActionPacket();
+            playerActionPacket.action = PlayerActionPacket.ACTION_DIMENSION_CHANGE_ACK;
+            playerActionPacket.entityId = this.getId();
+            this.dataPacket(playerActionPacket);
+        }
     }
 
     public void sendChunk(int x, int z, int subChunkCount, byte[] payload) {
-        if (!this.connected) {
-            return;
-        }
-
-        this.usedChunks.put(Level.chunkHash(x, z), true);
-        this.chunkLoadCount++;
-
         LevelChunkPacket pk = new LevelChunkPacket();
         pk.chunkX = x;
         pk.chunkZ = z;
         pk.subChunkCount = subChunkCount;
         pk.data = payload;
 
-        this.dataPacket(pk);
-
-        if (this.spawned) {
-            for (Entity entity : this.level.getChunkEntities(x, z).values()) {
-                if (this != entity && !entity.closed && entity.isAlive()) {
-                    entity.spawnTo(this);
-                }
-            }
-        }
+        this.sendChunk(x, z, pk);
     }
 
     @PowerNukkitOnly
@@ -3162,6 +3165,18 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         pk.setFogStack(this.fogStack);
         pk.encode();
         this.dataPacket(pk);
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    public void sendCameraPresets() {
+        var presetListTag = new ListTag<CompoundTag>("presets");
+        for (var preset : CameraPreset.getPresets().values()) {
+            presetListTag.add(preset.serialize());
+        }
+        var pk = new CameraPresetsPacket();
+        pk.setData(new CompoundTag().putList("presets", presetListTag));
+        dataPacket(pk);
     }
 
     @Override
@@ -4081,8 +4096,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             this.hasSpawned.clear();
             this.spawnPosition = null;
 
-            if (this.riding instanceof EntityRideable) {
-                this.riding.passengers.remove(this);
+            if (this.riding instanceof EntityRideable entityRideable) {
+                entityRideable.dismountEntity(this);
             }
 
             this.riding = null;
@@ -5391,7 +5406,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         batchPayload[1] = buf;
         byte[] data = Binary.appendBytes(batchPayload);
         try {
-            batch.payload = Network.deflateRaw(data, Server.getInstance().networkCompressionLevel);
+            if (Server.getInstance().isEnableSnappy()) {
+                batch.payload = SnappyCompression.compress(data);
+            } else {
+                batch.payload = Network.deflateRaw(data, Server.getInstance().networkCompressionLevel);
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -6129,21 +6148,38 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         this.dataPacket(pk);
     }
 
-    /**
-     * Opens the player's sign editor GUI for the sign at the given position.
-     * TODO: add support for editing the rear side of the sign (not currently supported due to technical limitations)
-     */
-    public void openSignEditor(Vector3 position, boolean frontSide) {
-        BlockEntity blockEntity = this.getLevel().getBlockEntity(position);
-        if (blockEntity instanceof BlockEntitySign blockEntitySign) {
-            blockEntitySign.setEditorEntityRuntimeId(this.getId());
-            OpenSignPacket openSignPacket = new OpenSignPacket();
-            openSignPacket.setPosition(position.asBlockVector3());
-            openSignPacket.setFrontSide(frontSide);
-            this.dataPacket(openSignPacket);
-        } else {
-            throw new IllegalArgumentException("Block at this position is not a sign");
-        }
+    @PowerNukkitXOnly
+    @Since("1.20.0-r1")
+    public Boolean isOpenSignFront() {
+        return openSignFront;
     }
 
+    @PowerNukkitXOnly
+    @Since("1.20.0-r1")
+    public void setOpenSignFront(Boolean frontSide) {
+        openSignFront = frontSide;
+    }
+
+    /**
+     * Opens the player's sign editor GUI for the sign at the given position.
+     */
+    @PowerNukkitXOnly
+    @Since("1.20.0-r1")
+    public void openSignEditor(Vector3 position, boolean frontSide) {
+        if (openSignFront == null) {
+            BlockEntity blockEntity = this.getLevel().getBlockEntity(position);
+            if (blockEntity instanceof BlockEntitySign blockEntitySign) {
+                if (blockEntitySign.getEditorEntityRuntimeId() == -1) {
+                    blockEntitySign.setEditorEntityRuntimeId(this.getId());
+                    OpenSignPacket openSignPacket = new OpenSignPacket();
+                    openSignPacket.setPosition(position.asBlockVector3());
+                    openSignPacket.setFrontSide(frontSide);
+                    this.dataPacket(openSignPacket);
+                    setOpenSignFront(frontSide);
+                }
+            } else {
+                throw new IllegalArgumentException("Block at this position is not a sign");
+            }
+        }
+    }
 }

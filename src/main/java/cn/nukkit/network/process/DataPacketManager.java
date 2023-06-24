@@ -69,7 +69,7 @@ public final class DataPacketManager {
                 new RequestAbilityProcessor(),
                 new MobEquipmentProcessor(),
                 new PlayerActionProcessor(),
-                new ModalFormRequestProcessor(),
+                new ModalFormResponseProcessor(),
                 new NPCRequestProcessor(),
                 new InteractProcessor(),
                 new BlockPickRequestProcessor(),
@@ -99,7 +99,8 @@ public final class DataPacketManager {
                 new PositionTrackingDBClientRequestProcessor(),
                 new ShowCreditsProcessor(),
                 new TickSyncProcessor(),
-                new RequestPermissionsProcessor()
+                new RequestPermissionsProcessor(),
+                new RiderJumpProcessor()
         );
     }
 }

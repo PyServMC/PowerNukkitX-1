@@ -9,14 +9,13 @@ import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.math.BlockFace;
-
 import org.jetbrains.annotations.NotNull;
 
 import static cn.nukkit.blockproperty.CommonBlockProperties.PILLAR_AXIS;
 
 @PowerNukkitOnly
 @Since("1.4.0.0-PN")
-public abstract class BlockLog extends BlockSolidMeta {
+public abstract class BlockLog extends BlockSolidMeta implements IBlockWood {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     protected static final BlockProperties PILLAR_PROPERTIES = new BlockProperties(CommonBlockProperties.PILLAR_AXIS);
@@ -35,7 +34,7 @@ public abstract class BlockLog extends BlockSolidMeta {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    protected abstract BlockState getStrippedState();
+    public abstract BlockState getStrippedState();
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
