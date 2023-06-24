@@ -22,10 +22,8 @@ import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.BlockFace.AxisDirection;
 import cn.nukkit.math.SimpleAxisAlignedBB;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
 import cn.nukkit.utils.RedstoneComponent;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -340,11 +338,6 @@ public class BlockTrapdoor extends BlockTransparentMeta implements RedstoneCompo
     @Since("1.4.0.0-PN")
     public void playCloseSound() {
         this.level.addSound(this, Sound.RANDOM_DOOR_CLOSE);
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.WOOD_BLOCK_COLOR;
     }
 
     public boolean isOpen() {

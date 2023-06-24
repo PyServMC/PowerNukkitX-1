@@ -10,7 +10,7 @@
     <artifactId>powernukkitx</artifactId>
     <version>PNX-CUSTOM</version>
 
-    <inceptionYear>2022</inceptionYear>
+    <inceptionYear>2023</inceptionYear>
     <organization>
         <name>PowerNukkitX</name>
         <url>https://github.com/PowerNukkitX</url>
@@ -86,7 +86,7 @@
         <skipTests>true</skipTests>
         <skipGpg>true</skipGpg>
         <maven.javadoc.skip>true</maven.javadoc.skip>
-        <graalvm.version>22.2.0</graalvm.version>
+        <graalvm.version>23.0.0</graalvm.version>
         <skipDelombok>true</skipDelombok>
         <skipNexus>true</skipNexus>
         <skipShade>package</skipShade>
@@ -163,6 +163,16 @@
             <url>https://jitpack.io</url>
         </repository>
         <repository>
+            <id>opencollab-repo-release</id>
+            <url>https://repo.opencollab.dev/maven-releases/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
             <id>opencollab-repo-snapshot</id>
             <url>https://repo.opencollab.dev/maven-snapshots/</url>
             <releases>
@@ -217,9 +227,15 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>com.nukkitx</groupId>
+            <artifactId>natives</artifactId>
+            <version>1.0.3</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>cn.powernukkitx</groupId>
-            <artifactId>powernukkitx-tests-junit5</artifactId>
-            <version>0.0.2</version>
+            <artifactId>PowerNukkitX-JUnit5-Framework</artifactId>
+            <version>0.0.3</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -530,6 +546,12 @@
             <groupId>org.lz4</groupId>
             <artifactId>lz4-java</artifactId>
             <version>1.8.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+            <version>1.1.10.1</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 

@@ -11,9 +11,7 @@ import cn.nukkit.item.ItemBlock;
 import cn.nukkit.level.Sound;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.Vector3;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -245,11 +243,6 @@ public class BlockEndPortalFrame extends BlockTransparentMeta implements Faceabl
         return true;
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.GREEN_BLOCK_COLOR;
-    }
-    
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public boolean isEndPortalEye() {

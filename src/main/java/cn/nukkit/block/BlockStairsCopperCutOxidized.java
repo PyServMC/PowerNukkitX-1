@@ -3,8 +3,6 @@ package cn.nukkit.block;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.blockproperty.value.OxidizationLevel;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -37,11 +35,6 @@ public class BlockStairsCopperCutOxidized extends BlockStairsCopperCut {
     @Override
     public OxidizationLevel getOxidizationLevel() {
         return OxidizationLevel.OXIDIZED;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.WARPED_NYLIUM_BLOCK_COLOR;
     }
 
 }

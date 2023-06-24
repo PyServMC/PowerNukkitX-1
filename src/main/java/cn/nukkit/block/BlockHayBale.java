@@ -10,9 +10,7 @@ import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.potion.Effect;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
-
 import org.jetbrains.annotations.NotNull;
 
 import static cn.nukkit.potion.Effect.getEffect;
@@ -91,11 +89,6 @@ public class BlockHayBale extends BlockSolidMeta implements Faceable {
         this.getLevel().setBlock(block, this, true, true);
 
         return true;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.YELLOW_BLOCK_COLOR;
     }
 
     @Override

@@ -1,8 +1,8 @@
 pipeline {
     agent any
     tools {
-        maven 'MAVEN'
-        jdk 'JDK'
+        maven 'maven-3.8.1'
+        jdk 'java17'
     }
     options {
         buildDiscarder(logRotator(artifactNumToKeepStr: '5'))
@@ -10,13 +10,23 @@ pipeline {
     stages {
         stage ('Build') {
             steps {
-                sh 'mvn -B package -DskipTests=true -Darguments="-Dmaven.javadoc.skip=true"'
+                sh 'mvn clean package'
+                sh '''
+                    cd target
+                    zip -r PowerNukkitX-Libs.zip libs
+                '''
             }
             post {
                 success {
-                    archiveArtifacts artifacts: 'target/powernukkit-*.jar', fingerprint: true
+                    archiveArtifacts artifacts: 'target/*.jar, target/PowerNukkitX-Libs.zip', excludes: 'target/*-sources.jar, target/*-shaded.jar', followSymlinks: false
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            deleteDir()
         }
     }
 }

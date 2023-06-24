@@ -16,12 +16,10 @@ import cn.nukkit.level.Level;
 import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.Vector3;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
 import cn.nukkit.utils.OptionalBoolean;
 import cn.nukkit.utils.Rail;
 import cn.nukkit.utils.Rail.Orientation;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -214,11 +212,6 @@ public class BlockRail extends BlockFlowable implements Faceable {
     @Override
     public AxisAlignedBB recalculateBoundingBox() {
         return this;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.AIR_BLOCK_COLOR;
     }
 
     //Information from http://minecraft.gamepedia.com/Rail

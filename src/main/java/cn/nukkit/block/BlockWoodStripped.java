@@ -8,7 +8,6 @@ import cn.nukkit.blockproperty.exception.InvalidBlockPropertyValueException;
 import cn.nukkit.blockproperty.value.WoodType;
 import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.item.Item;
-
 import org.jetbrains.annotations.NotNull;
 
 @PowerNukkitOnly
@@ -36,7 +35,7 @@ public abstract class BlockWoodStripped extends BlockWood {
 
     @PowerNukkitOnly
     @Override
-    protected BlockState getStrippedState() {
+    public BlockState getStrippedState() {
         return getCurrentState();
     }
 

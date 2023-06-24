@@ -17,7 +17,6 @@ import cn.nukkit.level.vibration.VibrationType;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.network.protocol.BlockEventPacket;
 import cn.nukkit.network.protocol.LevelSoundEventPacket;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.RedstoneComponent;
 import org.jetbrains.annotations.NotNull;
 
@@ -90,6 +89,7 @@ public class BlockNoteblock extends BlockSolid implements RedstoneComponent, Blo
     @PowerNukkitOnly
     @Override
     public int onTouch(@Nullable Player player, Action action) {
+        onUpdate(Level.BLOCK_UPDATE_TOUCH);
         if (player != null && action == Action.LEFT_CLICK_BLOCK && player.isSurvival()) {
             this.emitSound(player);
             return 1;
@@ -337,8 +337,4 @@ public class BlockNoteblock extends BlockSolid implements RedstoneComponent, Blo
         }
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.WOOD_BLOCK_COLOR;
-    }
 }

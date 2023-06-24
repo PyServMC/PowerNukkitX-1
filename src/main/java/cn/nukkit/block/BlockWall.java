@@ -10,7 +10,6 @@ import cn.nukkit.blockproperty.BlockProperty;
 import cn.nukkit.item.ItemBlock;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -78,12 +77,6 @@ public class BlockWall extends BlockWallBase {
         return PROPERTIES;
     }
 
-
-    @PowerNukkitDifference(since = "1.3.0.0-PN", info = "Return the actual material color instead of transparent")
-    @Override
-    public BlockColor getColor() {
-        return getWallType().color;
-    }
 
     @PowerNukkitOnly
     @Since("1.3.0.0-PN")

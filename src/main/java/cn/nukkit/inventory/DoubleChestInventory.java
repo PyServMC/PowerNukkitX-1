@@ -12,6 +12,7 @@ import cn.nukkit.level.Level;
 import cn.nukkit.level.Sound;
 import cn.nukkit.network.protocol.BlockEventPacket;
 import cn.nukkit.network.protocol.InventorySlotPacket;
+import org.jetbrains.annotations.NotNull;
 import cn.nukkit.utils.LevelException;
 import cn.nukkit.utils.RedstoneComponent;
 
@@ -64,6 +65,7 @@ public class DoubleChestInventory extends ContainerInventory implements Inventor
         return this.left.getHolder();
     }
 
+    @NotNull
     @Override
     public Item getItem(int index) {
         return index < this.left.getSize() ? this.left.getItem(index) : this.right.getItem(index - this.right.getSize());

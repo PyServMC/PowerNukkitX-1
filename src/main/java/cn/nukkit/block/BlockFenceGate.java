@@ -17,10 +17,8 @@ import cn.nukkit.level.Sound;
 import cn.nukkit.level.vibration.VibrationEvent;
 import cn.nukkit.level.vibration.VibrationType;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
 import cn.nukkit.utils.RedstoneComponent;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -185,11 +183,6 @@ public class BlockFenceGate extends BlockTransparentMeta implements RedstoneComp
     @Override
     public boolean onActivate(@NotNull Item item, Player player) {
         return toggle(player);
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.WOOD_BLOCK_COLOR;
     }
 
     @PowerNukkitDifference(info = "Just call the #setOpen() method.", since = "1.4.0.0-PN")

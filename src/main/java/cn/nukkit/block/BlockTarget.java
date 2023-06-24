@@ -16,9 +16,7 @@ import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.BlockFace.Axis;
 import cn.nukkit.math.NukkitMath;
 import cn.nukkit.math.Vector3;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.RedstoneComponent;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -196,8 +194,4 @@ public class BlockTarget extends BlockTransparent implements RedstoneComponent, 
         return 0;
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.QUARTZ_BLOCK_COLOR;
-    }
 }

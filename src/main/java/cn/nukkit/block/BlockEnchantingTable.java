@@ -13,8 +13,6 @@ import cn.nukkit.math.BlockFace;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.StringTag;
 import cn.nukkit.nbt.tag.Tag;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -138,11 +136,6 @@ public class BlockEnchantingTable extends BlockTransparent implements BlockEntit
     @Override
     public boolean canHarvestWithHand() {
         return false;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.RED_BLOCK_COLOR;
     }
 
     @Since("1.3.0.0-PN")

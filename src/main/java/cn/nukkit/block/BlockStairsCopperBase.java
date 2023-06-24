@@ -7,8 +7,6 @@ import cn.nukkit.blockproperty.value.OxidizationLevel;
 import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemTool;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -38,11 +36,6 @@ public abstract class BlockStairsCopperBase extends BlockStairs implements Waxab
     @Override
     public boolean canBeActivated() {
         return true;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.ORANGE_BLOCK_COLOR;
     }
 
     @Override

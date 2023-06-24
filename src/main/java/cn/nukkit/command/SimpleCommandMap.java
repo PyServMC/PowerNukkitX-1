@@ -4,7 +4,6 @@ import cn.nukkit.Server;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.defaults.*;
 import cn.nukkit.command.simple.*;
-import cn.nukkit.command.tree.node.CommandNode;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.lang.CommandOutputContainer;
 import cn.nukkit.lang.TranslationContainer;
@@ -35,11 +34,18 @@ public class SimpleCommandMap implements CommandMap {
     }
 
     private void setDefaultCommands() {
+        this.register("nukkit", new ExecuteCommand("execute"));
+        this.register("nukkit", new CameraCommand("camera"));
+        this.register("nukkit", new FogCommand("fog"));
+        this.register("nukkit", new ExecuteCommandOld("executeold"));
+        this.register("nukkit", new PlayAnimationCommand("playanimation"));
+        this.register("nukkit", new WorldCommand("world"));
         // this.register("nukkit", new ExecuteCommand("execute"));
         // this.register("nukkit", new FogCommand("fog"));
         // this.register("nukkit", new ExecuteCommandOld("executeold"));
         // this.register("nukkit", new PlayAnimationCommand("playanimation"));
         // this.register("nukkit", new WorldCommand("world"));
+        this.register("nukkit", new CameraCommand("camera"));
         this.register("nukkit", new TpsCommand("tps"));
         // this.register("nukkit", new TickingAreaCommand("tickingarea"));
         // this.register("nukkit", new TellrawCommand("tellraw"));
@@ -112,7 +118,6 @@ public class SimpleCommandMap implements CommandMap {
         if (this.server.getConfig("debug.commands", false)) {
             this.register("nukkit", new DebugCommand("debug"));
         }
-        CommandNode.setCommandNames(this.getCommands().keySet());
     }
 
     @Override
@@ -257,10 +262,6 @@ public class SimpleCommandMap implements CommandMap {
         int start = 0;
 
         for (int i = 0; i < sb.length(); i++) {
-//            if (sb.charAt(i) == '\\') {
-//                sb.deleteCharAt(i);
-//                continue;
-//            }
             if ((sb.charAt(i) == '{' && curlyBraceCount >= 1) || (sb.charAt(i) == '{' && sb.charAt(i - 1) == ' ' && curlyBraceCount == 0)) {
                 curlyBraceCount++;
             } else if (sb.charAt(i) == '}' && curlyBraceCount > 0) {
