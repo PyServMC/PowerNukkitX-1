@@ -2725,7 +2725,7 @@ public class Server {
         level.initLevel();
 
         //convert old Nukkit World
-        if (level.getProvider() instanceof Anvil anvil && anvil.isOldAnvil() && level.isOverWorld()) {
+        /*if (level.getProvider() instanceof Anvil anvil && anvil.isOldAnvil() && level.isOverWorld()) {
             log.info(Server.getInstance().getLanguage().tr("nukkit.anvil.converter.update"));
             var scan = new Scanner(System.in);
             var result = scan.next();
@@ -2763,7 +2763,7 @@ public class Server {
                     }
                 }
             } else System.exit(0);
-        }
+        }*/
 
         this.getPluginManager().callEvent(new LevelLoadEvent(level));
         level.setTickRate(this.baseTickRate);
