@@ -133,7 +133,6 @@ public class StartGamePacket extends DataPacket {
      * @since v582
      */
     public boolean exportedFromEditor;
-    public byte chatRestrictionLevel;
     public boolean disablePlayerInteractions;
     /**
      * @since v589

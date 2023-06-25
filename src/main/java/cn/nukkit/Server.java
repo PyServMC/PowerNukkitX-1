@@ -1194,26 +1194,6 @@ public class Server {
         }
     }
 
-
-    /**
-     * 更新指定玩家们(players)的{@link PlayerListPacket}数据包(即玩家列表数据)
-     * <p>
-     * Update {@link PlayerListPacket} data packets (i.e. player list data) for specified players
-     *
-     * @param uuid       uuid
-     * @param entityId   实体id
-     * @param name       名字
-     * @param skin       皮肤
-     * @param xboxUserId xbox用户id
-     * @param players    指定接受数据包的玩家
-     */
-    public void updatePlayerListData(UUID uuid, long entityId, String name, Skin skin, String xboxUserId, Player[] players) {
-        PlayerListPacket pk = new PlayerListPacket();
-        pk.type = PlayerListPacket.TYPE_ADD;
-        pk.entries = new PlayerListPacket.Entry[]{new PlayerListPacket.Entry(uuid, entityId, name, skin, xboxUserId)};
-        Server.broadcastPacket(players, pk);
-    }
-
     public boolean getCheckXUID() {
         return this.getPropertyBoolean("check-xuid", true);
     }

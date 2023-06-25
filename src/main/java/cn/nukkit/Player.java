@@ -4,38 +4,44 @@ import cn.nukkit.AdventureSettings.Type;
 import cn.nukkit.api.*;
 import cn.nukkit.block.*;
 import cn.nukkit.block.customblock.CustomBlock;
-import cn.nukkit.blockentity.BlockEntity;
-import cn.nukkit.blockentity.BlockEntitySign;
-import cn.nukkit.blockentity.BlockEntitySpawnable;
+import cn.nukkit.blockentity.*;
 import cn.nukkit.camera.data.CameraPreset;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandDataVersions;
 import cn.nukkit.command.utils.RawText;
+import cn.nukkit.dialog.handler.FormDialogHandler;
+import cn.nukkit.dialog.response.FormResponseDialog;
 import cn.nukkit.dialog.window.FormWindowDialog;
 import cn.nukkit.entity.*;
+import cn.nukkit.entity.custom.CustomEntity;
 import cn.nukkit.entity.data.*;
-import cn.nukkit.entity.item.EntityFishingHook;
-import cn.nukkit.entity.item.EntityItem;
-import cn.nukkit.entity.item.EntityXPOrb;
+import cn.nukkit.entity.item.*;
+import cn.nukkit.entity.passive.EntityNPCEntity;
 import cn.nukkit.entity.projectile.EntityArrow;
 import cn.nukkit.entity.projectile.EntityProjectile;
 import cn.nukkit.entity.projectile.EntityThrownTrident;
+import cn.nukkit.event.block.LecternPageChangeEvent;
 import cn.nukkit.event.block.WaterFrostEvent;
 import cn.nukkit.event.entity.*;
 import cn.nukkit.event.entity.EntityDamageEvent.DamageCause;
 import cn.nukkit.event.entity.EntityPortalEnterEvent.PortalType;
-import cn.nukkit.event.inventory.InventoryPickupArrowEvent;
-import cn.nukkit.event.inventory.InventoryPickupItemEvent;
-import cn.nukkit.event.inventory.InventoryPickupTridentEvent;
+import cn.nukkit.event.inventory.*;
 import cn.nukkit.event.player.*;
 import cn.nukkit.event.player.PlayerInteractEvent.Action;
 import cn.nukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import cn.nukkit.event.server.DataPacketReceiveEvent;
 import cn.nukkit.event.server.DataPacketSendEvent;
+import cn.nukkit.event.vehicle.VehicleMoveEvent;
+import cn.nukkit.form.handler.FormResponseHandler;
 import cn.nukkit.form.window.FormWindow;
+import cn.nukkit.form.window.FormWindowCustom;
 import cn.nukkit.inventory.*;
 import cn.nukkit.inventory.transaction.*;
+import cn.nukkit.inventory.transaction.action.InventoryAction;
+import cn.nukkit.inventory.transaction.data.ReleaseItemData;
+import cn.nukkit.inventory.transaction.data.UseItemData;
+import cn.nukkit.inventory.transaction.data.UseItemOnEntityData;
 import cn.nukkit.item.*;
 import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.lang.CommandOutputContainer;
@@ -50,6 +56,7 @@ import cn.nukkit.level.vibration.VibrationEvent;
 import cn.nukkit.level.vibration.VibrationType;
 import cn.nukkit.math.*;
 import cn.nukkit.metadata.MetadataValue;
+import cn.nukkit.nbt.NBTIO;
 import cn.nukkit.nbt.tag.*;
 import cn.nukkit.network.CompressionProvider;
 import cn.nukkit.network.Network;
@@ -63,8 +70,10 @@ import cn.nukkit.permission.Permission;
 import cn.nukkit.permission.PermissionAttachment;
 import cn.nukkit.permission.PermissionAttachmentInfo;
 import cn.nukkit.plugin.Plugin;
+import cn.nukkit.positiontracking.PositionTracking;
 import cn.nukkit.positiontracking.PositionTrackingService;
 import cn.nukkit.potion.Effect;
+import cn.nukkit.resourcepacks.ResourcePack;
 import cn.nukkit.scheduler.AsyncTask;
 import cn.nukkit.scheduler.Task;
 import cn.nukkit.scheduler.TaskHandler;
@@ -97,17 +106,25 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
+import org.powernukkit.version.Version;
 
 import javax.annotation.Nullable;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteOrder;
 import java.util.*;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static cn.nukkit.utils.Utils.dynamic;
@@ -3615,7 +3632,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                                 return;
                             }
 
-                            if (this.event.getLoginResult() == LoginResult.KICK) {
+                            if (this.event.getLoginResult() == PlayerAsyncPreLoginEvent.LoginResult.KICK) {
                                 playerInstance.close(this.event.getKickMessage(), this.event.getKickMessage());
                             } else if (playerInstance.shouldLogin) {
                                 playerInstance.setSkin(this.event.getSkin());
@@ -5430,8 +5447,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                                         }
                                     }
 
-                                    Map<DamageModifier, Float> damage = new EnumMap<>(DamageModifier.class);
-                                    damage.put(DamageModifier.BASE, itemDamage);
+                                    Map<EntityDamageEvent.DamageModifier, Float> damage = new EnumMap<>(EntityDamageEvent.DamageModifier.class);
+                                    damage.put(EntityDamageEvent.DamageModifier.BASE, itemDamage);
 
                                     float knockBack = 0.3f;
                                     if (item.applyEnchantments()) {
@@ -5713,6 +5730,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     break;
             }
         }
+    }
+
+    private void logTriedToSetButHadInHand(Item tried, Item had) {
+        log.debug("Tried to set item {} but {} had item {} in their hand slot", tried.getId(), this.username, had.getId());
     }
 
     /**
