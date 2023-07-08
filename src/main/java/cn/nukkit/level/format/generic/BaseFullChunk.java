@@ -17,6 +17,7 @@ import cn.nukkit.math.BlockVector3;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.nbt.tag.NumberTag;
+import cn.nukkit.nbt.tag.*;
 import cn.nukkit.network.protocol.BatchPacket;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -145,6 +146,18 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
                         changed = true;
                         continue;
                     }
+
+                    if(!nbt.contains("movedV3")) {
+                        ListTag posNew = new ListTag();
+                        posNew.add(pos.get(0));
+                        posNew.add(new DoubleTag((((NumberTag)pos.get(1)).getData().intValue()) - 64));
+                        posNew.add(pos.get(2));
+                        changed = true;
+
+                        nbt.remove("Pos");
+                        nbt.putList("Pos", posNew);
+                    }
+
                     Entity entity = Entity.createEntity(nbt.getString("id"), this, nbt);
                     if (entity != null) {
                         changed = true;

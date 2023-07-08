@@ -660,6 +660,7 @@ public abstract class Entity extends Location implements Metadatable {
     @Nullable
     public static Entity createEntity(@NotNull String name, @NotNull FullChunk chunk, @NotNull CompoundTag nbt, @Nullable Object... args) {
         var provider = knownEntities.get(name);
+        nbt.putBoolean("movedV3", true);
         if (provider != null) {
             return provider.provideEntity(chunk, nbt, args);
         }
@@ -1251,6 +1252,7 @@ public abstract class Entity extends Location implements Metadatable {
         ListTag<DoubleTag> posList = this.namedTag.getList("Pos", DoubleTag.class);
         ListTag<FloatTag> rotationList = this.namedTag.getList("Rotation", FloatTag.class);
         ListTag<DoubleTag> motionList = this.namedTag.getList("Motion", DoubleTag.class);
+
         this.setPositionAndRotation(
                 this.temporalVector.setComponents(
                         posList.get(0).data,
