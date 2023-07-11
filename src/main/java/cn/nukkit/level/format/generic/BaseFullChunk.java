@@ -183,6 +183,12 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
                         if (blockEntity == null) {
                             changed = true;
                         }
+
+                        if(!blockEntity.isBlockEntityValid()) {
+                            //move block entity down 64 blocks
+                            blockEntity.setY(blockEntity.getY() - 64);
+                            changed = true;
+                        }
                     }
                 }
                 this.getProvider().getLevel().timings.syncChunkLoadBlockEntitiesTimer.stopTiming();
