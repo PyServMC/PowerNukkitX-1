@@ -18,12 +18,12 @@ public interface ProtocolInfo {
     /**
      * Actual Minecraft: PE protocol version
      */
-    int CURRENT_PROTOCOL = dynamic(589);
+    int CURRENT_PROTOCOL = dynamic(594);
 
     List<Integer> SUPPORTED_PROTOCOLS = Ints.asList(CURRENT_PROTOCOL);
 
-    String MINECRAFT_VERSION_NETWORK = dynamic("1.20.0");
-    String MINECRAFT_VERSION = dynamic("1.20.0");
+    String MINECRAFT_VERSION_NETWORK = dynamic("1.20.10");
+    String MINECRAFT_VERSION = dynamic("1.20.10");
 
     byte LOGIN_PACKET = 0x01;
     byte PLAY_STATUS_PACKET = 0x02;
@@ -347,6 +347,9 @@ public interface ProtocolInfo {
     @Since("1.19.80-r1")
     @PowerNukkitXOnly
     int OPEN_SIGN = 303;
+    @Since("1.20.10-r1")
+    @PowerNukkitXOnly
+    int AGENT_ANIMATION = 304;
     byte BATCH_PACKET = (byte) 0xff;
 
     static int toNewProtocolID(byte oldProtocolID) {

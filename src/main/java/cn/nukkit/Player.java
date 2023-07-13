@@ -84,8 +84,6 @@ import cn.nukkit.scoreboard.scoreboard.IScoreboard;
 import cn.nukkit.scoreboard.scoreboard.IScoreboardLine;
 import cn.nukkit.scoreboard.scorer.PlayerScorer;
 import cn.nukkit.utils.*;
-import co.aikar.timings.Timing;
-import co.aikar.timings.Timings;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Strings;
@@ -738,8 +736,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             return;
         }
 
-        Timings.playerChunkSendTimer.startTiming();
-
         if (!loadQueue.isEmpty()) {
             int count = 0;
             ObjectIterator<Long2ObjectMap.Entry<Boolean>> iter = loadQueue.long2ObjectEntrySet().fastIterator();
@@ -776,7 +772,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         if (this.chunkLoadCount >= this.spawnThreshold && !this.spawned && loggedIn) {
             this.doFirstSpawn();
         }
-        Timings.playerChunkSendTimer.stopTiming();
     }
 
     @Override
@@ -877,8 +872,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             return false;
         }
 
-        Timings.playerChunkOrderTimer.startTiming();
-
         this.nextChunkOrderRun = 200;
 
         loadQueue.clear();
@@ -963,8 +956,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             packet.radius = viewDistance << 4;
             this.dataPacket(packet);
         }
-
-        Timings.playerChunkOrderTimer.stopTiming();
         return true;
     }
 
@@ -2790,19 +2781,15 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         if (!this.connected) {
             return false;
         }
-
-        try (Timing ignored = Timings.getSendDataPacketTiming(packet)) {
-            DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
-            this.server.getPluginManager().callEvent(ev);
-            if (ev.isCancelled()) {
-                return false;
-            }
-
-            if (log.isTraceEnabled() && !server.isIgnoredPacket(packet.getClass())) {
-                log.trace("Outbound {}: {}", this.getName(), packet);
-            }
-            this.getNetworkSession().sendPacket(packet);
+        DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
+        this.server.getPluginManager().callEvent(ev);
+        if (ev.isCancelled()) {
+            return false;
         }
+        if (log.isTraceEnabled() && !server.isIgnoredPacket(packet.getClass())) {
+            log.trace("Outbound {}: {}", this.getName(), packet);
+        }
+        this.getNetworkSession().sendPacket(packet);
         return true;
     }
 
@@ -3096,7 +3083,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
     @Override
     public boolean fastMove(double dx, double dy, double dz) {
-        Timings.entityMoveTimer.startTiming();
 
         this.x += dx;
         this.y += dy;
@@ -3114,8 +3100,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             this.isCollided = this.onGround;
             this.updateFallState(this.onGround);
         }
-
-        Timings.entityMoveTimer.stopTiming();
         return true;
     }
 
@@ -3409,8 +3393,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
      * @return Entity|null    如果没有找到实体，则为NULL，或者是实体的一个实例。<br>either NULL if no entity is found or an instance of the entity
      */
     public EntityInteractable getEntityPlayerLookingAt(int maxDistance) {
-        timing.startTiming();
-
         EntityInteractable entity = null;
 
         // just a fix because player MAY not be fully initialized
@@ -3434,8 +3416,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                 // nothing to log here!
             }
         }
-
-        timing.stopTiming();
 
         return entity;
     }
@@ -3470,6 +3450,242 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     }
 
     @PowerNukkitXDifference(since = "1.19.70-r1", info = "Use new packet id system.")
+    public void handleDataPacket(DataPacket packet) {
+        if (!connected) {
+            return;
+        }
+
+        if (!verified && packet.packetId() != ProtocolInfo.toNewProtocolID(ProtocolInfo.LOGIN_PACKET)
+                && packet.packetId() != ProtocolInfo.toNewProtocolID(ProtocolInfo.BATCH_PACKET)
+                && packet.packetId() != ProtocolInfo.toNewProtocolID(ProtocolInfo.REQUEST_NETWORK_SETTINGS_PACKET)) {
+            log.warn("Ignoring {} from {} due to player not verified yet", packet.getClass().getSimpleName(), getAddress());
+            if (unverifiedPackets++ > 100) {
+                this.close("", "Too many failed login attempts");
+            }
+            return;
+        }
+
+
+        DataPacketReceiveEvent ev = new DataPacketReceiveEvent(this, packet);
+        this.server.getPluginManager().callEvent(ev);
+        if (ev.isCancelled()) {
+            return;
+        }
+        if (packet.packetId() == ProtocolInfo.toNewProtocolID(ProtocolInfo.BATCH_PACKET)) {
+            List<DataPacket> dataPackets = unpackBatchedPackets((BatchPacket) packet);
+            dataPackets.forEach(this::handleDataPacket);
+            return;
+        }
+        if (log.isTraceEnabled() && !server.isIgnoredPacket(packet.getClass())) {
+            log.trace("Inbound {}: {}", this.getName(), packet);
+        }
+        if (DataPacketManager.canProcess(packet.getProtocolUsed(), packet.packetId())) {
+            DataPacketManager.processPacket(this.playerHandle, packet);
+        }
+    }
+
+    /**
+     * 以该玩家的身份发送一条聊天信息。如果消息以/（正斜杠）开头，它将被视为一个命令。
+     * <p>
+     * Sends a chat message as this player. If the message begins with a / (forward-slash) it will be treated
+     * as a command.
+     *
+     * @param message 发送的信息<br>message to send
+     * @return successful
+     */
+    public boolean chat(String message) {
+        if (!this.spawned || !this.isAlive()) {
+            return false;
+        }
+
+        this.resetCraftingGridType();
+        this.craftingType = CRAFTING_SMALL;
+
+        if (this.removeFormat) {
+            message = TextFormat.clean(message, true);
+        }
+
+        for (String msg : message.split("\n")) {
+            if (!msg.trim().isEmpty() && msg.length() <= 512 && this.messageCounter-- > 0) {
+                PlayerChatEvent chatEvent = new PlayerChatEvent(this, msg);
+                this.server.getPluginManager().callEvent(chatEvent);
+                if (!chatEvent.isCancelled()) {
+                    this.server.broadcastMessage(this.getServer().getLanguage().tr(chatEvent.getFormat(), new String[]{chatEvent.getPlayer().getDisplayName(), chatEvent.getMessage()}), chatEvent.getRecipients());
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * reason=empty string
+     *
+     * @see #kick(PlayerKickEvent.Reason, String, boolean)
+     */
+    public boolean kick() {
+        return this.kick("");
+    }
+
+    /**
+     * {@link PlayerKickEvent.Reason} = {@link PlayerKickEvent.Reason#UNKNOWN}
+     *
+     * @see #kick(PlayerKickEvent.Reason, String, boolean)
+     */
+    public boolean kick(String reason, boolean isAdmin) {
+        return this.kick(PlayerKickEvent.Reason.UNKNOWN, reason, isAdmin);
+    }
+
+    /**
+     * {@link PlayerKickEvent.Reason} = {@link PlayerKickEvent.Reason#UNKNOWN}
+     *
+     * @see #kick(PlayerKickEvent.Reason, String, boolean)
+     */
+    public boolean kick(String reason) {
+        return kick(PlayerKickEvent.Reason.UNKNOWN, reason);
+    }
+
+    /**
+     * @see #kick(PlayerKickEvent.Reason, String, boolean)
+     */
+    public boolean kick(PlayerKickEvent.Reason reason) {
+        return this.kick(reason, true);
+    }
+
+    /**
+     * @see #kick(PlayerKickEvent.Reason, String, boolean)
+     */
+    public boolean kick(PlayerKickEvent.Reason reason, String reasonString) {
+        return this.kick(reason, reasonString, true);
+    }
+
+    /**
+     * @see #kick(PlayerKickEvent.Reason, String, boolean)
+     */
+    public boolean kick(PlayerKickEvent.Reason reason, boolean isAdmin) {
+        return this.kick(reason, reason.toString(), isAdmin);
+    }
+
+    /**
+     * 踢出该玩家
+     * <p>
+     * Kick out the player
+     *
+     * @param reason       原因枚举<br>Cause Enumeration
+     * @param reasonString 原因字符串<br>Reason String
+     * @param isAdmin      是否来自管理员踢出<br>Whether from the administrator kicked out
+     * @return boolean
+     */
+    public boolean kick(PlayerKickEvent.Reason reason, String reasonString, boolean isAdmin) {
+        PlayerKickEvent ev;
+        this.server.getPluginManager().callEvent(ev = new PlayerKickEvent(this, reason, this.getLeaveMessage()));
+        if (!ev.isCancelled()) {
+            String message;
+            if (isAdmin) {
+                if (!this.isBanned()) {
+                    message = "You were kicked out of the game" + (!reasonString.isEmpty() ? ": " + reasonString : "");
+                } else {
+                    message = reasonString;
+                }
+            } else {
+                if (reasonString.isEmpty()) {
+                    message = "disconnectionScreen.noReason";
+                } else {
+                    message = reasonString;
+                }
+            }
+
+            this.close(ev.getQuitMessage(), message);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 设置玩家的可视距离(范围 0--{@link Server#getViewDistance})
+     * <p>
+     * Set the player's viewing distance (range 0--{@link Server#getViewDistance})
+     *
+     * @param distance 可视距离
+     */
+    public void setViewDistance(int distance) {
+        this.chunkRadius = distance;
+
+        ChunkRadiusUpdatedPacket pk = new ChunkRadiusUpdatedPacket();
+        pk.radius = distance;
+
+        this.dataPacket(pk);
+    }
+
+    /**
+     * 得到玩家的可视距离
+     * <p>
+     * Get the player's viewing distance
+     *
+     * @return int
+     */
+    public int getViewDistance() {
+        return this.chunkRadius;
+    }
+
+    @Override
+    public void sendMessage(String message) {
+        TextPacket pk = new TextPacket();
+        pk.type = TextPacket.TYPE_RAW;
+        pk.message = this.server.getLanguage().tr(message);
+        this.dataPacket(pk);
+    }
+  
+  
+      @Override
+      public void onCompletion(Server server) {
+          if (playerInstance.closed) {
+            return;
+          }
+
+          if (this.event.getLoginResult() == PlayerAsyncPreLoginEvent.LoginResult.KICK) {
+             playerInstance.close(this.event.getKickMessage(), this.event.getKickMessage());
+          } else if (playerInstance.shouldLogin) {
+             playerInstance.setSkin(this.event.getSkin());
+             playerInstance.completeLoginSequence();
+             for (Consumer<Server> action : this.event.getScheduledActions()) {
+                action.accept(server);
+             }
+          }
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.19.60-r1")
+    public void sendCommandOutput(CommandOutputContainer container) {
+        if (this.level.getGameRules().getBoolean(GameRule.SEND_COMMAND_FEEDBACK)) {
+            var pk = new CommandOutputPacket();
+            pk.messages.addAll(container.getMessages());
+            pk.commandOriginData = new CommandOriginData(CommandOriginData.Origin.PLAYER, this.getUniqueId(), "", null);//Only players can effect
+            pk.type = CommandOutputType.ALL_OUTPUT;//Useless
+            pk.successCount = container.getSuccessCount();//Useless,maybe used for server-client interaction
+            this.dataPacket(pk);
+        }
+    }
+
+    /**
+     * 在玩家聊天栏发送一个JSON文本
+     * <p>
+     * Send a JSON text in the player chat bar
+     *
+     * @param text JSON文本<br>Json text
+     */
+    @PowerNukkitXOnly
+    @Since("1.6.0.0-PNX")
+    public void sendRawTextMessage(RawText text) {
+        TextPacket pk = new TextPacket();
+        pk.type = TextPacket.TYPE_OBJECT;
+        pk.message = text.toRawText();
+        this.dataPacket(pk);
+    }
+
+   @PowerNukkitXDifference(since = "1.19.70-r1", info = "Use new packet id system.")
     public void handleDataPacket(DataPacket packet) {
         if (!connected) {
             return;
@@ -8225,20 +8441,15 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         if (!this.connected) {
             return false;
         }
-
-        try (Timing ignored = Timings.getSendDataPacketTiming(packet)) {
-            DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
-            this.server.getPluginManager().callEvent(ev);
-            if (ev.isCancelled()) {
-                return false;
-            }
-
-            if (log.isTraceEnabled() && !server.isIgnoredPacket(packet.getClass())) {
-                log.trace("Immediate Outbound {}: {}", this.getName(), packet);
-            }
-            this.getNetworkSession().sendImmediatePacket(packet);
+        DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
+        this.server.getPluginManager().callEvent(ev);
+        if (ev.isCancelled()) {
+            return false;
         }
-
+        if (log.isTraceEnabled() && !server.isIgnoredPacket(packet.getClass())) {
+            log.trace("Immediate Outbound {}: {}", this.getName(), packet);
+        }
+        this.getNetworkSession().sendImmediatePacket(packet);
         return true;
     }
 
@@ -8248,21 +8459,15 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         if (!this.connected) {
             return false;
         }
-
-        try (Timing ignored = Timings.getSendDataPacketTiming(packet)) {
-            DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
-            this.server.getPluginManager().callEvent(ev);
-            if (ev.isCancelled()) {
-                return false;
-            }
-
-            if (log.isTraceEnabled() && !server.isIgnoredPacket(packet.getClass())) {
-                log.trace("Resource Outbound {}: {}", this.getName(), packet);
-            }
-
-            this.interfaz.putResourcePacket(this, packet);
+        DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
+        this.server.getPluginManager().callEvent(ev);
+        if (ev.isCancelled()) {
+            return false;
         }
-
+        if (log.isTraceEnabled() && !server.isIgnoredPacket(packet.getClass())) {
+            log.trace("Resource Outbound {}: {}", this.getName(), packet);
+        }
+        this.interfaz.putResourcePacket(this, packet);
         return true;
     }
 

@@ -11,8 +11,6 @@ import cn.nukkit.permission.Permission;
 import cn.nukkit.plugin.js.JSFeatures;
 import cn.nukkit.utils.PluginException;
 import cn.nukkit.utils.Utils;
-import co.aikar.timings.Timing;
-import co.aikar.timings.Timings;
 import io.netty.util.internal.EmptyArrays;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
@@ -380,7 +378,6 @@ public class PluginManager {
     }
 
     private void calculatePermissionDefault(Permission permission) {
-        Timings.permissionDefaultTimer.startTiming();
         if (permission.getDefault().equals(Permission.DEFAULT_OP) || permission.getDefault().equals(Permission.DEFAULT_TRUE)) {
             this.defaultPermsOp.put(permission.getName(), permission);
             this.dirtyPermissibles(true);
@@ -390,7 +387,6 @@ public class PluginManager {
             this.defaultPerms.put(permission.getName(), permission);
             this.dirtyPermissibles(false);
         }
-        Timings.permissionDefaultTimer.startTiming();
     }
 
     private void dirtyPermissibles(boolean op) {
@@ -650,8 +646,7 @@ public class PluginManager {
         }
 
         try {
-            Timing timing = Timings.getPluginEventTiming(event, listener, executor, plugin);
-            this.getEventListeners(event).register(new RegisteredListener(listener, executor, priority, plugin, ignoreCancelled, timing));
+            this.getEventListeners(event).register(new RegisteredListener(listener, executor, priority, plugin, ignoreCancelled));
         } catch (IllegalAccessException e) {
             log.error("An error occurred while registering the event listener event:{}, listener:{} for plugin:{} version:{}",
                     event, listener, plugin.getDescription().getName(), plugin.getDescription().getVersion(), e);
