@@ -1,5 +1,7 @@
 package cn.nukkit.level;
 
+import cn.nukkit.api.Since;
+
 /**
  * @author CreeperFace
  */
@@ -969,7 +971,6 @@ public enum Sound {
     @Since("1.6.0.0-PN") MUSIC_GAME_SNOWY_SLOPES("music.game.snowy_slopes"),
     @Since("1.6.0.0-PN") MUSIC_GAME_SOUL_SAND_VALLEY("music.game.soul_sand_valley"),
     MUSIC_GAME_SOULSAND_VALLEY("music.game.soulsand_valley"),
-    MUSIC_GAME_SOUL_SAND_VALLEY("music.game.soul_sand_valley"),
     MUSIC_GAME_STONY_PEAKS("music.game.stony_peaks"),
     MUSIC_GAME_SWAMP_MUSIC("music.game.swamp_music"),
     MUSIC_GAME_WARPED_FOREST("music.game.warped_forest"),

@@ -11,7 +11,7 @@ import java.util.List;
 public class BlastFurnaceRecipe implements SmeltingRecipe {
     private final Item output;
     private Item ingredient;
-    private final String recipeId;
+    private String recipeId;
 
     private double experience;
 
@@ -22,8 +22,8 @@ public class BlastFurnaceRecipe implements SmeltingRecipe {
 
     @PowerNukkitXOnly
     public BlastFurnaceRecipe(@Nullable String recipeId, Item result, Item ingredient) {
-        this.recipeId = recipeId == null ? CraftingManager.getMultiItemHash(List.of(ingredient, result)).toString() : recipeId;
         this(result, ingredient, 0);
+        this.recipeId = recipeId == null ? CraftingManager.getMultiItemHash(List.of(ingredient, result)).toString() : recipeId;
     }
 
     public BlastFurnaceRecipe(Item result, Item ingredient, double experience) {

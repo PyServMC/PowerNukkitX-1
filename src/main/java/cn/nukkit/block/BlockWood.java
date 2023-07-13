@@ -133,16 +133,29 @@ public class BlockWood extends BlockLog {
 
     @PowerNukkitOnly
     @Override
-    @PowerNukkitXDifference(since = "1.20.0-r2", info = "make public")
     public BlockState getStrippedState() {
-        int strippedId = switch (getWoodType()) {
-            case OAK -> STRIPPED_OAK_LOG;
-            case SPRUCE -> STRIPPED_SPRUCE_LOG;
-            case BIRCH -> STRIPPED_BIRCH_LOG;
-            case JUNGLE -> STRIPPED_JUNGLE_LOG;
-            case ACACIA -> STRIPPED_ACACIA_LOG;
-            case DARK_OAK -> STRIPPED_DARK_OAK_LOG;
-        };
+        int strippedId;
+        switch (getWoodType()) {
+            default:
+            case OAK:
+                strippedId = STRIPPED_OAK_LOG;
+                break;
+            case SPRUCE:
+                strippedId = STRIPPED_SPRUCE_LOG;
+                break;
+            case BIRCH:
+                strippedId = STRIPPED_BIRCH_LOG;
+                break;
+            case JUNGLE:
+                strippedId = STRIPPED_JUNGLE_LOG;
+                break;
+            case ACACIA:
+                strippedId = STRIPPED_ACACIA_LOG;
+                break;
+            case DARK_OAK:
+                strippedId = STRIPPED_DARK_OAK_LOG;
+                break;
+        }
         return BlockState.of(strippedId).withProperty(PILLAR_AXIS, getPillarAxis());
     }
 
