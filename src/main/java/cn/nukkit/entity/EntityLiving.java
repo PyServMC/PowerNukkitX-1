@@ -25,7 +25,6 @@ import cn.nukkit.network.protocol.EntityEventPacket;
 import cn.nukkit.potion.Effect;
 import cn.nukkit.utils.TickCachedBlockIterator;
 import cn.nukkit.utils.Utils;
-import co.aikar.timings.Timings;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -221,7 +220,6 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
 
     @Override
     public boolean entityBaseTick(int tickDiff) {
-        Timings.livingEntityBaseTickTimer.startTiming();
         boolean isBreathing = !this.isInsideOfWater();
 
         if (this instanceof Player) {
@@ -318,8 +316,6 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
                 this.noDamageTicks = 40;
             }
         }
-
-        Timings.livingEntityBaseTickTimer.stopTiming();
 
         return hasUpdate;
     }

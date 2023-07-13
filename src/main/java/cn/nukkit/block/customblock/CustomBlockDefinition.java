@@ -5,6 +5,7 @@ import cn.nukkit.api.Since;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.customblock.data.*;
 import cn.nukkit.blockproperty.*;
+import cn.nukkit.item.customitem.data.ItemCreativeGroup;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.math.Vector3f;
 import cn.nukkit.nbt.tag.*;
@@ -83,7 +84,8 @@ public record CustomBlockDefinition(String identifier, CompoundTag nbt) {
             components.putCompound("minecraft:unit_cube", new CompoundTag());
             //设置方块在创造栏的分类
             this.nbt.putCompound("menu_category", new CompoundTag()
-                    .putString("category", blockCreativeCategory.name().toLowerCase(Locale.ENGLISH)));
+                    .putString("category", blockCreativeCategory.name().toLowerCase(Locale.ENGLISH))
+                    .putString("group", ItemCreativeGroup.NONE.getGroupName()));
             //molang版本
             this.nbt.putInt("molangVersion", 6);
 
@@ -124,6 +126,18 @@ public record CustomBlockDefinition(String identifier, CompoundTag nbt) {
                 return this;
             }
             this.nbt.getCompound("components").getCompound("menu_category").putString("group", creativeGroup.toLowerCase(Locale.ENGLISH));
+            return this;
+        }
+
+        /**
+         * 控制自定义方块在创造栏中的组。
+         * <p>
+         * Control the grouping of custom blocks in the creation inventory.
+         *
+         * @see <a href="https://wiki.bedrock.dev/documentation/creative-categories.html">wiki.bedrock.dev</a>
+         */
+        public Builder creativeGroup(ItemCreativeGroup creativeGroup) {
+            this.nbt.getCompound("components").getCompound("menu_category").putString("group", creativeGroup.getGroupName());
             return this;
         }
 
@@ -269,15 +283,9 @@ public record CustomBlockDefinition(String identifier, CompoundTag nbt) {
         }
 
         /**
-         * 由于傻逼mojang像智障一样乱改客户端摩擦，PNX中的摩擦计算与客户端并不同步，这个方法可以让你设置客户端摩擦系数。
-         * <br>
-         * Since the silly mojang messes with the client friction like a retard,
-         * the friction calculation in PNX is not synchronized with the client,
-         * and this method allows you to set the client friction factor.
+         * 客户端摩擦系数，用于控制玩家在自定义方块上行走的速度，值越大，移动越快。
          * <p>
-         * 屮你*mojang！
-         * <br>
-         * FU*K YOU MOJANG!
+         * the client friction, which is used to control the speed at which the player walks on the custom block.The larger the value, the faster the movement.
          */
         @Since("1.20.0-r2")
         public Builder clientFriction(float friction) {
