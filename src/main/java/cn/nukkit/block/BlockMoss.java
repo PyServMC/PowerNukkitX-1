@@ -1,8 +1,12 @@
 package cn.nukkit.block;
 
 import cn.nukkit.Player;
+import cn.nukkit.blockproperty.value.DoublePlantType;
+import cn.nukkit.blockproperty.value.TallGrassType;
 import cn.nukkit.item.Item;
+import cn.nukkit.item.ItemBlock;
 import cn.nukkit.item.ItemTool;
+import cn.nukkit.level.Position;
 import cn.nukkit.level.generator.object.ObectMoss;
 import cn.nukkit.level.generator.object.ObjectTallGrass;
 import cn.nukkit.level.particle.BoneMealParticle;
@@ -10,6 +14,7 @@ import cn.nukkit.math.NukkitRandom;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Random;
 
 public class BlockMoss extends BlockSolid {
 
@@ -160,11 +165,6 @@ public class BlockMoss extends BlockSolid {
             default:
                 return false;
         }
-    }
-
-    @Override
-    public int getToolType() {
-        return ItemTool.TYPE_HOE;
     }
 
     @Override

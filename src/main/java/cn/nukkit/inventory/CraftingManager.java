@@ -754,63 +754,6 @@ public class CraftingManager {
         CraftingManager.packet = craftingPacket;
     }
 
-    public CraftingRecipe matchRecipe(List<Item> inputList, Item primaryOutput, List<Item> extraOutputList) {
-        //TODO: try to match special recipes before anything else (first they need to be implemented!)
-        int outputHash = getItemHash(primaryOutput);
-        if (getShapedRecipeMap().containsKey(outputHash)) {
-            inputList.sort(recipeComparator);
-            UUID inputHash = getMultiItemHash(inputList);
-            Map<UUID, ShapedRecipe> recipeMap = getShapedRecipeMap().get(outputHash);
-            if (recipeMap != null) {
-                ShapedRecipe recipe = recipeMap.get(inputHash);
-                if (recipe != null && (recipe.matchItems(inputList, extraOutputList) || matchItemsAccumulation(recipe, inputList, primaryOutput, extraOutputList))) {
-                    return recipe;
-                }
-                for (ShapedRecipe shapedRecipe : recipeMap.values()) {
-                    if (shapedRecipe.matchItems(inputList, extraOutputList) || matchItemsAccumulation(shapedRecipe, inputList, primaryOutput, extraOutputList)) {
-                        return shapedRecipe;
-                    }
-                }
-            }
-        }
-        if (getShapelessRecipeMap().containsKey(outputHash)) {
-            inputList.sort(recipeComparator);
-            UUID inputHash = getMultiItemHash(inputList);
-            Map<UUID, ShapelessRecipe> recipes = getShapelessRecipeMap().get(outputHash);
-            if (recipes == null) {
-                return null;
-            }
-            ShapelessRecipe recipe = recipes.get(inputHash);
-            if (recipe != null && (recipe.matchItems(inputList, extraOutputList) || matchItemsAccumulation(recipe, inputList, primaryOutput, extraOutputList))) {
-                return recipe;
-            }
-            for (ShapelessRecipe shapelessRecipe : recipes.values()) {
-                if (shapelessRecipe.matchItems(inputList, extraOutputList) || matchItemsAccumulation(shapelessRecipe, inputList, primaryOutput, extraOutputList)) {
-                    return shapelessRecipe;
-                }
-            }
-        }
-        return null;
-    }
-
-    private boolean matchItemsAccumulation(SmithingRecipe recipe, List<Item> inputList, Item primaryOutput) {
-        Item recipeResult = recipe.getResult();
-        if (primaryOutput.equals(recipeResult, recipeResult.hasMeta(), recipeResult.hasCompoundTag()) && primaryOutput.getCount() % recipeResult.getCount() == 0) {
-            int multiplier = primaryOutput.getCount() / recipeResult.getCount();
-            return recipe.matchItems(inputList, multiplier);
-        }
-        return false;
-    }
-
-    private boolean matchItemsAccumulation(CraftingRecipe recipe, List<Item> inputList, Item primaryOutput, List<Item> extraOutputList) {
-        Item recipeResult = recipe.getResult();
-        if (primaryOutput.equals(recipeResult, recipeResult.hasMeta(), recipeResult.hasCompoundTag()) && primaryOutput.getCount() % recipeResult.getCount() == 0) {
-            int multiplier = primaryOutput.getCount() / recipeResult.getCount();
-            return recipe.matchItems(inputList, extraOutputList, multiplier);
-        }
-        return false;
-    }
-
     private void addRecipe(Recipe recipe) {
         ++RECIPE_COUNT;
         if (recipe instanceof CraftingRecipe || recipe instanceof StonecutterRecipe) {
