@@ -1,6 +1,7 @@
 package cn.nukkit.level.format.generic;
 
 import cn.nukkit.Player;
+import cn.nukkit.Server;
 import cn.nukkit.api.DeprecationDetails;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.PowerNukkitXOnly;
@@ -13,6 +14,7 @@ import cn.nukkit.level.ChunkManager;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.level.format.LevelProvider;
+import cn.nukkit.level.generator.Generator;
 import cn.nukkit.math.BlockVector3;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.ListTag;
@@ -134,6 +136,7 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
     public void initChunk() {
         if (this.getProvider() != null && !this.isInit) {
             boolean changed = false;
+            boolean updateData = Server.getInstance().getConfig().getBoolean("updateV3", false);
             if (this.NBTentities != null) {
                 for (CompoundTag nbt : NBTentities) {
                     if (!nbt.contains("id")) {
@@ -146,15 +149,17 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
                         continue;
                     }
 
-                    if(!nbt.contains("movedV3")) {
-                        ListTag posNew = new ListTag();
-                        posNew.add(pos.get(0));
-                        posNew.add(new DoubleTag((((NumberTag)pos.get(1)).getData().intValue()) - 64));
-                        posNew.add(pos.get(2));
-                        changed = true;
+                    if(updateData) {
+                        if(!nbt.contains("movedV3")) {
+                            ListTag posNew = new ListTag();
+                            posNew.add(pos.get(0));
+                            posNew.add(new DoubleTag((((NumberTag)pos.get(1)).getData().intValue()) - 64));
+                            posNew.add(pos.get(2));
+                            changed = true;
 
-                        nbt.remove("Pos");
-                        nbt.putList("Pos", posNew);
+                            nbt.remove("Pos");
+                            nbt.putList("Pos", posNew);
+                        }
                     }
 
                     Entity entity = Entity.createEntity(nbt.getString("id"), this, nbt);
@@ -181,10 +186,12 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
                             changed = true;
                         }
 
-                        if(!blockEntity.isBlockEntityValid()) {
-                            //move block entity down 64 blocks
-                            blockEntity.setY(blockEntity.getY() - 64);
-                            changed = true;
+                        if(updateData) {
+                            if(!blockEntity.isBlockEntityValid()) {
+                                //move block entity down 64 blocks
+                                blockEntity.setY(blockEntity.getY() - 64);
+                                changed = true;
+                            }
                         }
                     }
                 }
