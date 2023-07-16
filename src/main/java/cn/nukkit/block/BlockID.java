@@ -1876,4 +1876,7 @@ public interface BlockID {
     @PowerNukkitXOnly
     @Since("1.20.0-r2")
     int CHERRY_LEAVES = 803;
+    @PowerNukkitXOnly
+    @Since("1.20.10-r1")
+    int PINK_PETALS = 804;
 }
