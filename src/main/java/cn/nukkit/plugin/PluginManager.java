@@ -342,15 +342,14 @@ public class PluginManager {
     }
 
     public boolean addPermission(Permission permission) {
-        /*if (!this.permissions.containsKey(permission.getName())) {
+        if (!this.permissions.containsKey(permission.getName())) {
             this.permissions.put(permission.getName(), permission);
             this.calculatePermissionDefault(permission);
 
             return true;
         }
 
-        return false;*/
-        return true;
+        return false;
     }
 
     public void removePermission(String name) {
