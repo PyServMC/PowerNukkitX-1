@@ -9,6 +9,7 @@ import cn.nukkit.blockentity.BlockEntityLectern;
 import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.event.block.BlockRedstoneEvent;
 import cn.nukkit.event.block.LecternDropBookEvent;
+import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemID;
 import cn.nukkit.item.ItemTool;
@@ -148,9 +149,9 @@ public class BlockLectern extends BlockTransparentMeta implements RedstoneCompon
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
     @Override
-    public int onTouch(@Nullable Player player, Action action, BlockFace face) {
+    public int onTouch(@Nullable Player player, PlayerInteractEvent.Action action, BlockFace face) {
         onUpdate(Level.BLOCK_UPDATE_TOUCH);
-        if (player != null && action == Action.LEFT_CLICK_BLOCK && player.isSurvival()) {
+        if (player != null && action == PlayerInteractEvent.Action.LEFT_CLICK_BLOCK && player.isSurvival()) {
             dropBook(player);
             return 1;
         }
