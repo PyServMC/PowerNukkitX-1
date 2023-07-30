@@ -28,6 +28,12 @@ public class PopulatorLava extends Populator {
             int amount = random.nextRange(0, this.randomAmount + 1) + this.baseAmount;
             int bx = chunkX << 4;
             int bz = chunkZ << 4;
+
+            //do not generate in spawn (0,64,0)
+            if (bx == 0 && bz == 0) {
+                return;
+            }
+
             int tx = bx + 15;
             int tz = bz + 15;
             for (int i = 0; i < amount; ++i) {
