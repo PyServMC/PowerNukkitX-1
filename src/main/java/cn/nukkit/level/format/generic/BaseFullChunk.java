@@ -8,6 +8,7 @@ import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.Block;
 import cn.nukkit.blockentity.BlockEntity;
+import cn.nukkit.blockentity.BlockEntityChest;
 import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.level.ChunkManager;
@@ -26,10 +27,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 
@@ -168,6 +166,8 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
                 this.NBTentities = null;
             }
 
+            HashMap<String,String> pairedChests = new HashMap<>();
+
             if (this.NBTtiles != null) {
                 for (CompoundTag nbt : NBTtiles) {
                     if (nbt != null) {
@@ -186,8 +186,10 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
 
                         if(updateData) {
                             if(!blockEntity.isBlockEntityValid()) {
-                                //move block entity down 64 blocks
-                                blockEntity.setY(blockEntity.getY() - 64);
+                                CompoundTag newNBT = nbt.clone();
+                                blockEntity.closeS();
+                                newNBT.putInt("y", (short) (nbt.getInt("y") - 64));
+                                blockEntity = BlockEntity.createBlockEntity(nbt.getString("id"), this, newNBT);
                                 changed = true;
                             }
                         }

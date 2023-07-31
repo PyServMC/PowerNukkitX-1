@@ -318,6 +318,19 @@ public abstract class BlockEntity extends Position {
         }
     }
 
+    public void closeS() {
+        if (!this.closed) {
+            this.closed = true;
+            if (this.chunk != null) {
+                this.chunk.removeBlockEntity(this);
+            }
+            if (this.level != null) {
+                this.level.removeBlockEntity(this);
+            }
+            this.level = null;
+        }
+    }
+
     public void onBreak() {
 
     }
