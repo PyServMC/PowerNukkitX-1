@@ -94,7 +94,7 @@ public record PNXProtoWorld(ServerWorld serverWorld, int centerChunkX, int cente
 
     @Override
     public int getMinHeight() {
-        return -64;
+        return 0;
     }
 
     @Override

@@ -33,7 +33,7 @@ public class PopulatorDungeon extends PopulatorStructure {
         chance:
         for (int chance = 0; chance < 8; ++chance) {
             int x = sourceX + random.nextBoundedInt(16) + 8;
-            int y = random.nextBoundedInt(384) - 64;
+            int y = random.nextBoundedInt(256) - 64;
             int z = sourceZ + random.nextBoundedInt(16) + 8;
 
             int xv = random.nextBoundedInt(2) + 2;

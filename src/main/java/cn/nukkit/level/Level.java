@@ -1880,7 +1880,7 @@ public class Level implements ChunkManager, Metadatable {
         int minZ = (chunk.getZ() << 4) - 2;
         int maxZ = minZ + 16 + 2;
 
-        return this.getPendingBlockUpdates(new SimpleAxisAlignedBB(minX, isOverWorld() ? -64 : 0, minZ, maxX, isOverWorld() ? 320 : 256, maxZ));
+        return this.getPendingBlockUpdates(new SimpleAxisAlignedBB(minX, 0, minZ, maxX, isOverWorld() ? 320 : 256, maxZ));
     }
 
     public Set<BlockUpdateEntry> getPendingBlockUpdates(AxisAlignedBB boundingBox) {
@@ -4250,7 +4250,7 @@ public class Level implements ChunkManager, Metadatable {
             return Position.fromObject(spawn, this);
 
         int maxY = isNether() ? 127 : (isOverWorld() ? 319 : 255);
-        int minY = isOverWorld() ? -64 : 0;
+        int minY = 0;
 
         for (int horizontalOffset = 0; horizontalOffset <= horizontalMaxOffset; horizontalOffset++) {
             for (int y = maxY; y > minY; y--) {
@@ -4879,7 +4879,7 @@ public class Level implements ChunkManager, Metadatable {
     public int getMinHeight() {
         if (dimensionData != null)
             return dimensionData.getMinHeight();
-        return isOverWorld() ? -64 : 0;
+        return 0;
     }
 
     /**
@@ -4993,7 +4993,7 @@ public class Level implements ChunkManager, Metadatable {
     }
 
     public boolean isAreaLoaded(AxisAlignedBB bb) {
-        if (bb.getMaxY() < (isOverWorld() ? -64 : 0) || bb.getMinY() >= (isOverWorld() ? 320 : 256)) {
+        if (bb.getMaxY() < (0) || bb.getMinY() >= (isOverWorld() ? 320 : 256)) {
             return false;
         }
         int minX = NukkitMath.floorDouble(bb.getMinX()) >> 4;
@@ -5307,11 +5307,7 @@ public class Level implements ChunkManager, Metadatable {
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
     private int ensureY(final int y) {
-        if (getDimension() == DIMENSION_OVERWORLD) {
-            return Math.max(Math.min(y, 319), -64);
-        } else {
-            return y & 0xff;
-        }
+        return y & 0xff;
     }
 
     @Override

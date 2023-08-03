@@ -3,6 +3,7 @@ package cn.nukkit.level.format.anvil;
 import cn.nukkit.Server;
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
+import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.level.format.LevelProvider;
 import cn.nukkit.level.format.generic.BaseRegionLoader;
@@ -91,6 +92,20 @@ public class RegionLoader extends BaseRegionLoader {
             raf.readFully(data);
             Chunk chunk = this.unserializeChunk(data);
             if (chunk != null) {
+                if (levelProvider != null && levelProvider.isOverWorld() && levelProvider instanceof Anvil && !chunk.isNew384World) {
+                    for (int dx = 0; dx < 16; dx++) {
+                        for (int dz = 0; dz < 16; dz++) {
+                            for (int dy = 255; dy >= -64; --dy) {
+                                chunk.setBlockState(dx, dy + 64, dz, chunk.getBlockState(dx, dy, dz));
+                                chunk.setBlockStateAtLayer(dx, dy + 64, dz, 1, chunk.getBlockState(dx, dy, dz, 1));
+                                chunk.setBlockState(dx, dy, dz, BlockState.AIR);
+                                chunk.setBlockStateAtLayer(dx, dy, dz, 1, BlockState.AIR);
+                            }
+                        }
+                    }
+                    //chunk.getBlockEntities().values().forEach(e -> e.setY(e.getY() + 64));
+                    chunk.isNew384World = true;
+                }
                 return chunk;
             } else {
                 log.error("Corrupted chunk detected at ({}, {}) in {}", x, z, levelProvider.getName());

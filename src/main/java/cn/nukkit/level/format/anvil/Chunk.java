@@ -42,6 +42,8 @@ public class Chunk extends BaseChunk {
     protected long inhabitedTime;
     protected boolean terrainPopulated;
     protected boolean terrainGenerated;
+    protected boolean isNew384World = false;
+
     @PowerNukkitXOnly
     @Since("1.19.20-r4")
     protected DimensionData dimensionData = null;
@@ -226,7 +228,7 @@ public class Chunk extends BaseChunk {
         this.terrainPopulated = nbt.getBoolean("TerrainPopulated");
         this.terrainGenerated = nbt.getBoolean("TerrainGenerated");
         if (nbt.contains("isNew384World")) {
-            nbt.remove("isNew384World");//todo 临时移除无用字段，后续版本移除
+            this.isNew384World = nbt.getBoolean("isNew384World");
         }
     }
 
@@ -338,7 +340,7 @@ public class Chunk extends BaseChunk {
         if (dimensionData != null) {
             return dimensionData.getMinHeight();
         }
-        return getChunkSectionCount() == 24 ? -64 : 0;
+        return getChunkSectionCount() == 24 ? 0 : 0;
     }
 
     @Since("1.19.20-r3")
@@ -435,6 +437,8 @@ public class Chunk extends BaseChunk {
 
         tag.put("TerrainGenerated", new ByteTag("TerrainGenerated", (byte) (isGenerated() ? 1 : 0)));
         tag.put("TerrainPopulated", new ByteTag("TerrainPopulated", (byte) (isPopulated() ? 1 : 0)));
+        tag.putBoolean("isNew384World", this.isNew384World);
+
         return tag;
     }
 

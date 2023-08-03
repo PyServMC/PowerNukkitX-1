@@ -225,7 +225,7 @@ public interface ChunkSection {
         BlockVector3 current = new BlockVector3();
 
         int minX = Math.max(0, min.x - offsetX);
-        int minY = Math.max(0, min.y - offsetY);
+        int minY = Math.max(-63, min.y - offsetY);
         int minZ = Math.max(0, min.z - offsetZ);
 
         for (int x = Math.min(max.x - offsetX, 15); x >= minX; x--) {
