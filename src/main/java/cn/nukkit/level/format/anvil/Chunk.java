@@ -42,7 +42,7 @@ public class Chunk extends BaseChunk {
     protected long inhabitedTime;
     protected boolean terrainPopulated;
     protected boolean terrainGenerated;
-    protected boolean isNew384World = false;
+    protected boolean isNew384World = true;
 
     @PowerNukkitXOnly
     @Since("1.19.20-r4")
@@ -227,8 +227,10 @@ public class Chunk extends BaseChunk {
         this.inhabitedTime = nbt.getLong("InhabitedTime");
         this.terrainPopulated = nbt.getBoolean("TerrainPopulated");
         this.terrainGenerated = nbt.getBoolean("TerrainGenerated");
-        if (nbt.contains("isNew384World")) {
-            this.isNew384World = nbt.getBoolean("isNew384World");
+        if (!nbt.contains("isNew384World")) {
+            this.isNew384World = false;
+        } else {
+            this.isNew384World = true;
         }
     }
 
@@ -340,7 +342,7 @@ public class Chunk extends BaseChunk {
         if (dimensionData != null) {
             return dimensionData.getMinHeight();
         }
-        return getChunkSectionCount() == 24 ? 0 : 0;
+        return getChunkSectionCount() == 24 ? -64 : 0;
     }
 
     @Since("1.19.20-r3")

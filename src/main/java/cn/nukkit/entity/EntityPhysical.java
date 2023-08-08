@@ -36,7 +36,7 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
      * 提供实时最新碰撞箱位置
      */
     protected final AxisAlignedBB offsetBoundingBox;
-    protected final Vector3 previousCollideMotion;
+    protected Vector3 previousCollideMotion;
     protected final Vector3 previousCurrentMotion;
     /**
      * 实体自由落体运动的时间
@@ -286,6 +286,7 @@ public abstract class EntityPhysical extends EntityCreature implements EntityAsy
         var collidingEntities = this.level.fastCollidingEntities(selfAABB, this);
         collidingEntities.removeIf(entity -> !(entity.canCollide() && (entity instanceof EntityPhysical || entity instanceof Player)));
         var size = collidingEntities.size();
+        if(this.previousCollideMotion == null) this.previousCollideMotion = new Vector3(0,0,0);
         if (size == 0) {
             this.previousCollideMotion.setX(0);
             this.previousCollideMotion.setZ(0);

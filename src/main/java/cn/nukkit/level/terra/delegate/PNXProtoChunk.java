@@ -14,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 public record PNXProtoChunk(BaseFullChunk chunk) implements ProtoChunk {
     @Override
     public int getMaxHeight() {
-        return 256;
+        return 384;
     }
 
     @Override

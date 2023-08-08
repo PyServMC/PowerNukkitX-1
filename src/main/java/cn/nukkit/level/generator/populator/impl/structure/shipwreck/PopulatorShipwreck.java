@@ -212,7 +212,7 @@ public class PopulatorShipwreck extends PopulatorStructure implements Callbackab
                     int y = chunk.getHighestBlockAt(x, z);
 
                     int id = chunk.getBlockId(x, y, z);
-                    while (FILTER[id] && y > 0) {
+                    while (FILTER[id] && y > -64) {
                         id = chunk.getBlockId(x, --y, z);
                     }
 

@@ -164,6 +164,10 @@ public abstract class SimpleChunkManager implements ChunkManager {
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
     private int ensureY(final int y, final FullChunk chunk) {
-        return y & 0xff;
+        if (chunk.isOverWorld()) {
+            return Math.max(Math.min(y, 319), -64);
+        } else {
+            return y & 0xff;
+        }
     }
 }

@@ -390,7 +390,7 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
                 return h;
             }
         }
-        for (int y = isOverWorld() ? 319 : isNether() ? 127 : 255; y >= (0); --y) {
+        for (int y = isOverWorld() ? 319 : isNether() ? 127 : 255; y >= (isOverWorld() ? -64 : 0); --y) {
             if (getBlockId(x, y, z) != 0x00) {
                 this.setHeightMap(x, z, y);
                 return y;
@@ -763,7 +763,7 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
         BlockVector3 current = new BlockVector3();
 
         int minX = Math.max(0, min.x - offsetX);
-        int minY = Math.max(0, min.y);
+        int minY = Math.max(isOverWorld() ? 0 : -64, min.y);
         int minZ = Math.max(0, min.z - offsetZ);
 
         for (int x = Math.min(max.x - offsetX, 15); x >= minX; x--) {
@@ -786,6 +786,10 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
     private int ensureY(final int y) {
-        return y & 0xff;
+        if (isOverWorld()) {
+            return Math.max(Math.min(y, 319), -64);
+        } else {
+            return y & 0xff;
+        }
     }
 }
