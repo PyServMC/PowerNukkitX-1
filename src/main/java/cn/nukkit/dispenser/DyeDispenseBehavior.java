@@ -38,4 +38,5 @@ public class DyeDispenseBehavior extends DefaultDispenseBehavior {
 
         return super.dispense(block, face, item);
     }
+
 }

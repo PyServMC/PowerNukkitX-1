@@ -985,6 +985,7 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
             list[CHERRY_DOOR] = BlockDoorCherry.class;//786
             list[CHERRY_FENCE] = BlockFenceCherry.class;//787
             list[CHERRY_FENCE_GATE] = BlockFenceGateCherry.class;//788
+            list[CHERRY_HANGING_SIGN] = BlockCherryHangingSign.class;//789
 
             list[STRIPPED_CHERRY_LOG] = BlockLogStrippedCherry.class;//790
             list[CHERRY_LOG] = BlockCherryLog.class;//791
@@ -1001,6 +1002,14 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
             list[CHERRY_SAPLING] = BlockCherrySapling.class;//802
             list[CHERRY_LEAVES] = BlockCherryLeaves.class;//803
             list[PINK_PETALS] = BlockPinkPetals.class;//804
+            list[DECORATED_POT] = BlockDecoratedPot.class;//806
+            list[TORCHFLOWER_CROP] = BlockTorchflowerCrop.class;//822
+            list[TORCHFLOWER] = BlockTorchflower.class;//823
+            list[SUSPICIOUS_GRAVEL] = BlockSuspiciousGravel.class;//828
+            list[PITCHER_CROP] = BlockPitcherCrop.class;//829
+            list[CALIBRATED_SCULK_SENSOR] = BlockCalibratedSculkSensor.class;//835
+            list[SNIFFER_EGG] = BlockSnifferEgg.class;//851
+            list[PITCHER_PLANT] = BlockPitcherPlant.class;//867
             initializing = true;
 
             for (int id = 0; id < MAX_BLOCK_ID; id++) {
@@ -1475,7 +1484,9 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
                 throw new CustomBlockStateRegisterException("Register CustomBlock state error, please check all your CustomBlock plugins,contact the plugin author! Error:", result.getError());
             }
             RuntimeItems.getRuntimeMapping().registerCustomBlock(blocks);//注册物品
-            blocks.forEach(b -> Item.addCreativeItem(b.toItem()));//注册创造栏物品
+            blocks.stream().filter( CustomBlock::shouldBeRegisteredInCreative ).forEach(
+                b -> Item.addCreativeItem(b.toItem())
+            );//注册创造栏物品
         }
     }
 
@@ -3185,4 +3196,10 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
     public long computeUnsignedBlockStateHash() {
         return Integer.toUnsignedLong(computeBlockStateHash());
     }
+    @PowerNukkitXOnly
+    @Since("1.20.10-r2")
+    public boolean isFertilizable() {
+        return false;
+    }
+
 }
