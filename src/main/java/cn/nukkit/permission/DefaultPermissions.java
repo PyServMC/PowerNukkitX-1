@@ -116,9 +116,9 @@ public abstract class DefaultPermissions {
         
         registerPermission(new Permission(ROOT + ".textcolor", "Allows the user to write colored text", Permission.DEFAULT_OP), commands);
 
-        commands.recalculatePermissibles();
+        commands.recalculatePermissibles();*/
 
-        parent.recalculatePermissibles();*/
+        parent.recalculatePermissibles();
     }
 
 }
