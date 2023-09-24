@@ -1,5 +1,6 @@
 package cn.nukkit.lang;
 
+import cn.nukkit.Server;
 import lombok.extern.log4j.Log4j2;
 
 /**
