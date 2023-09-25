@@ -16,6 +16,7 @@ import cn.nukkit.dialog.window.FormWindowDialog;
 import cn.nukkit.entity.*;
 import cn.nukkit.entity.custom.CustomEntity;
 import cn.nukkit.entity.data.*;
+import cn.nukkit.entity.data.property.EntityProperty;
 import cn.nukkit.entity.item.*;
 import cn.nukkit.entity.passive.EntityNPCEntity;
 import cn.nukkit.entity.projectile.EntityArrow;
@@ -1557,8 +1558,14 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         startGamePacket.serverAuthoritativeMovement = getServer().getServerAuthoritativeMovement();
         //写入自定义方块数据
         startGamePacket.blockProperties.addAll(Block.getCustomBlockDefinitionList());
+        startGamePacket.playerPropertyData = EntityProperty.getPlayerPropertyCache();
         this.dataPacketImmediately(startGamePacket);
         this.loggedIn = true;
+
+        //注册实体属性
+        for(SyncEntityPropertyPacket pk : EntityProperty.getPacketCache()) {
+            this.dataPacketImmediately(pk);
+        }
 
         //写入自定义物品数据
         ItemComponentPacket itemComponentPacket = new ItemComponentPacket();
@@ -3179,12 +3186,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     @PowerNukkitXOnly
     @Since("1.20.0-r2")
     public void sendCameraPresets() {
-        var presetListTag = new ListTag<CompoundTag>("presets");
-        for (var preset : CameraPreset.getPresets().values()) {
-            presetListTag.add(preset.serialize());
-        }
         var pk = new CameraPresetsPacket();
-        pk.setData(new CompoundTag().putList("presets", presetListTag));
+        pk.getPresets().addAll(CameraPreset.getPresets().values());
         dataPacket(pk);
     }
 
@@ -3269,6 +3272,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     }
                     this.inAirTicks = 0;
                     this.highestPosition = this.y;
+                    if (this.isGliding()) {
+                        this.setGliding(false);
+                    }
                 } else {
                     this.lastInAirTick = server.getTick();
                     //检测玩家是否异常飞行
@@ -3308,6 +3314,25 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                 }
 
                 if (this.getFoodData() != null) this.getFoodData().update(tickDiff);
+
+                //鞘翅检查和耐久计算
+                if (this.isGliding()) {
+                    PlayerInventory playerInventory = this.getInventory();
+                    if (playerInventory != null) {
+                        Item chestplate = playerInventory.getChestplate();
+                        if ((chestplate == null || chestplate.getId() != ItemID.ELYTRA)) {
+                            this.setGliding(false);
+                        } else if (this.age % (20 * (chestplate.getEnchantmentLevel(Enchantment.ID_DURABILITY) + 1)) == 0) {
+                            int newDamage = chestplate.getDamage() + 1;
+                            if (newDamage < chestplate.getMaxDurability()) {
+                                chestplate.setDamage(newDamage);
+                                playerInventory.setChestplate(chestplate);
+                            } else {
+                                this.setGliding(false);
+                            }
+                        }
+                    }
+                }
             }
 
             if (!this.isSleeping()) {

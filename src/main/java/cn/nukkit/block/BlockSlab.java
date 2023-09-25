@@ -6,6 +6,8 @@ import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.blockproperty.BooleanBlockProperty;
+import cn.nukkit.blockproperty.CommonBlockProperties;
+import cn.nukkit.blockproperty.value.VerticalHalf;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemBlock;
 import cn.nukkit.item.ItemTool;
@@ -24,7 +26,15 @@ public abstract class BlockSlab extends BlockTransparentMeta {
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    public static final BlockProperties SIMPLE_SLAB_PROPERTIES = new BlockProperties(TOP_SLOT_PROPERTY);
+    public static final BlockProperties SIMPLE_SLAB_PROPERTIES = CommonBlockProperties.VERTICAL_HALF_PROPERTIES;
+
+    @Since("1.4.0.0-PN")
+    @PowerNukkitOnly
+    @NotNull
+    @Override
+    public BlockProperties getProperties() {
+        return SIMPLE_SLAB_PROPERTIES;
+    }
 
     protected final int doubleSlab;
 
@@ -35,7 +45,7 @@ public abstract class BlockSlab extends BlockTransparentMeta {
 
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
-    public BlockSlab(int doubleSlab){
+    public BlockSlab(int doubleSlab) {
         this.doubleSlab = doubleSlab;
     }
 
@@ -45,7 +55,7 @@ public abstract class BlockSlab extends BlockTransparentMeta {
 
     @Override
     public String getName() {
-        return (isOnTop()? "Upper " : "") + getSlabName() + " Slab";
+        return (isOnTop() ? "Upper " : "") + getSlabName() + " Slab";
     }
 
     @Override
@@ -73,17 +83,17 @@ public abstract class BlockSlab extends BlockTransparentMeta {
     public int getWaterloggingLevel() {
         return 1;
     }
-    
+
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public boolean isOnTop() {
-        return getBooleanValue(TOP_SLOT_PROPERTY);
+        return getPropertyValue(CommonBlockProperties.VERTICAL_HALF) == VerticalHalf.TOP;
     }
 
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public void setOnTop(boolean top) {
-        setBooleanValue(TOP_SLOT_PROPERTY, top);
+        setPropertyValue(CommonBlockProperties.VERTICAL_HALF, top ? VerticalHalf.TOP : VerticalHalf.BOTTOM);
     }
 
     @PowerNukkitOnly
@@ -101,7 +111,7 @@ public abstract class BlockSlab extends BlockTransparentMeta {
     public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
         setOnTop(false);
         if (face == BlockFace.DOWN) {
-            if (target instanceof BlockSlab && target.getBooleanValue(TOP_SLOT_PROPERTY) && isSameType((BlockSlab) target)) {
+            if (target instanceof BlockSlab slab && slab.isOnTop() && isSameType((BlockSlab) target)) {
                 this.getLevel().setBlock(target, getCurrentState().withBlockId(doubleSlab).getBlock(target), true);
 
                 return true;
@@ -113,7 +123,7 @@ public abstract class BlockSlab extends BlockTransparentMeta {
                 setOnTop(true);
             }
         } else if (face == BlockFace.UP) {
-            if (target instanceof BlockSlab && !target.getBooleanValue(TOP_SLOT_PROPERTY) && isSameType((BlockSlab) target)) {
+            if (target instanceof BlockSlab slab && !slab.isOnTop() && isSameType((BlockSlab) target)) {
                 this.getLevel().setBlock(target, getCurrentState().withBlockId(doubleSlab).getBlock(target), true);
 
                 return true;

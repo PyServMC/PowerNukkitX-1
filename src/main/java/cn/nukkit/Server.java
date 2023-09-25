@@ -1,9 +1,6 @@
 package cn.nukkit;
 
-import cn.nukkit.api.DeprecationDetails;
-import cn.nukkit.api.PowerNukkitOnly;
-import cn.nukkit.api.PowerNukkitXOnly;
-import cn.nukkit.api.Since;
+import cn.nukkit.api.*;
 import cn.nukkit.block.Block;
 import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.blockstate.BlockStateRegistry;
@@ -15,6 +12,7 @@ import cn.nukkit.entity.Attribute;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.entity.data.Skin;
 import cn.nukkit.entity.data.profession.Profession;
+import cn.nukkit.entity.data.property.EntityProperty;
 import cn.nukkit.event.HandlerList;
 import cn.nukkit.event.level.LevelInitEvent;
 import cn.nukkit.event.level.LevelLoadEvent;
@@ -32,7 +30,6 @@ import cn.nukkit.level.biome.EnumBiome;
 import cn.nukkit.level.format.LevelProvider;
 import cn.nukkit.level.format.LevelProviderManager;
 import cn.nukkit.level.format.anvil.Anvil;
-import cn.nukkit.level.format.generic.BaseRegionLoader;
 import cn.nukkit.level.generator.*;
 import cn.nukkit.level.terra.PNXPlatform;
 import cn.nukkit.level.tickingarea.manager.SimpleTickingAreaManager;
@@ -42,7 +39,6 @@ import cn.nukkit.math.NukkitMath;
 import cn.nukkit.metadata.EntityMetadataStore;
 import cn.nukkit.metadata.LevelMetadataStore;
 import cn.nukkit.metadata.PlayerMetadataStore;
-import cn.nukkit.metrics.NukkitMetrics;
 import cn.nukkit.nbt.NBTIO;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.DoubleTag;
@@ -99,15 +95,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.security.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -140,45 +133,26 @@ public class Server {
     public static final String BROADCAST_CHANNEL_USERS = "nukkit.broadcast.user";
 
     private static Server instance = null;
-
     private BanList banByName;
-
     private BanList banByIP;
-
     private Config operators;
-
     private Config whitelist;
-
-    private AtomicBoolean isRunning = new AtomicBoolean(true);
-
-    private LongList busyingTime = LongLists.synchronize(new LongArrayList(0));
-
+    private final AtomicBoolean isRunning = new AtomicBoolean(true);
+    private final LongList busyingTime = LongLists.synchronize(new LongArrayList(0));
     private boolean hasStopped = false;
-
     private PluginManager pluginManager;
-
-    private int profilingTickrate = 20;
-
     private ServerScheduler scheduler;
 
     /**
      * 一个tick计数器,记录服务器已经经过的tick数
      */
     private int tickCounter;
-
     private long nextTick;
-
     private final float[] tickAverage = {20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20};
-
     private final float[] useAverage = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
     private float maxTick = 20;
-
     private float maxUse = 0;
-
     private int sendUsageTicker = 0;
-
-    private boolean dispatchSignals = false;
 
     private final NukkitConsole console;
     private final ConsoleThread consoleThread;
@@ -189,53 +163,37 @@ public class Server {
      * FJP thread pool responsible for terrain generation, data compression and other computing tasks
      */
     public final ForkJoinPool computeThreadPool;
-
     private SimpleCommandMap commandMap;
-
     private CraftingManager craftingManager;
-
     private ResourcePackManager resourcePackManager;
-
     private ConsoleCommandSender consoleSender;
-
     private IScoreboardManager scoreboardManager;
-
     private FunctionManager functionManager;
-
     private TickingAreaManager tickingAreaManager;
 
     private int maxPlayers;
-
     private boolean autoSave = true;
-
     private boolean redstoneEnabled = true;
-
 
     /**
      * 配置项是否检查登录时间.<P>Does the configuration item check the login time.
      */
     public boolean checkLoginTime = true;
-
     private boolean educationEditionEnabled = false;
 
+    @PyCMCOnly
     private boolean forceCustomItems = false;
 
     private RCON rcon;
-
     private EntityMetadataStore entityMetadata;
-
     private PlayerMetadataStore playerMetadata;
-
     private LevelMetadataStore levelMetadata;
-
     private Network network;
-
     private boolean networkCompressionAsync = true;
     /**
      * 网络压缩级别<P>Network compression level
      */
     public int networkCompressionLevel = 7;
-    private int networkZlibProvider = 0;
 
     @PowerNukkitXOnly
     @Since("1.19.30-r2")
@@ -260,8 +218,8 @@ public class Server {
     private int autoSaveTicker = 0;
     private int autoSaveTicks = 6000;
 
-    private BaseLang baseLang;
-    private LangCode baseLangCode;
+    private final BaseLang baseLang;
+    private final LangCode baseLangCode;
 
     private boolean forceLanguage = false;
 
@@ -278,8 +236,8 @@ public class Server {
 
     private QueryRegenerateEvent queryRegenerateEvent;
 
-    private Config properties;
-    private Config config;
+    private final Config properties;
+    private final Config config;
 
     private final Map<InetSocketAddress, Player> players = new HashMap<>();
 
@@ -721,8 +679,8 @@ public class Server {
 
         ServerScheduler.WORKERS = (int) poolSize;
 
-        this.networkZlibProvider = this.getConfig("network.zlib-provider", 2);
-        Zlib.setProvider(this.networkZlibProvider);
+        int networkZlibProvider = this.getConfig("network.zlib-provider", 2);
+        Zlib.setProvider(networkZlibProvider);
 
         this.maximumStaleDatagrams = this.getConfig("network.maximum-stale-datagrams", 512);
         this.networkCompressionLevel = this.getConfig("network.compression-level", 7);
@@ -964,6 +922,9 @@ public class Server {
 
         this.enablePlugins(PluginLoadOrder.POSTWORLD);
 
+        EntityProperty.buildPacket();
+        EntityProperty.buildPlayerProperty();
+
         if (this.getConfig("settings.download-spark", false)) {
             SparkInstaller.initSpark(this);
         }
@@ -972,7 +933,6 @@ public class Server {
             this.watchdog = new Watchdog(this, 60000);
             this.watchdog.start();
         }
-        System.runFinalization();
         this.start();
     }
 
@@ -1152,7 +1112,6 @@ public class Server {
         getScheduler().scheduleDelayedTask(new Task() {
             @Override
             public void onRun(int currentTick) {
-                System.runFinalization();
                 System.gc();
             }
         }, 60);
@@ -1216,6 +1175,11 @@ public class Server {
 
             try {
                 long levelTime = System.currentTimeMillis();
+                //Ensures that the server won't try to tick a level without providers.
+                if(level.getProvider().getLevel() == null) {
+                    log.warn("Tried to tick Level " + level.getName() + " without a provider!");
+                    continue;
+                }
                 level.doTick(currentTick);
                 int tickMs = (int) (System.currentTimeMillis() - levelTime);
                 level.tickRateTime = tickMs;
@@ -1533,9 +1497,9 @@ public class Server {
 
     /**
      * 从指定的许可名获取发送者们，广播一条消息给他们.可以指定多个许可名，以<b> ; </b>分割.<br>
-     * 一个permission在{@link PluginManager#permSubs}对应一个{@link CommandSender 发送者}Set.<p>
+     * 一个permission在{@link PluginManager#}对应一个{@link CommandSender 发送者}Set.<p>
      * Get the sender to broadcast a message from the specified permission name, multiple permissions can be specified, split by <b> ; </b><br>
-     * The permission corresponds to a {@link CommandSender Sender} set in {@link PluginManager#permSubs}.
+     * The permission corresponds to a {@link CommandSender Sender} set in {@link PluginManager#}.
      *
      * @param message     消息内容<br>Message content
      * @param permissions 许可名，需要先通过{@link PluginManager#subscribeToPermission subscribeToPermission}注册<br>Permissions name, need to register first through {@link PluginManager#subscribeToPermission subscribeToPermission}
@@ -3431,10 +3395,12 @@ public class Server {
         return maximumSizePerChunk;
     }
 
+    @PyCMCOnly
     public boolean isForceCustomItems() {
         return forceCustomItems;
     }
 
+    @PyCMCOnly
     public void setForceCustomItems(boolean forceCustomItems) {
         this.forceCustomItems = forceCustomItems;
     }
