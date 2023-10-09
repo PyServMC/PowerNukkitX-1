@@ -8,6 +8,7 @@ import cn.nukkit.command.data.*;
 import cn.nukkit.command.tree.ParamList;
 import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.utils.CommandLogger;
+import cn.nukkit.customtranslation.CustomTranslationManager;
 import cn.nukkit.lang.CommandOutputContainer;
 import cn.nukkit.lang.PluginI18nManager;
 import cn.nukkit.lang.TextContainer;
@@ -129,15 +130,20 @@ public abstract class Command implements GenericParameter {
             customData.aliases = new CommandEnum(this.name + "Aliases", aliases);
         }
 
-        if (plugin == InternalPlugin.INSTANCE) {
-            customData.description = player.getServer().getLanguage().tr(this.getDescription(), CommandOutputContainer.EMPTY_STRING, "commands.", false);
-        } else if (plugin instanceof PluginBase pluginBase) {
-            var i18n = PluginI18nManager.getI18n(pluginBase);
-            if (i18n != null) {
-                customData.description = i18n.tr(player.getLanguageCode(), this.getDescription());
-            } else {
-                customData.description = player.getServer().getLanguage().tr(this.getDescription());
+        String tra = CustomTranslationManager.translate(player.getLanguageCode().name(), this.description);
+        if(Objects.equals(tra, this.description)) {
+            if (plugin == InternalPlugin.INSTANCE) {
+                customData.description = player.getServer().getLanguage().tr(this.getDescription(), CommandOutputContainer.EMPTY_STRING, "commands.", false);
+            } else if (plugin instanceof PluginBase pluginBase) {
+                var i18n = PluginI18nManager.getI18n(pluginBase);
+                if (i18n != null) {
+                    customData.description = i18n.tr(player.getLanguageCode(), this.getDescription());
+                } else {
+                    customData.description = player.getServer().getLanguage().tr(this.getDescription());
+                }
             }
+        } else {
+            customData.description = tra;
         }
 
         this.commandParameters.forEach((key, par) -> {

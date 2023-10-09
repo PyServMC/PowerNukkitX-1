@@ -9,7 +9,7 @@ public class CustomTranslationManager {
         providers = providerss;
     }
 
-    public void addProvider(TranslationProvider provider) {
+    public static void addProvider(TranslationProvider provider) {
         if (providers == null) {
             providers = new TranslationProvider[1];
             providers[0] = provider;
