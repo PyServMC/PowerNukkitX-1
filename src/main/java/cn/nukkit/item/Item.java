@@ -570,6 +570,7 @@ public class Item implements Cloneable, BlockID, ItemID {
     }
 
     private static Item loadCreativeItemEntry(Map<String, Object> data) {
+        if(data.get("name") == null) return Item.getBlock(BlockID.AIR);
         String name = data.get("name").toString();
         String nbt = (String) data.get("nbt");
         byte[] nbtBytes = nbt != null ? Base64.getDecoder().decode(nbt) : EmptyArrays.EMPTY_BYTES;

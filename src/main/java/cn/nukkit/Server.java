@@ -102,6 +102,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
+import java.sql.Array;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
@@ -128,6 +129,9 @@ import java.util.stream.Stream;
  */
 @Log4j2
 public class Server {
+
+    @PyCMCOnly
+    public static List<String> customProperties = new ArrayList<String>();
 
     public static final String BROADCAST_CHANNEL_ADMINISTRATIVE = "nukkit.broadcast.admin";
     public static final String BROADCAST_CHANNEL_USERS = "nukkit.broadcast.user";
