@@ -18,12 +18,13 @@ public interface ProtocolInfo {
     /**
      * Actual Minecraft: PE protocol version
      */
-    int CURRENT_PROTOCOL = dynamic(618);
+    int CURRENT_PROTOCOL = dynamic(622);
 
     List<Integer> SUPPORTED_PROTOCOLS = Ints.asList(CURRENT_PROTOCOL);
 
-    String MINECRAFT_VERSION_NETWORK = dynamic("1.20.30");
-    String MINECRAFT_VERSION = dynamic("1.20.30");
+    String MINECRAFT_VERSION_NETWORK = dynamic("1.20.40");
+
+    String MINECRAFT_VERSION = 'v' + MINECRAFT_VERSION_NETWORK;
 
     byte LOGIN_PACKET = 0x01;
     byte PLAY_STATUS_PACKET = 0x02;
