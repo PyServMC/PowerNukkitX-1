@@ -132,6 +132,12 @@
     "1": "minecraft:spruce_log;pillar_axis=y",
     "2": "minecraft:birch_log;pillar_axis=y",
     "3": "minecraft:jungle_log;pillar_axis=y",
+
+    "4": "minecraft:oak_log;pillar_axis=x",
+    "5": "minecraft:spruce_log;pillar_axis=x",
+    "6": "minecraft:birch_log;pillar_axis=x",
+    "7": "minecraft:jungle_log;pillar_axis=x",
+
     "8": "minecraft:oak_log;pillar_axis=x",
     "9": "minecraft:spruce_log;pillar_axis=x",
     "10": "minecraft:birch_log;pillar_axis=x",

@@ -250,7 +250,7 @@ public class BlockStateRegistry {
         if (id == null) {
             //处理在调用getBlockStateByRuntimeId时，遇到在block_mappings.json中方块的情况
             String stateId = getStateId(block);
-            String fullId = RuntimeItemMapping.getBlockMapping().inverse().get(stateId);
+            String fullId = RuntimeItemMapping.getBlockMapping().get(stateId);
             if (fullId != null) {
                 List<String> sId = StringUtils.fastSplit(":", fullId);
                 int blockId = Integer.parseInt(sId.get(0));

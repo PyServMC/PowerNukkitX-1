@@ -56,7 +56,7 @@ public class RuntimeItemMapping {
     private final Map<String, Supplier<Item>> namespacedIdItem = new HashMap<>();
     @PowerNukkitXOnly
     @Since("1.19.80-r1")
-    private static final BiMap<String, String> blockMappings = HashBiMap.create();
+    private static final Map<String, String> blockMappings = new HashMap<>();
     private byte[] itemPalette;
 
     public RuntimeItemMapping(Map<String, MappingEntry> mappings) {
@@ -430,7 +430,7 @@ public class RuntimeItemMapping {
     @DoNotModify
     @Since("1.19.80-r1")
     @PowerNukkitXOnly
-    public static BiMap<String, String> getBlockMapping() {
+    public static Map<String, String> getBlockMapping() {
         return blockMappings;
     }
 
