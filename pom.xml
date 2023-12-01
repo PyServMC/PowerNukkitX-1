@@ -88,7 +88,6 @@
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <graalvm.version>23.0.0</graalvm.version>
         <skipDelombok>true</skipDelombok>
-        <skipNexus>true</skipNexus>
         <skipShade>package</skipShade>
         <skipCopyLibs>false</skipCopyLibs>
     </properties>
@@ -122,7 +121,6 @@
                 <skipGpg>false</skipGpg>
                 <maven.javadoc.skip>false</maven.javadoc.skip>
                 <skipDelombok>false</skipDelombok>
-                <skipNexus>false</skipNexus>
             </properties>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -137,7 +135,6 @@
                 <skipGpg>true</skipGpg>
                 <maven.javadoc.skip>true</maven.javadoc.skip>
                 <skipDelombok>true</skipDelombok>
-                <skipNexus>true</skipNexus>
                 <skipTests>false</skipTests>
             </properties>
             <activation>
@@ -147,14 +144,14 @@
     </profiles>
 
     <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
         <repository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <id>PyCMC</id>
+            <url>https://git.dev.pycmc.eu/api/packages/Forks/maven</url>
         </repository>
+        <snapshotRepository>
+            <id>PyCMC</id>
+            <url>https://git.dev.pycmc.eu/api/packages/Forks/maven</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <repositories>
@@ -202,6 +199,10 @@
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
+        </repository>
+        <repository>
+            <id>PyCMC</id>
+            <url>https://git.dev.pycmc.eu/api/packages/Forks/maven</url>
         </repository>
     </repositories>
 
@@ -943,18 +944,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.12</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                    <autoDropAfterRelease>true</autoDropAfterRelease>
-                </configuration>
             </plugin>
         </plugins>
     </build>
