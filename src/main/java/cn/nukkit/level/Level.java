@@ -3084,7 +3084,7 @@ public class Level implements ChunkManager, Metadatable {
         if (target.getId() == Item.AIR) {
             return null;
         }
-
+        int touchStatus = 0;
         if (player != null) {
             PlayerInteractEvent ev = new PlayerInteractEvent(player, item, target, face, target.getId() == 0 ? Action.RIGHT_CLICK_AIR : Action.RIGHT_CLICK_BLOCK);
 
@@ -3095,10 +3095,12 @@ public class Level implements ChunkManager, Metadatable {
             if (!player.isOp() && isInSpawnRadius(target)) {
                 ev.setCancelled();
             }
-
             this.server.getPluginManager().callEvent(ev);
             if (!ev.isCancelled()) {
-                target.onTouch(player, ev.getAction(), face);
+                target.onTouch(player, ev.getAction());
+                if (ev.getAction() == Action.RIGHT_CLICK_BLOCK) {
+                    target.onPlayerRightClick(player, item, face, new Vector3(fx, fy, fz));
+                }
                 if (((!player.isSneaking() && !player.isFlySneaking()) || player.getInventory().getItemInHand().isNull()) && target.canBeActivated() && target.onActivate(item, player)) {
                     if (item.isTool() && item.getDamage() >= item.getMaxDurability()) {
                         addSound(player, Sound.RANDOM_BREAK);
@@ -3129,6 +3131,7 @@ public class Level implements ChunkManager, Metadatable {
             }
             return item;
         }
+
         Block hand;
         if (item.canBePlaced()) {
             hand = item.getBlock();
@@ -3141,16 +3144,17 @@ public class Level implements ChunkManager, Metadatable {
             return null;
         }
 
+        //处理放置梯子,我们应该提前给hand设置方向,这样后面计算是否碰撞实体才准确
+        if (hand instanceof BlockLadder) {
+            if (target instanceof BlockLadder) {
+                hand.setPropertyValue(CommonBlockProperties.FACING_DIRECTION, face.getOpposite());
+            } else hand.setPropertyValue(CommonBlockProperties.FACING_DIRECTION, face);
+        }
+
         //cause bug (eg: frog_spawn) (and I don't know what this is for)
         if (!(hand instanceof BlockFrogSpawn) && target.canBeReplaced()) {
             block = target;
             hand.position(block);
-        }
-        //处理放置梯子,我们应该提前给hand设置方向,这样后面计算是否碰撞实体才准确
-        if (hand instanceof BlockLadder) {
-            if (target instanceof BlockLadder) {
-                hand.setDamage(face.getOpposite().getIndex());
-            } else hand.setDamage(face.getIndex());
         }
 
         if (!hand.canPassThrough() && hand.getBoundingBox() != null) {
@@ -3165,13 +3169,14 @@ public class Level implements ChunkManager, Metadatable {
             }
             if (player != null) {
                 var diff = player.getNextPosition().subtract(player.getPosition());
-                var aabb = player.getBoundingBox().getOffsetBoundingBox(diff.x, diff.y <= 0 ? 0 : diff.y, diff.z);
-                if (aabb.offset(0, 0.01, 0).intersectsWith(hand.getBoundingBox())) {
+                var aabb = player.getBoundingBox().getOffsetBoundingBox(diff.x, diff.y, diff.z);
+                if (aabb.intersectsWith(hand.getBoundingBox().shrink(0.02, 0.02, 0.02))) {
                     ++realCount;
                 }
             }
             if (realCount > 0) {
-                return null; // Entity in block
+                // Entity in block
+                return null;
             }
         }
 

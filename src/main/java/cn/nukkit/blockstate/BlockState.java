@@ -194,7 +194,7 @@ public final class BlockState implements Serializable, IBlockState {
         int id;
         Optional<Integer> optionalId = Optional.ofNullable(BlockStateRegistry.getBlockId(namespacedId));
         if (optionalId.isEmpty()) {
-            String fullId = RuntimeItemMapping.getBlockMapping().get(persistedStateId);
+            String fullId = RuntimeItemMapping.getBlockMapping().inverse().get(persistedStateId);
             if (fullId != null) {
                 List<String> sId = StringUtils.fastSplit(":", fullId);
                 int blockId = Integer.parseInt(sId.get(0));

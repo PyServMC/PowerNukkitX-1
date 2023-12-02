@@ -9,6 +9,7 @@ import cn.nukkit.level.format.ChunkSection;
 import cn.nukkit.level.format.generic.BaseChunk;
 import lombok.experimental.UtilityClass;
 import lombok.extern.log4j.Log4j2;
+import org.jline.utils.Log;
 
 @PowerNukkitOnly
 @Since("1.4.0.0-PN")
@@ -77,6 +78,7 @@ public class ChunkUpdater {
 
     private static boolean upgradeFrameFromV12toV13(BaseChunk chunk, ChunkSection section, boolean updated) {
         updated |= walk(chunk, section, new GroupedUpdaters(
+                new LogUpdater_1_20_40(section), //run this first to avoid the log updater to change it
                 new FacingToCardinalUpdater(section),
                 new LogUpdater(section)
         ));
