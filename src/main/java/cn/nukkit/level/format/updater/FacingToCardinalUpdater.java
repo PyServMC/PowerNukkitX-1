@@ -30,20 +30,10 @@ class FacingToCardinalUpdater implements Updater {
         }
 
         int stateOld = state.getExactIntStorage();
-
-        if(stateOld != 0 && stateOld != 1 && stateOld != 2 && stateOld != 3 && stateOld != 4 && stateOld != 5) {
-            System.out.println("FacingToCardinalUpdater: Invalid state " + stateOld + " for block " + blockId + " at " + offsetX + ", " + offsetY + ", " + offsetZ + " (" + x + ", " + y + ", " + z + ")");
-        }
+        if(stateOld != 0 && stateOld != 1 && stateOld != 2 && stateOld != 3 && stateOld != 4 && stateOld != 5) return false;
 
         int stateNew = getNewData(stateOld);
 
-        if(stateOld == 4 || stateOld == 5 || this.fix2) {
-            System.out.println(stateOld + " -> " + stateNew + " for block " + blockId + " at " + offsetX + ", " + offsetY + ", " + offsetZ + " (" + x + ", " + y + ", " + z + ")");
-        
-            System.out.println(state.withData(stateNew));
-        }
-
-        //return section.setBlockState(x, y, z, state.withData(stateNew));
         return section.setBlockState(x, y, z, BlockState.of(blockId, stateNew));
     }
 
