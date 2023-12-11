@@ -52,9 +52,9 @@ public final class CommonBlockProperties {
     @Since("1.20.30-r1")
     public static final ArrayBlockProperty<BlockFace> BLOCK_FACE = new ArrayBlockProperty<>("minecraft:block_face", false, new BlockFace[]{
             // Index based
-            BlockFace.DOWN, BlockFace.UP,
-            BlockFace.NORTH, BlockFace.SOUTH,
-            BlockFace.WEST, BlockFace.EAST,
+            BlockFace.DOWN, BlockFace.UP,       // 0, 1
+            BlockFace.NORTH, BlockFace.SOUTH,   // 2, 3
+            BlockFace.WEST, BlockFace.EAST,     // 4, 5
     });
 
     @Since("1.20.0-r2")

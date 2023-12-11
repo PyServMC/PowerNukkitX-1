@@ -35,7 +35,7 @@ public class ChunkUpdater {
     @Since("1.4.0.0-PN")
     @SuppressWarnings("java:S3400")
     public int getCurrentContentVersion() {
-        return 13;
+        return 15;
     }
 
     @PowerNukkitOnly
@@ -69,11 +69,20 @@ public class ChunkUpdater {
             if (section.getContentVersion() == 12) {
                 updated = upgradeFrameFromV12toV13(chunk, section, updated);
             }
+            if (section.getContentVersion() <= 15) {
+                //updated = upgradeFrameFromV13toV14(chunk, section, updated);
+            }
         }
 
         if (updated) {
             chunk.setChanged();
         }
+    }
+
+    private static boolean upgradeFrameFromV13toV14(BaseChunk chunk, ChunkSection section, boolean updated) {
+        updated |= walk(chunk, section, new FacingToCardinalUpdater(section, true));
+        section.setContentVersion(15);
+        return updated;
     }
 
     private static boolean upgradeFrameFromV12toV13(BaseChunk chunk, ChunkSection section, boolean updated) {
