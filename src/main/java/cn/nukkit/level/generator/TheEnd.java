@@ -263,6 +263,7 @@ public class TheEnd extends Generator {
         biome.populateChunk(this.level, event.getBiomePopulators(), chunkX, chunkZ, this.nukkitRandom);
     }
 
+    @Override
     public Vector3 getSpawn() {
         return new Vector3(100, 49, 0);
     }

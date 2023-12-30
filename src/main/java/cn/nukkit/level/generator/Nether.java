@@ -142,6 +142,9 @@ public class Nether extends Generator {
 
         BaseFullChunk chunk = level.getChunk(chunkX, chunkZ);
 
+        //check if chunk is spawn chunk, spawn is at 128,70,128
+        boolean isSpawnChunk = chunkX == 8 && chunkZ == 8;
+
         for (int x = 0; x < 16; ++x) {
             for (int z = 0; z < 16; ++z) {
                 NetherBiome biome = (NetherBiome) pickBiomeExperimental(baseX + x, baseZ + z).biome;
@@ -168,6 +171,25 @@ public class Nether extends Generator {
                         if (chunk.getBlockId(x, y + 1, z) == 0) chunk.setBlockId(x, y, z, biome.getCoverBlock());
                     }
                 }
+
+                //if spawnchunk, make sure there is no lava or fire or any other block
+                if (isSpawnChunk) {
+                    for(int y = 70; y < 128; y++) {
+                        if (chunk.getBlockId(x, y, z) == Block.FLOWING_LAVA || chunk.getBlockId(x, y, z) == Block.LAVA || chunk.getBlockId(x, y, z) == Block.FIRE) {
+                            chunk.setBlockId(x, y, z, Block.NETHERRACK);
+                        }
+                    }
+
+                    for(int x1 = 0; x1 < 16; x1++) {
+                        for(int y1 = 70; y1 < 75; y1++) {
+                            for(int z1 = 0; z1 < 16; z1++) {
+                                if (!Block.get(chunk.getBlockId(x1, y1, z1)).isTransparent()) {
+                                    chunk.setBlockId(x1, y1, z1, Block.AIR);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         for (Populator populator : this.generationPopulators) {
@@ -191,7 +213,7 @@ public class Nether extends Generator {
 
     @Override
     public Vector3 getSpawn() {
-        return new Vector3(0, 64, 0);
+        return new Vector3(128, 70, 128);
     }
 
     public float getNoise(int x, int y, int z) {
