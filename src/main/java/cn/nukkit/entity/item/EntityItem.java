@@ -263,14 +263,16 @@ public class EntityItem extends Entity {
 
             this.updateMovement();
 
-            if (this.age > 6000) {
-                ItemDespawnEvent ev = new ItemDespawnEvent(this);
-                this.server.getPluginManager().callEvent(ev);
-                if (ev.isCancelled()) {
-                    this.age = 0;
-                } else {
-                    this.kill();
-                    hasUpdate = true;
+            if(!(this.namedTag.contains("NO_KILL") && this.namedTag.getBoolean("NO_KILL"))) {
+                if (this.age > 6000) {
+                    ItemDespawnEvent ev = new ItemDespawnEvent(this);
+                    this.server.getPluginManager().callEvent(ev);
+                    if (ev.isCancelled()) {
+                        this.age = 0;
+                    } else {
+                        this.kill();
+                        hasUpdate = true;
+                    }
                 }
             }
         }

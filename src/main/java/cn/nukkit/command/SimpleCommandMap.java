@@ -64,7 +64,53 @@ public class SimpleCommandMap implements CommandMap {
         this.register("nukkit", new WeatherCommand("weather"));
         this.register("nukkit", new XpCommand("xp"));
 
+        
+        this.register("nukkit", new HelpCommand("help"));
+        //idk, minecraft needs this command or it crashes
+        this.register("nukkit", new TellCommand("tell"));
+
         this.register("nukkit", new BlCmd("bl"));
+
+/*
+        this.register("nukkit", new ExecuteCommand("execute"));
+        this.register("nukkit", new FogCommand("fog"));
+        this.register("nukkit", new ExecuteCommandOld("executeold"));
+        this.register("nukkit", new PlayAnimationCommand("playanimation"));
+        this.register("nukkit", new WorldCommand("world"));
+        this.register("nukkit", new TickingAreaCommand("tickingarea"));
+        this.register("nukkit", new TellrawCommand("tellraw"));
+        this.register("nukkit", new TitlerawCommand("titleraw"));
+        this.register("nukkit", new FunctionCommand("function"));
+        this.register("nukkit", new ReplaceItemCommand("replaceitem"));
+        this.register("nukkit", new DamageCommand("damage"));
+        this.register("nukkit", new AbilityCommand("ability"));
+        this.register("nukkit", new ScoreboardCommand("scoreboard"));
+        this.register("nukkit", new CameraShakeCommand("camerashake"));
+        this.register("nukkit", new TagCommand("tag"));
+        this.register("nukkit", new TestForCommand("testfor"));
+        this.register("nukkit", new TestForBlockCommand("testforblock"));
+        this.register("nukkit", new TestForBlocksCommand("testforblocks"));
+        this.register("nukkit", new SpreadPlayersCommand("spreadplayers"));
+        this.register("nukkit", new SetMaxPlayersCommand("setmaxplayers"));
+        this.register("nukkit", new FillCommand("fill"));
+        this.register("nukkit", new ClearCommand("clear"));
+        this.register("nukkit", new CloneCommand("clone"));
+        this.register("nukkit", new PluginsCommand("plugins"));
+        this.register("nukkit", new SeedCommand("seed"));
+        this.register("nukkit", new HelpCommand("help"));
+        this.register("nukkit", new TellCommand("tell"));
+        this.register("nukkit", new BanCommand("ban"));
+        this.register("nukkit", new BanIpCommand("ban-ip"));
+        this.register("nukkit", new BanListCommand("banlist"));
+        this.register("nukkit", new PardonCommand("pardon"));
+        this.register("nukkit", new PardonIpCommand("pardon-ip"));
+        this.register("nukkit", new MeCommand("me"));
+        this.register("nukkit", new KickCommand("kick"));
+        this.register("nukkit", new OpCommand("op"));
+        this.register("nukkit", new DeopCommand("deop"));
+        this.register("nukkit", new TitleCommand("title"));
+        this.register("nukkit", new ReloadCommand("reload"));
+        this.register("nukkit", new SetBlockCommand("setblock"));*/
 
         this.register("nukkit", new StatusCommand("status"));
         if (this.server.getConfig("debug.commands", false)) {

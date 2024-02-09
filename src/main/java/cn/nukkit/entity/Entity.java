@@ -2613,6 +2613,7 @@ public abstract class Entity extends Location implements Metadatable {
                 Block lb = this.getLevelBlock();
                 Block lb2 = this.getLevelBlockAtLayer(1);
                 // TODO: BlockFenceGate
+                if(this.namedTag.contains("NO_FALLING") && this.namedTag.getBoolean("NO_FALLING")) return;
                 if (this instanceof EntityLiving &&  !(this.getLevelBlock() instanceof BlockPowderSnow) && !(lb instanceof BlockWater || lb instanceof BlockFence || (lb2 instanceof BlockWater && lb2.getMaxY() == 1d))) {
                     this.fall(fallDistance);
                 }

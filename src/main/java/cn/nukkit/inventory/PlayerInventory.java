@@ -18,6 +18,7 @@ import cn.nukkit.network.protocol.*;
 import cn.nukkit.network.protocol.types.ContainerIds;
 
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * 0-8 物品栏<br>
