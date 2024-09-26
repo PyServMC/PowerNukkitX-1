@@ -3,11 +3,10 @@ package cn.nukkit.block;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.blockproperty.BlockProperties;
+import cn.nukkit.blockproperty.CommonBlockProperties;
 import cn.nukkit.blockproperty.value.WoodType;
 import cn.nukkit.item.ItemBlock;
 import cn.nukkit.item.ItemTool;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -21,7 +20,7 @@ public class BlockSlabWood extends BlockSlab {
     @Since("1.4.0.0-PN")
     public static final BlockProperties PROPERTIES = new BlockProperties(
             WoodType.PROPERTY,
-            TOP_SLOT_PROPERTY
+            CommonBlockProperties.VERTICAL_HALF
     );
 
     public BlockSlabWood() {
@@ -39,6 +38,14 @@ public class BlockSlabWood extends BlockSlab {
 
     public BlockSlabWood(int meta) {
         super(meta, DOUBLE_WOODEN_SLAB);
+    }
+
+    @Since("1.4.0.0-PN")
+    @PowerNukkitOnly
+    @NotNull
+    @Override
+    public BlockProperties getProperties() {
+        return PROPERTIES;
     }
 
     @Override
@@ -61,14 +68,6 @@ public class BlockSlabWood extends BlockSlab {
     @Override
     public boolean isSameType(BlockSlab slab) {
         return slab.getId() == getId() && slab.getPropertyValue(WoodType.PROPERTY).equals(getWoodType());
-    }
-
-    @Since("1.4.0.0-PN")
-    @PowerNukkitOnly
-    @NotNull
-    @Override
-    public BlockProperties getProperties() {
-        return PROPERTIES;
     }
 
     @Override
@@ -98,8 +97,4 @@ public class BlockSlabWood extends BlockSlab {
         setPropertyValue(WoodType.PROPERTY, type);
     }
 
-    @Override
-    public BlockColor getColor() {
-        return getWoodType().getColor();
-    }
 }

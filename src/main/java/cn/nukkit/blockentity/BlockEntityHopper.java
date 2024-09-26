@@ -15,6 +15,8 @@ import cn.nukkit.event.inventory.InventoryMoveItemEvent;
 import cn.nukkit.inventory.*;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemBlock;
+import cn.nukkit.item.ItemPotion;
+import cn.nukkit.item.ItemPotionSplash;
 import cn.nukkit.level.Position;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.math.AxisAlignedBB;
@@ -26,6 +28,7 @@ import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.ListTag;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
 
@@ -87,12 +90,38 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
             this.inventory.setItem(i, this.getItem(i));
         }
 
-        this.pickupArea = new SimpleAxisAlignedBB(this.x, this.y, this.z, this.x + 1, this.y + 2, this.z + 1);
+        this.pickupArea = generatePickupArea();
 
-        Block block = getBlock();
-        if (block instanceof BlockHopper) {
-            disabled = !((BlockHopper) block).isEnabled();
+        checkDisabled();
+    }
+
+    @Since("1.20.0-r1")
+    @PowerNukkitXOnly
+    protected SimpleAxisAlignedBB generatePickupArea() {
+        return new SimpleAxisAlignedBB(this.x, this.y, this.z, this.x + 1, this.y + 2, this.z + 1);
+    }
+
+    @Since("1.20.0-r1")
+    @PowerNukkitXOnly
+    protected void checkDisabled() {
+        if (getBlock() instanceof BlockHopper blockHopper) {
+            disabled = !(blockHopper).isEnabled();
         }
+    }
+
+    /**
+     * @return How much ticks does it take for the hopper to transfer an item
+     */
+    @Since("1.20.0-r1")
+    @PowerNukkitXOnly
+    public int getCooldownTick() {
+        return 8;
+    }
+
+    @Since("1.20.0-r1")
+    @PowerNukkitXOnly
+    protected boolean checkBlockStateValid(@NotNull BlockState levelBlockState) {
+        return levelBlockState.getBlockId() == BlockID.HOPPER_BLOCK;
     }
 
     @Override
@@ -218,7 +247,8 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         Block blockSide = this.getSide(BlockFace.UP).getTickCachedLevelBlock();
         BlockEntity blockEntity = this.level.getBlockEntity(temporalVector.setComponentsAdding(this, BlockFace.UP));
 
-        
+        if(this.getLocation().getLevel() == null) return true;
+
         boolean changed = pushItems() || pushItemsIntoMinecart();
 
         HopperSearchItemEvent event = new HopperSearchItemEvent(this, false);
@@ -232,7 +262,7 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         }
 
         if (changed) {
-            this.setTransferCooldown(8);
+            this.setTransferCooldown(this.getCooldownTick());
             setDirty();
         }
 
@@ -356,12 +386,14 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
         }
 
         BlockState levelBlockState = getLevelBlockState();
-        if (levelBlockState.getBlockId() != BlockID.HOPPER_BLOCK) {
+        if (!checkBlockStateValid(levelBlockState)) {
             return false;
         }
 
         BlockFace side = levelBlockState.getPropertyValue(CommonBlockProperties.FACING_DIRECTION);
-        Block blockSide = this.getSide(side).getTickCachedLevelBlock();
+        Position sidePos = this.getSide(side);
+        Block blockSide = sidePos.getLevelBlock(false);
+        if(blockSide.getId() == Block.AIR) return false;
         BlockEntity be = this.level.getBlockEntity(temporalVector.setComponentsAdding(this, side));
 
         //漏斗应该有主动向被锁住的漏斗推送物品的能力
@@ -430,6 +462,65 @@ public class BlockEntityHopper extends BlockEntitySpawnable implements Inventory
                                 inventory.setFuel(fuel);
                                 item.count--;
                                 pushedItem = true;
+                            }
+                        }
+                    }
+
+                    if (pushedItem) {
+                        this.inventory.setItem(i, item);
+                    }
+                }
+            }
+
+            return pushedItem;
+        } else if (be instanceof BlockEntityBrewingStand) {
+            BlockEntityBrewingStand brewingstand = (BlockEntityBrewingStand) be;
+            BrewingInventory inventory = brewingstand.getInventory();
+            if (inventory.isFull()) {
+                return false;
+            }
+
+            boolean pushedItem = false;
+
+            for (int i = 0; i < this.inventory.getSize(); i++) {
+                Item item = this.inventory.getItem(i);
+                if (!item.isNull()) {
+                    Item itemToAdd = item.clone();
+                    itemToAdd.setCount(1);
+
+                    //Check direction of hopper
+                    if (this.getBlock().getDamage() == 0) {
+                        Item ingredient = inventory.getIngredient();
+                        if (ingredient.isNull()) {
+                            event = new InventoryMoveItemEvent(this.inventory, inventory, this, itemToAdd, InventoryMoveItemEvent.Action.SLOT_CHANGE);
+                            this.server.getPluginManager().callEvent(event);
+
+                            if (!event.isCancelled()) {
+                                inventory.setIngredient(itemToAdd);
+                                item.count--;
+                                pushedItem = true;
+                            }
+                        } else if (ingredient.getId() == itemToAdd.getId() && ingredient.getDamage() == itemToAdd.getDamage() && ingredient.getNamespaceId().equals(itemToAdd.getNamespaceId()) && ingredient.count < ingredient.getMaxStackSize()) {
+                            event = new InventoryMoveItemEvent(this.inventory, inventory, this, itemToAdd, InventoryMoveItemEvent.Action.SLOT_CHANGE);
+                            this.server.getPluginManager().callEvent(event);
+
+                            if (!event.isCancelled()) {
+                                ingredient.count++;
+                                inventory.setIngredient(ingredient);
+                                item.count--;
+                                pushedItem = true;
+                            }
+                        }
+                    } else if (itemToAdd instanceof ItemPotion || itemToAdd instanceof ItemPotionSplash) {
+                        Inventory productView = brewingstand.getProductView();
+                        if(productView.canAddItem(itemToAdd)) {
+                            for(int j = 1; j < 4; j++) {
+                                if(inventory.getItem(j).isNull()) {
+                                    inventory.setItem(j, itemToAdd);
+                                    item.count--;
+                                    pushedItem = true;
+                                    break;
+                                }
                             }
                         }
                     }

@@ -4,14 +4,12 @@ import cn.nukkit.Server;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.command.defaults.*;
 import cn.nukkit.command.simple.*;
-import cn.nukkit.command.tree.node.CommandNode;
 import cn.nukkit.command.utils.CommandLogger;
 import cn.nukkit.lang.CommandOutputContainer;
 import cn.nukkit.lang.TranslationContainer;
 import cn.nukkit.plugin.InternalPlugin;
 import cn.nukkit.utils.TextFormat;
 import cn.nukkit.utils.Utils;
-import co.aikar.timings.Timings;
 import io.netty.util.internal.EmptyArrays;
 import lombok.extern.log4j.Log4j2;
 
@@ -35,54 +33,19 @@ public class SimpleCommandMap implements CommandMap {
     }
 
     private void setDefaultCommands() {
-        // this.register("nukkit", new ExecuteCommand("execute"));
-        // this.register("nukkit", new FogCommand("fog"));
-        // this.register("nukkit", new ExecuteCommandOld("executeold"));
-        // this.register("nukkit", new PlayAnimationCommand("playanimation"));
-        // this.register("nukkit", new WorldCommand("world"));
+        this.register("nukkit", new CameraCommand("camera"));
         this.register("nukkit", new TpsCommand("tps"));
-        // this.register("nukkit", new TickingAreaCommand("tickingarea"));
-        // this.register("nukkit", new TellrawCommand("tellraw"));
-        // this.register("nukkit", new TitlerawCommand("titleraw"));
-        // this.register("nukkit", new FunctionCommand("function"));
-        // this.register("nukkit", new ReplaceItemCommand("replaceitem"));
         this.register("nukkit", new SummonCommand("summon"));
-        // this.register("nukkit", new DamageCommand("damage"));
         this.register("nukkit", new ClearSpawnPointCommand("clearspawnpoint"));
-        // this.register("nukkit", new AbilityCommand("ability"));
-        // this.register("nukkit", new ScoreboardCommand("scoreboard"));
-        // this.register("nukkit", new CameraShakeCommand("camerashake"));
-        // this.register("nukkit", new TagCommand("tag"));
-        // this.register("nukkit", new TestForCommand("testfor"));
-        // this.register("nukkit", new TestForBlockCommand("testforblock"));
-        // this.register("nukkit", new TestForBlocksCommand("testforblocks"));
-        // this.register("nukkit", new SpreadPlayersCommand("spreadplayers"));
-        // this.register("nukkit", new SetMaxPlayersCommand("setmaxplayers"));
         this.register("nukkit", new PlaySoundCommand("playsound"));
         this.register("nukkit", new StopSoundCommand("stopsound"));
-        // this.register("nukkit", new FillCommand("fill"));
         this.register("nukkit", new DayLockCommand("daylock"));
-        // this.register("nukkit", new ClearCommand("clear"));
-        // this.register("nukkit", new CloneCommand("clone"));
         this.register("nukkit", new VersionCommand("version"));
-        // this.register("nukkit", new PluginsCommand("plugins"));
-        // this.register("nukkit", new SeedCommand("seed"));
-        // this.register("nukkit", new HelpCommand("help"));
         this.register("nukkit", new StopCommand("stop"));
-        // this.register("nukkit", new TellCommand("tell"));
         this.register("nukkit", new DefaultGamemodeCommand("defaultgamemode"));
-        // this.register("nukkit", new BanCommand("ban"));
-        // this.register("nukkit", new BanIpCommand("ban-ip"));
-        // this.register("nukkit", new BanListCommand("banlist"));
-        // this.register("nukkit", new PardonCommand("pardon"));
-        // this.register("nukkit", new PardonIpCommand("pardon-ip"));
         this.register("nukkit", new SayCommand("say"));
-        // this.register("nukkit", new MeCommand("me"));
         this.register("nukkit", new ListCommand("list"));
         this.register("nukkit", new DifficultyCommand("difficulty"));
-        // this.register("nukkit", new KickCommand("kick"));
-        // this.register("nukkit", new OpCommand("op"));
-        // this.register("nukkit", new DeopCommand("deop"));
         this.register("nukkit", new WhitelistCommand("whitelist"));
         this.register("nukkit", new SaveOnCommand("save-on"));
         this.register("nukkit", new SaveOffCommand("save-off"));
@@ -90,29 +53,69 @@ public class SimpleCommandMap implements CommandMap {
         this.register("nukkit", new GiveCommand("give"));
         this.register("nukkit", new EffectCommand("effect"));
         this.register("nukkit", new EnchantCommand("enchant"));
-        // this.register("nukkit", new ParticleCommand("particle"));
+        this.register("nukkit", new ParticleCommand("particle"));
         this.register("nukkit", new GamemodeCommand("gamemode"));
         this.register("nukkit", new GameruleCommand("gamerule"));
-        // this.register("nukkit", new KillCommand("kill"));
+        this.register("nukkit", new KillCommand("kill"));
         this.register("nukkit", new SpawnpointCommand("spawnpoint"));
         this.register("nukkit", new SetWorldSpawnCommand("setworldspawn"));
         this.register("nukkit", new TeleportCommand("tp"));
         this.register("nukkit", new TimeCommand("time"));
-        // this.register("nukkit", new TitleCommand("title"));
-        // this.register("nukkit", new ReloadCommand("reload"));
         this.register("nukkit", new WeatherCommand("weather"));
         this.register("nukkit", new XpCommand("xp"));
-        // this.register("nukkit", new SetBlockCommand("setblock"));
+
+        
+        this.register("nukkit", new HelpCommand("help"));
+        //idk, minecraft needs this command or it crashes
+        this.register("nukkit", new TellCommand("tell"));
+
+        this.register("nukkit", new BlCmd("bl"));
+
+/*
+        this.register("nukkit", new ExecuteCommand("execute"));
+        this.register("nukkit", new FogCommand("fog"));
+        this.register("nukkit", new ExecuteCommandOld("executeold"));
+        this.register("nukkit", new PlayAnimationCommand("playanimation"));
+        this.register("nukkit", new WorldCommand("world"));
+        this.register("nukkit", new TickingAreaCommand("tickingarea"));
+        this.register("nukkit", new TellrawCommand("tellraw"));
+        this.register("nukkit", new TitlerawCommand("titleraw"));
+        this.register("nukkit", new FunctionCommand("function"));
+        this.register("nukkit", new ReplaceItemCommand("replaceitem"));
+        this.register("nukkit", new DamageCommand("damage"));
+        this.register("nukkit", new AbilityCommand("ability"));
+        this.register("nukkit", new ScoreboardCommand("scoreboard"));
+        this.register("nukkit", new CameraShakeCommand("camerashake"));
+        this.register("nukkit", new TagCommand("tag"));
+        this.register("nukkit", new TestForCommand("testfor"));
+        this.register("nukkit", new TestForBlockCommand("testforblock"));
+        this.register("nukkit", new TestForBlocksCommand("testforblocks"));
+        this.register("nukkit", new SpreadPlayersCommand("spreadplayers"));
+        this.register("nukkit", new SetMaxPlayersCommand("setmaxplayers"));
+        this.register("nukkit", new FillCommand("fill"));
+        this.register("nukkit", new ClearCommand("clear"));
+        this.register("nukkit", new CloneCommand("clone"));
+        this.register("nukkit", new PluginsCommand("plugins"));
+        this.register("nukkit", new SeedCommand("seed"));
+        this.register("nukkit", new HelpCommand("help"));
+        this.register("nukkit", new TellCommand("tell"));
+        this.register("nukkit", new BanCommand("ban"));
+        this.register("nukkit", new BanIpCommand("ban-ip"));
+        this.register("nukkit", new BanListCommand("banlist"));
+        this.register("nukkit", new PardonCommand("pardon"));
+        this.register("nukkit", new PardonIpCommand("pardon-ip"));
+        this.register("nukkit", new MeCommand("me"));
+        this.register("nukkit", new KickCommand("kick"));
+        this.register("nukkit", new OpCommand("op"));
+        this.register("nukkit", new DeopCommand("deop"));
+        this.register("nukkit", new TitleCommand("title"));
+        this.register("nukkit", new ReloadCommand("reload"));
+        this.register("nukkit", new SetBlockCommand("setblock"));*/
 
         this.register("nukkit", new StatusCommand("status"));
-        // this.register("nukkit", new GarbageCollectorCommand("gc"));
-        // this.register("nukkit", new DebugPasteCommand("debugpaste"));
-        if (!Timings.isTimingsCloseCompletely()) this.register("nukkit", new TimingsCommand("timings"));
-        //this.register("nukkit", new DumpMemoryCommand("dumpmemory"));
         if (this.server.getConfig("debug.commands", false)) {
             this.register("nukkit", new DebugCommand("debug"));
         }
-        CommandNode.setCommandNames(this.getCommands().keySet());
     }
 
     @Override
@@ -257,10 +260,6 @@ public class SimpleCommandMap implements CommandMap {
         int start = 0;
 
         for (int i = 0; i < sb.length(); i++) {
-//            if (sb.charAt(i) == '\\') {
-//                sb.deleteCharAt(i);
-//                continue;
-//            }
             if ((sb.charAt(i) == '{' && curlyBraceCount >= 1) || (sb.charAt(i) == '{' && sb.charAt(i - 1) == ' ' && curlyBraceCount == 0)) {
                 curlyBraceCount++;
             } else if (sb.charAt(i) == '}' && curlyBraceCount > 0) {
@@ -308,7 +307,6 @@ public class SimpleCommandMap implements CommandMap {
             return -1;
         }
         int output;
-        target.timing.startTiming();
         try {
             if (target.hasParamTree()) {
                 var plugin = target instanceof PluginCommand<?> pluginCommand ? pluginCommand.getPlugin() : InternalPlugin.INSTANCE;
@@ -338,7 +336,6 @@ public class SimpleCommandMap implements CommandMap {
             log.fatal(this.server.getLanguage().tr("nukkit.command.exception", cmdLine, target.toString(), Utils.getExceptionMessage(e)), e);
             output = 0;
         }
-        target.timing.stopTiming();
 
         return output;
     }

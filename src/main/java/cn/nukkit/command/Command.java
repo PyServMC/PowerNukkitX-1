@@ -8,6 +8,7 @@ import cn.nukkit.command.data.*;
 import cn.nukkit.command.tree.ParamList;
 import cn.nukkit.command.tree.ParamTree;
 import cn.nukkit.command.utils.CommandLogger;
+import cn.nukkit.customtranslation.CustomTranslationManager;
 import cn.nukkit.lang.CommandOutputContainer;
 import cn.nukkit.lang.PluginI18nManager;
 import cn.nukkit.lang.TextContainer;
@@ -17,8 +18,6 @@ import cn.nukkit.permission.Permissible;
 import cn.nukkit.plugin.InternalPlugin;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.TextFormat;
-import co.aikar.timings.Timing;
-import co.aikar.timings.Timings;
 import io.netty.util.internal.EmptyArrays;
 
 import java.util.*;
@@ -28,7 +27,6 @@ import java.util.stream.Collectors;
  * @author MagicDroidX (Nukkit Project)
  */
 public abstract class Command implements GenericParameter {
-    public Timing timing;
 
     private final String name;
 
@@ -58,6 +56,8 @@ public abstract class Command implements GenericParameter {
 
     protected CommandData commandData;
 
+    protected boolean serverSideOnly;
+
     public Command(String name) {
         this(name, "", null, EmptyArrays.EMPTY_STRINGS);
     }
@@ -79,7 +79,6 @@ public abstract class Command implements GenericParameter {
         this.usageMessage = usageMessage == null ? "/" + name : usageMessage;
         this.aliases = aliases;
         this.activeAliases = aliases;
-        this.timing = Timings.getCommandTiming(this);
         this.commandParameters.put("default", new CommandParameter[]{CommandParameter.newType("args", true, CommandParamType.RAWTEXT)});
     }
 
@@ -131,13 +130,20 @@ public abstract class Command implements GenericParameter {
             customData.aliases = new CommandEnum(this.name + "Aliases", aliases);
         }
 
-        if (plugin != InternalPlugin.INSTANCE && plugin instanceof PluginBase pluginBase) {
-            var i18n = PluginI18nManager.getI18n(pluginBase);
-            if (i18n != null) {
-                customData.description = i18n.tr(player.getLanguageCode(), this.getDescription());
+        String tra = CustomTranslationManager.translate(player.getLanguageCode().name(), this.description);
+        if(Objects.equals(tra, this.description)) {
+            if (plugin == InternalPlugin.INSTANCE) {
+                customData.description = player.getServer().getLanguage().tr(this.getDescription(), CommandOutputContainer.EMPTY_STRING, "commands.", false);
+            } else if (plugin instanceof PluginBase pluginBase) {
+                var i18n = PluginI18nManager.getI18n(pluginBase);
+                if (i18n != null) {
+                    customData.description = i18n.tr(player.getLanguageCode(), this.getDescription());
+                } else {
+                    customData.description = player.getServer().getLanguage().tr(this.getDescription());
+                }
             }
         } else {
-            customData.description = player.getServer().getLanguage().tr(this.getDescription(), CommandOutputContainer.EMPTY_STRING, "commands.", false);
+            customData.description = tra;
         }
 
         this.commandParameters.forEach((key, par) -> {
@@ -234,7 +240,6 @@ public abstract class Command implements GenericParameter {
         this.nextLabel = name;
         if (!this.isRegistered()) {
             this.label = name;
-            this.timing = Timings.getCommandTiming(this);
             return true;
         }
         return false;
@@ -280,6 +285,12 @@ public abstract class Command implements GenericParameter {
 
     public String getUsage() {
         return usageMessage;
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    public boolean isServerSideOnly() {
+        return serverSideOnly;
     }
 
     @PowerNukkitXOnly

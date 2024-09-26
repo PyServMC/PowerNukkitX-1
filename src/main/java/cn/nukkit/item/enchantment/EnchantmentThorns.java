@@ -8,7 +8,6 @@ import cn.nukkit.event.entity.EntityDamageEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemArmor;
 import cn.nukkit.item.ItemElytra;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -56,7 +55,7 @@ public class EnchantmentThorns extends Enchantment {
         ThreadLocalRandom random = ThreadLocalRandom.current();
 
         if (shouldHit(random, thornsLevel)) {
-            attacker.attack(new EntityDamageByEntityEvent(entity, attacker, EntityDamageEvent.DamageCause.ENTITY_ATTACK, getDamage(random, level), 0f));
+            attacker.attack(new EntityDamageByEntityEvent(entity, attacker, EntityDamageEvent.DamageCause.THORNS, getDamage(random, level), 0f));
         }
     }
 

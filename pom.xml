@@ -10,7 +10,7 @@
     <artifactId>powernukkitx</artifactId>
     <version>PNX-CUSTOM</version>
 
-    <inceptionYear>2022</inceptionYear>
+    <inceptionYear>2023</inceptionYear>
     <organization>
         <name>PowerNukkitX</name>
         <url>https://github.com/PowerNukkitX</url>
@@ -86,9 +86,8 @@
         <skipTests>true</skipTests>
         <skipGpg>true</skipGpg>
         <maven.javadoc.skip>true</maven.javadoc.skip>
-        <graalvm.version>22.2.0</graalvm.version>
+        <graalvm.version>23.0.0</graalvm.version>
         <skipDelombok>true</skipDelombok>
-        <skipNexus>true</skipNexus>
         <skipShade>package</skipShade>
         <skipCopyLibs>false</skipCopyLibs>
     </properties>
@@ -122,7 +121,6 @@
                 <skipGpg>false</skipGpg>
                 <maven.javadoc.skip>false</maven.javadoc.skip>
                 <skipDelombok>false</skipDelombok>
-                <skipNexus>false</skipNexus>
             </properties>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -137,7 +135,6 @@
                 <skipGpg>true</skipGpg>
                 <maven.javadoc.skip>true</maven.javadoc.skip>
                 <skipDelombok>true</skipDelombok>
-                <skipNexus>true</skipNexus>
                 <skipTests>false</skipTests>
             </properties>
             <activation>
@@ -147,20 +144,30 @@
     </profiles>
 
     <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
         <repository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <id>PyCMC</id>
+            <url>https://git.dev.pycmc.eu/api/packages/Forks/maven</url>
         </repository>
+        <snapshotRepository>
+            <id>PyCMC</id>
+            <url>https://git.dev.pycmc.eu/api/packages/Forks/maven</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <repositories>
         <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
+        </repository>
+        <repository>
+            <id>opencollab-repo-release</id>
+            <url>https://repo.opencollab.dev/maven-releases/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
         </repository>
         <repository>
             <id>opencollab-repo-snapshot</id>
@@ -193,6 +200,10 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
+        <repository>
+            <id>PyCMC</id>
+            <url>https://git.dev.pycmc.eu/api/packages/Forks/maven</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -211,15 +222,21 @@
         </dependency>
         <dependency>
             <!-- 不要换成NKX的依赖，这个版本具有特定接口 -->
-            <groupId>org.powernukkit.bedrock.network</groupId>
+            <groupId>cn.powernukkitx.PowerNukkitX-Network</groupId>
             <artifactId>raknet</artifactId>
             <version>1.6.28-PNX.5</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>com.nukkitx</groupId>
+            <artifactId>natives</artifactId>
+            <version>1.0.3</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>cn.powernukkitx</groupId>
-            <artifactId>powernukkitx-tests-junit5</artifactId>
-            <version>0.0.2</version>
+            <artifactId>PowerNukkitX-JUnit5-Framework</artifactId>
+            <version>0.0.4.1</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -385,12 +402,6 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.24</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>net.minecrell</groupId>
             <artifactId>terminalconsoleappender</artifactId>
             <version>1.1.1</version>
@@ -507,9 +518,9 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>com.dfsek.terra</groupId>
-            <artifactId>Terra</artifactId>
-            <version>6.2.0+BETA</version>
+            <groupId>cn.powernukkitx</groupId>
+            <artifactId>Terra-Binary</artifactId>
+            <version>6.3.0-BETA-CONFIG-1.3.3</version>
         </dependency>
         <dependency>
             <groupId>org.ow2.asm</groupId>
@@ -530,6 +541,18 @@
             <groupId>org.lz4</groupId>
             <artifactId>lz4-java</artifactId>
             <version>1.8.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+            <version>1.1.10.1</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.24</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
@@ -575,6 +598,7 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
@@ -584,9 +608,11 @@
                     <compilerArgs>
                         <arg>-Xpkginfo:always</arg>
                     </compilerArgs>
+                    <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.22.2</version>
                 <configuration>
@@ -692,6 +718,10 @@
                         <group>
                             <title>cn.nukkit.block</title>
                             <packages>cn.nukkit.block.*</packages>
+                        </group>
+                        <group>
+                            <title>cn.nukkit.jemapping</title>
+                            <packages>cn.nukkit.jemapping.*</packages>
                         </group>
                         <group>
                             <title>cn.nukkit.command</title>
@@ -914,18 +944,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.12</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                    <autoDropAfterRelease>true</autoDropAfterRelease>
-                </configuration>
             </plugin>
         </plugins>
     </build>

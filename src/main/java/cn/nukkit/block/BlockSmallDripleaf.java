@@ -13,7 +13,6 @@ import cn.nukkit.level.Position;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.NukkitRandom;
 import cn.nukkit.utils.Faceable;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -23,7 +22,7 @@ import javax.annotation.Nullable;
 public class BlockSmallDripleaf extends BlockFlowable implements Faceable {
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
-    public static final BlockProperties PROPERTIES = new BlockProperties(CommonBlockProperties.DIRECTION,CommonBlockProperties.UPPER_BLOCK);
+    public static final BlockProperties PROPERTIES = new BlockProperties(CommonBlockProperties.CARDINAL_DIRECTION, CommonBlockProperties.UPPER_BLOCK);
 
     protected BlockSmallDripleaf() {
         super(0);
@@ -49,14 +48,14 @@ public class BlockSmallDripleaf extends BlockFlowable implements Faceable {
 
     @Override
     public BlockFace getBlockFace() {
-        return getPropertyValue(CommonBlockProperties.DIRECTION);
+        return getPropertyValue(CommonBlockProperties.CARDINAL_DIRECTION);
     }
 
     @Since("1.6.0.0-PNX")
     @PowerNukkitOnly
     @Override
     public void setBlockFace(BlockFace face) {
-        setPropertyValue(CommonBlockProperties.DIRECTION, face);
+        setPropertyValue(CommonBlockProperties.CARDINAL_DIRECTION, face);
     }
 
     public boolean isUpperBlock(){

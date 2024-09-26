@@ -44,13 +44,25 @@ public class MinecraftNamespaceComparator {
         return Long.compareUnsigned(hash1, hash2);
     }
 
-    private static long fnv164(byte[] data) {
+    public static long fnv164(byte[] data) {
         long hash = FNV1_64_INIT;
         for (byte datum : data) {
             hash *= FNV1_PRIME_64;
             hash ^= (datum & 0xff);
         }
 
+        return hash;
+    }
+
+    private static final int FNV1_32_INIT = 0x811c9dc5;
+    private static final int FNV1_PRIME_32 = 0x01000193;
+
+    public static int fnv1a_32(byte[] data) {
+        int hash = FNV1_32_INIT;
+        for (byte datum : data) {
+            hash ^= (datum & 0xff);
+            hash *= FNV1_PRIME_32;
+        }
         return hash;
     }
 }

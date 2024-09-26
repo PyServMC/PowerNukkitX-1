@@ -3,6 +3,7 @@ package cn.nukkit.network;
 import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.api.PowerNukkitOnly;
+import cn.nukkit.api.PowerNukkitXDifference;
 import cn.nukkit.api.Since;
 import cn.nukkit.event.player.PlayerCreationEvent;
 import cn.nukkit.event.server.QueryRegenerateEvent;
@@ -11,6 +12,7 @@ import cn.nukkit.network.protocol.ProtocolInfo;
 import cn.nukkit.network.session.NetworkPlayerSession;
 import cn.nukkit.network.session.RakNetPlayerSession;
 import cn.nukkit.utils.Utils;
+import static cn.nukkit.utils.Utils.dynamic;
 import com.google.common.base.Strings;
 import com.nukkitx.network.raknet.RakNetServer;
 import com.nukkitx.network.raknet.RakNetServerListener;
@@ -19,7 +21,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.util.internal.PlatformDependent;
-import lombok.NonNull;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
 
@@ -152,6 +153,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         this.raknet.send(socketAddress, payload);
     }
 
+    @PowerNukkitXDifference(since = "1.20.50-r1", info = "now Minecraft version in query same as in the query information")
     @Override
     public void setName(String name) {
         QueryRegenerateEvent info = this.server.getQueryInformation();
@@ -162,7 +164,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 .add("MCPE")
                 .add(motd)
                 .add(Integer.toString(ProtocolInfo.CURRENT_PROTOCOL))
-                .add(ProtocolInfo.MINECRAFT_VERSION_NETWORK)
+                .add(dynamic(info.getVersion()))
                 .add(Integer.toString(info.getPlayerCount()))
                 .add(Integer.toString(info.getMaxPlayerCount()))
                 .add(Long.toString(this.raknet.getGuid()))

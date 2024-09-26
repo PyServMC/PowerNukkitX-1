@@ -86,6 +86,11 @@ public class StartGamePacket extends DataPacket {
     public boolean isWorldTemplateOptionLocked = false;
     public boolean isOnlySpawningV1Villagers = false;
     public String vanillaVersion = ProtocolInfo.MINECRAFT_VERSION_NETWORK;
+    //HACK: For now we can specify this version, since the new chunk changes are not relevant for our Anvil format.
+    //However, it could be that Microsoft will prevent this in a new update.
+
+    public CompoundTag playerPropertyData = new CompoundTag("");
+
     public String levelId = ""; //base64 string, usually the same as world folder name in vanilla
     public String worldName;
     public String premiumWorldTemplateId = "";
@@ -118,7 +123,26 @@ public class StartGamePacket extends DataPacket {
      */
     public boolean emoteChatMuted;
 
+    /**
+     * Whether block runtime IDs should be replaced by 32-bit integer hashes of the NBT block state.
+     * Unlike runtime IDs, this hashes should be persistent across versions and should make support for data-driven/custom blocks easier.
+     *
+     * @since v582
+     */
+    public boolean blockNetworkIdsHashed;
+    /**
+     * @since v582
+     */
+    public boolean createdInEditor;
+    /**
+     * @since v582
+     */
+    public boolean exportedFromEditor;
     public boolean disablePlayerInteractions;
+    /**
+     * @since v589
+     */
+    public boolean isSoundsServerAuthoritative;
 
     @Override
     public void decode() {
@@ -145,6 +169,8 @@ public class StartGamePacket extends DataPacket {
         this.putBlockVector3(this.spawnX, this.spawnY, this.spawnZ);
         this.putBoolean(this.hasAchievementsDisabled);
         this.putBoolean(this.worldEditor);
+        this.putBoolean(this.createdInEditor);
+        this.putBoolean(this.exportedFromEditor);
         this.putVarInt(this.dayCycleStopTime);
         this.putVarInt(this.eduEditionOffer);
         this.putBoolean(this.hasEduFeaturesEnabled);
@@ -159,8 +185,8 @@ public class StartGamePacket extends DataPacket {
         this.putBoolean(this.commandsEnabled);
         this.putBoolean(this.isTexturePacksRequired);
         this.putGameRules(this.gameRules);
-        if (Server.getInstance().isEnableExperimentMode() && !Server.getInstance().getConfig("settings.waterdogpe", false)) {
-            this.putLInt(3); // Experiment count
+        if (Server.getInstance().isEnableExperimentMode() && !Server.getInstance().isWaterdogCapable()) {
+            this.putLInt(4); // Experiment count
             {
                 this.putString("data_driven_items");
                 this.putBoolean(true);
@@ -171,6 +197,8 @@ public class StartGamePacket extends DataPacket {
                 //this.putString("gametest");
                 //this.putBoolean(true);
                 this.putString("experimental_molang_features");
+                this.putBoolean(true);
+                this.putString("cameras");
                 this.putBoolean(true);
             }
             this.putBoolean(true); // Were experiments previously toggled
@@ -198,11 +226,7 @@ public class StartGamePacket extends DataPacket {
         this.putBoolean(false); // Nether type
         this.putString(""); // EduSharedUriResource buttonName
         this.putString(""); // EduSharedUriResource linkUri
-        if (Server.getInstance().isEnableExperimentMode()) { // force Experimental Gameplay
-            this.putBoolean(!Server.getInstance().getConfig("settings.waterdogpe", false)); // Why WaterDogPE require an extra optional boolean if this is set to true? I don't know.
-        } else {
-            this.putBoolean(false);
-        }
+        this.putBoolean(false); // force Experimental Gameplay (exclusive to debug clients)
         this.putByte(this.chatRestrictionLevel);
         this.putBoolean(this.disablePlayerInteractions);
         /* Level settings end */
@@ -236,12 +260,14 @@ public class StartGamePacket extends DataPacket {
         this.putBoolean(this.isInventoryServerAuthoritative);
         this.putString(vanillaVersion); // Server Engine
         try {
-            this.put(NBTIO.writeNetwork(new CompoundTag(""))); // playerPropertyData
+            this.put(NBTIO.writeNetwork(playerPropertyData)); // playerPropertyData
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         this.putLLong(0); // blockRegistryChecksum
         this.putUUID(new UUID(0, 0)); // worldTemplateId
         this.putBoolean(this.clientSideGenerationEnabled);
+        this.putBoolean(this.blockNetworkIdsHashed); // blockIdsAreHashed
+        this.putBoolean(this.isSoundsServerAuthoritative); // serverAuthSounds
     }
 }

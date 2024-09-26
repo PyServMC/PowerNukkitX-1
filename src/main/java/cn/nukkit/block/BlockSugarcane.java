@@ -13,8 +13,6 @@ import cn.nukkit.item.ItemSugarcane;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.particle.BoneMealParticle;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -190,7 +188,7 @@ public class BlockSugarcane extends BlockFlowable {
         if (downId == REEDS) {
             return true;
         }
-        if (downId != GRASS && downId != DIRT && downId != SAND || down.getId() == PODZOL || down.getId() == MYCELIUM) {
+        if (downId != GRASS && downId != DIRT && downId != SAND && downId != PODZOL && downId != MOSS_BLOCK) {
             return false;
         }
         for (BlockFace face : BlockFace.Plane.HORIZONTAL) {
@@ -204,8 +202,4 @@ public class BlockSugarcane extends BlockFlowable {
         return false;
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.FOLIAGE_BLOCK_COLOR;
-    }
 }

@@ -188,7 +188,7 @@ public class AddEntityPacket extends DataPacket {
         if (id == null) {
             id = LEGACY_IDS.get(type);
         }
-        this.putString(this.id);
+        this.putString(this.id != null ? this.id : "");
         this.putVector3f(this.x, this.y, this.z);
         this.putVector3f(this.speedX, this.speedY, this.speedZ);
         this.putLFloat(this.pitch);

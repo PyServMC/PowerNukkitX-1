@@ -13,7 +13,6 @@ import cn.nukkit.item.ItemID;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.particle.BoneMealParticle;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -216,11 +215,6 @@ public class BlockDoublePlant extends BlockFlowable {
     }
 
     @Override
-    public BlockColor getColor() {
-        return BlockColor.FOLIAGE_BLOCK_COLOR;
-    }
-
-    @Override
     public boolean canBeActivated() {
         return true;
     }
@@ -244,5 +238,10 @@ public class BlockDoublePlant extends BlockFlowable {
         }
 
         return false;
+    }
+
+    @Override
+    public boolean isFertilizable() {
+        return true;
     }
 }

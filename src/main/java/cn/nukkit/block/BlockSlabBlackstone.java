@@ -2,12 +2,8 @@ package cn.nukkit.block;
 
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
-import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemTool;
-import cn.nukkit.utils.BlockColor;
-
-import org.jetbrains.annotations.NotNull;
 
 @PowerNukkitOnly
 @Since("1.4.0.0-PN")
@@ -29,13 +25,6 @@ public class BlockSlabBlackstone extends BlockSlab {
         return BLACKSTONE_SLAB;
     }
 
-    @Since("1.4.0.0-PN")
-    @PowerNukkitOnly
-    @NotNull
-    @Override
-    public BlockProperties getProperties() {
-        return SIMPLE_SLAB_PROPERTIES;
-    }
 
     @PowerNukkitOnly
     @Override
@@ -68,11 +57,6 @@ public class BlockSlabBlackstone extends BlockSlab {
         } else {
             return Item.EMPTY_ARRAY;
         }
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.BLACK_BLOCK_COLOR;
     }
 
     @Override

@@ -10,8 +10,6 @@ import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemStick;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.nbt.tag.CompoundTag;
-import cn.nukkit.utils.BlockColor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Random;
@@ -76,6 +74,8 @@ public class BlockDeadBush extends BlockFlowable implements BlockFlowerPot.Flowe
             case STAINED_TERRACOTTA:
             case DIRT:
             case PODZOL:
+            case GRASS:
+            case MOSS_BLOCK:
             case MYCELIUM:
                 return true;
             default:
@@ -109,8 +109,4 @@ public class BlockDeadBush extends BlockFlowable implements BlockFlowerPot.Flowe
         }
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.FOLIAGE_BLOCK_COLOR;
-    }
 }

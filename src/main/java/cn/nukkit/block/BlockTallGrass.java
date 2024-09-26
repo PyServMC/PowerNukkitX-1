@@ -15,9 +15,6 @@ import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.particle.BoneMealParticle;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.nbt.tag.CompoundTag;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -157,7 +154,7 @@ public class BlockTallGrass extends BlockFlowable implements BlockFlowerPot.Flow
 
     @Override
     public Item[] getDrops(Item item) {
-        // https://minecraft.gamepedia.com/Fortune#Grass_and_ferns
+        // https://minecraft.wiki/w/Fortune#Grass_and_ferns
         List<Item> drops = new ArrayList<>(2);
         if (item.isShears()) {
             drops.add(getCurrentState().asItemBlock());
@@ -180,12 +177,12 @@ public class BlockTallGrass extends BlockFlowable implements BlockFlowerPot.Flow
     }
 
     @Override
-    public BlockColor getColor() {
-        return BlockColor.FOLIAGE_BLOCK_COLOR;
+    public boolean isPotBlockState() {
+        return getPropertyValue(TALL_GRASS_TYPE) == TallGrassType.FERN;
     }
 
     @Override
-    public boolean isPotBlockState() {
-        return getPropertyValue(TALL_GRASS_TYPE) == TallGrassType.FERN;
+    public boolean isFertilizable() {
+        return true;
     }
 }

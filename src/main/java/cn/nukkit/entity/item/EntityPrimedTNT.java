@@ -124,8 +124,6 @@ public class EntityPrimedTNT extends Entity implements EntityExplosive {
             return false;
         }
 
-        this.timing.startTiming();
-
         int tickDiff = currentTick - lastUpdate;
 
         if (tickDiff <= 0 && !justCreated) {
@@ -169,8 +167,6 @@ public class EntityPrimedTNT extends Entity implements EntityExplosive {
             }
 
         }
-
-        this.timing.stopTiming();
 
         return hasUpdate || fuse >= 0 || Math.abs(motionX) > 0.00001 || Math.abs(motionY) > 0.00001 || Math.abs(motionZ) > 0.00001;
     }

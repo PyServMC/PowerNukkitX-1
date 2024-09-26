@@ -14,8 +14,6 @@ import cn.nukkit.level.generator.object.mushroom.BigMushroom;
 import cn.nukkit.level.particle.BoneMealParticle;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.NukkitRandom;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -109,11 +107,6 @@ public abstract class BlockMushroom extends BlockFlowable implements BlockFlower
     }
 
     @Override
-    public BlockColor getColor() {
-        return BlockColor.FOLIAGE_BLOCK_COLOR;
-    }
-
-    @Override
     public boolean canSilkTouch() {
         return true;
     }
@@ -130,4 +123,9 @@ public abstract class BlockMushroom extends BlockFlowable implements BlockFlower
     }
 
     protected abstract int getType();
+
+    @Override
+    public boolean isFertilizable() {
+        return true;
+    }
 }

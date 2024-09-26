@@ -1,34 +1,33 @@
 package cn.nukkit.level.format.generic;
 
 import cn.nukkit.Player;
+import cn.nukkit.Server;
 import cn.nukkit.api.DeprecationDetails;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.block.Block;
 import cn.nukkit.blockentity.BlockEntity;
+import cn.nukkit.blockentity.BlockEntityChest;
 import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.level.ChunkManager;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.level.format.LevelProvider;
+import cn.nukkit.level.generator.Generator;
 import cn.nukkit.math.BlockVector3;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.nbt.tag.NumberTag;
+import cn.nukkit.nbt.tag.*;
 import cn.nukkit.network.protocol.BatchPacket;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import cn.nukkit.utils.collection.nb.Long2ObjectNonBlockingMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 
@@ -36,11 +35,11 @@ import java.util.stream.Stream;
  * @author MagicDroidX (Nukkit Project)
  */
 public abstract class BaseFullChunk implements FullChunk, ChunkManager {
-    protected Long2ObjectMap<Entity> entities;
+    protected Long2ObjectNonBlockingMap<Entity> entities;
 
-    protected Long2ObjectMap<BlockEntity> tiles;
+    protected Long2ObjectNonBlockingMap<BlockEntity> tiles;
 
-    protected Int2ObjectMap<BlockEntity> tileList;
+    protected Long2ObjectNonBlockingMap<BlockEntity> tileList;
 
     /**
      * encoded as:
@@ -57,7 +56,7 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
 
     protected byte[] blockLight;
 
-    protected byte[] heightMap;
+    protected short[] heightMap;
 
     protected List<CompoundTag> NBTtiles;
 
@@ -103,7 +102,7 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
         }
 
         if (this.heightMap != null) {
-            chunk.heightMap = this.getHeightMapArray().clone();
+            chunk.heightMap = this.getNewHeightMapArray().clone();
         }
         return chunk;
     }
@@ -133,8 +132,8 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
     public void initChunk() {
         if (this.getProvider() != null && !this.isInit) {
             boolean changed = false;
+            //boolean updateData = Server.getInstance().getConfig().getBoolean("updateV3", false);
             if (this.NBTentities != null) {
-                this.getProvider().getLevel().timings.syncChunkLoadEntitiesTimer.startTiming();
                 for (CompoundTag nbt : NBTentities) {
                     if (!nbt.contains("id")) {
                         this.setChanged();
@@ -145,17 +144,31 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
                         changed = true;
                         continue;
                     }
+
+                    /*if(updateData) {
+                        if(!nbt.contains("movedV3")) {
+                            ListTag posNew = new ListTag();
+                            posNew.add(pos.get(0));
+                            posNew.add(new DoubleTag((((NumberTag)pos.get(1)).getData().intValue()) - 64));
+                            posNew.add(pos.get(2));
+                            changed = true;
+
+                            nbt.remove("Pos");
+                            nbt.putList("Pos", posNew);
+                        }
+                    }*/
+
                     Entity entity = Entity.createEntity(nbt.getString("id"), this, nbt);
                     if (entity != null) {
                         changed = true;
                     }
                 }
-                this.getProvider().getLevel().timings.syncChunkLoadEntitiesTimer.stopTiming();
                 this.NBTentities = null;
             }
 
+            HashMap<String,String> pairedChests = new HashMap<>();
+
             if (this.NBTtiles != null) {
-                this.getProvider().getLevel().timings.syncChunkLoadBlockEntitiesTimer.startTiming();
                 for (CompoundTag nbt : NBTtiles) {
                     if (nbt != null) {
                         if (!nbt.contains("id")) {
@@ -170,9 +183,18 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
                         if (blockEntity == null) {
                             changed = true;
                         }
+
+                        /*if(updateData) {
+                            if(!blockEntity.isBlockEntityValid()) {
+                                CompoundTag newNBT = nbt.clone();
+                                blockEntity.closeS();
+                                newNBT.putInt("y", (short) (nbt.getInt("y") - 64));
+                                blockEntity = BlockEntity.createBlockEntity(nbt.getString("id"), this, newNBT);
+                                changed = true;
+                            }
+                        }*/
                     }
                 }
-                this.getProvider().getLevel().timings.syncChunkLoadBlockEntitiesTimer.stopTiming();
                 this.NBTtiles = null;
             }
 
@@ -245,12 +267,12 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
 
     @Override
     public int getHeightMap(int x, int z) {
-        return this.heightMap[(z << 4) | x] & 0xFF;
+        return this.heightMap[(z << 4) | x];
     }
 
     @Override
     public void setHeightMap(int x, int z, int value) {
-        this.heightMap[(z << 4) | x] = (byte) value;
+        this.heightMap[(z << 4) | x] = (short) value;
     }
 
     @Override
@@ -380,7 +402,7 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
     @Override
     public void addEntity(Entity entity) {
         if (this.entities == null) {
-            this.entities = new Long2ObjectOpenHashMap<>();
+            this.entities = new Long2ObjectNonBlockingMap<>();
         }
         this.entities.put(entity.getId(), entity);
         if (!(entity instanceof Player) && this.isInit) {
@@ -401,8 +423,8 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
     @Override
     public void addBlockEntity(BlockEntity blockEntity) {
         if (this.tiles == null) {
-            this.tiles = new Long2ObjectOpenHashMap<>();
-            this.tileList = new Int2ObjectOpenHashMap<>();
+            this.tiles = new Long2ObjectNonBlockingMap<>();
+            this.tileList = new Long2ObjectNonBlockingMap<>();
         }
         this.tiles.put(blockEntity.getId(), blockEntity);
         int index = ((blockEntity.getFloorZ() & 0x0f) << 16) | ((blockEntity.getFloorX() & 0x0f) << 12) | (ensureY(blockEntity.getFloorY()) + 64);
@@ -519,8 +541,20 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
         return this.biomes;
     }
 
+    @SuppressWarnings("removal")
+    @Deprecated(since = "1.20.0-r2", forRemoval = true)
+    @DeprecationDetails(since = "1.20.0-r2", reason = "HeightMapArray is now a short[], Use getNewHeightMapArray() instead")
     @Override
     public byte[] getHeightMapArray() {
+        var heightMap = new byte[256];
+        for (int i = 0; i < 256; i++) {
+            heightMap[i] = (byte) (this.heightMap[i] & 0xFF);
+        }
+        return heightMap;
+    }
+
+    @Override
+    public short[] getNewHeightMapArray() {
         return this.heightMap;
     }
 
@@ -546,6 +580,24 @@ public abstract class BaseFullChunk implements FullChunk, ChunkManager {
         } else {
             changes = 0;
         }
+    }
+
+    @Since("1.6.0.0-PNX")
+    @Override
+    public boolean isOverWorld() {
+        return FullChunk.super.isOverWorld();
+    }
+
+    @Since("1.6.0.0-PNX")
+    @Override
+    public boolean isNether() {
+        return FullChunk.super.isNether();
+    }
+
+    @Since("1.6.0.0-PNX")
+    @Override
+    public boolean isTheEnd() {
+        return FullChunk.super.isTheEnd();
     }
 
     @Override

@@ -18,6 +18,7 @@ import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.network.protocol.AddItemEntityPacket;
 import cn.nukkit.network.protocol.DataPacket;
 import cn.nukkit.network.protocol.EntityEventPacket;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author MagicDroidX
@@ -165,8 +166,6 @@ public class EntityItem extends Entity {
 
         this.lastUpdate = currentTick;
 
-        this.timing.startTiming();
-
         if (this.age % 60 == 0 && this.onGround && this.getItem() != null && this.isAlive()) {
             if (this.getItem().getCount() < this.getItem().getMaxStackSize()) {
                 for (Entity entity : this.getLevel().getNearbyEntities(getBoundingBox().grow(1, 1, 1), this, false)) {
@@ -264,19 +263,19 @@ public class EntityItem extends Entity {
 
             this.updateMovement();
 
-            if (this.age > 6000) {
-                ItemDespawnEvent ev = new ItemDespawnEvent(this);
-                this.server.getPluginManager().callEvent(ev);
-                if (ev.isCancelled()) {
-                    this.age = 0;
-                } else {
-                    this.kill();
-                    hasUpdate = true;
+            if(!(this.namedTag.contains("NO_KILL") && this.namedTag.getBoolean("NO_KILL"))) {
+                if (this.age > 6000) {
+                    ItemDespawnEvent ev = new ItemDespawnEvent(this);
+                    this.server.getPluginManager().callEvent(ev);
+                    if (ev.isCancelled()) {
+                        this.age = 0;
+                    } else {
+                        this.kill();
+                        hasUpdate = true;
+                    }
                 }
             }
         }
-
-        this.timing.stopTiming();
 
         return hasUpdate || !this.onGround || Math.abs(this.motionX) > 0.00001 || Math.abs(this.motionY) > 0.00001 || Math.abs(this.motionZ) > 0.00001;
     }
@@ -314,6 +313,7 @@ public class EntityItem extends Entity {
         return "Item";
     }
 
+    @NotNull
     @Override
     public String getName() {
         if (this.hasCustomName()) {
@@ -322,7 +322,7 @@ public class EntityItem extends Entity {
         if (item == null) {
             return getOriginalName();
         }
-        return item.count + "x " + this.item.getName();
+        return item.count + "x " + this.item.getDisplayName();
     }
 
     public Item getItem() {

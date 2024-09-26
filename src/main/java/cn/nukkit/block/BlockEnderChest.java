@@ -7,6 +7,7 @@ import cn.nukkit.api.Since;
 import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.blockentity.BlockEntityEnderChest;
 import cn.nukkit.blockproperty.BlockProperties;
+import cn.nukkit.blockproperty.CommonBlockProperties;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemBlock;
 import cn.nukkit.item.ItemTool;
@@ -14,9 +15,7 @@ import cn.nukkit.math.BlockFace;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.StringTag;
 import cn.nukkit.nbt.tag.Tag;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -29,7 +28,7 @@ public class BlockEnderChest extends BlockTransparentMeta implements Faceable, B
 
     @PowerNukkitOnly
     @Since("1.5.0.0-PN")
-    public static final BlockProperties PROPERTIES = BlockChest.PROPERTIES;
+    public static final BlockProperties PROPERTIES = new BlockProperties(CommonBlockProperties.CARDINAL_DIRECTION);
 
     private final Set<Player> viewers = new HashSet<>();
 
@@ -133,7 +132,7 @@ public class BlockEnderChest extends BlockTransparentMeta implements Faceable, B
 
     @Override
     public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, @Nullable Player player) {
-        int[] faces = {2, 5, 3, 4};
+        int[] faces = {2, 3, 0, 1};
         this.setDamage(faces[player != null ? player.getDirection().getHorizontalIndex() : 0]);
 
         CompoundTag nbt = new CompoundTag();
@@ -190,11 +189,6 @@ public class BlockEnderChest extends BlockTransparentMeta implements Faceable, B
         } else {
             return Item.EMPTY_ARRAY;
         }
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.OBSIDIAN_BLOCK_COLOR;
     }
 
     public Set<Player> getViewers() {

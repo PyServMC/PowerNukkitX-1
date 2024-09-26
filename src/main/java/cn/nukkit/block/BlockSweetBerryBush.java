@@ -19,8 +19,6 @@ import cn.nukkit.level.particle.BoneMealParticle;
 import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.MathHelper;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -57,11 +55,6 @@ public class BlockSweetBerryBush extends BlockFlowable {
     @Override
     public String getName() {
         return "Sweet Berry Bush";
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.FOLIAGE_BLOCK_COLOR;
     }
 
     @Override

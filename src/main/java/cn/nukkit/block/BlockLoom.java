@@ -9,9 +9,7 @@ import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemBlock;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -74,11 +72,6 @@ public class BlockLoom extends BlockSolidMeta implements Faceable {
     @Override
     public double getHardness() {
         return 2.5;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.WOOD_BLOCK_COLOR;
     }
 
     @Override

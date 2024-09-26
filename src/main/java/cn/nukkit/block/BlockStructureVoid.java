@@ -7,8 +7,6 @@ import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.blockproperty.value.StructureVoidType;
 import cn.nukkit.item.Item;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -106,9 +104,5 @@ public class BlockStructureVoid extends BlockSolid {
     public  boolean canBePulled() {
         return false;
     }
-    
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.TRANSPARENT_BLOCK_COLOR;
-    }
+
 }

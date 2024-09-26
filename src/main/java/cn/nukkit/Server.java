@@ -1,9 +1,6 @@
 package cn.nukkit;
 
-import cn.nukkit.api.DeprecationDetails;
-import cn.nukkit.api.PowerNukkitOnly;
-import cn.nukkit.api.PowerNukkitXOnly;
-import cn.nukkit.api.Since;
+import cn.nukkit.api.*;
 import cn.nukkit.block.Block;
 import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.blockstate.BlockStateRegistry;
@@ -14,6 +11,8 @@ import cn.nukkit.dispenser.DispenseBehaviorRegister;
 import cn.nukkit.entity.Attribute;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.entity.data.Skin;
+import cn.nukkit.entity.data.profession.Profession;
+import cn.nukkit.entity.data.property.EntityProperty;
 import cn.nukkit.event.HandlerList;
 import cn.nukkit.event.level.LevelInitEvent;
 import cn.nukkit.event.level.LevelLoadEvent;
@@ -31,7 +30,6 @@ import cn.nukkit.level.biome.EnumBiome;
 import cn.nukkit.level.format.LevelProvider;
 import cn.nukkit.level.format.LevelProviderManager;
 import cn.nukkit.level.format.anvil.Anvil;
-import cn.nukkit.level.format.generic.BaseRegionLoader;
 import cn.nukkit.level.generator.*;
 import cn.nukkit.level.terra.PNXPlatform;
 import cn.nukkit.level.tickingarea.manager.SimpleTickingAreaManager;
@@ -41,7 +39,6 @@ import cn.nukkit.math.NukkitMath;
 import cn.nukkit.metadata.EntityMetadataStore;
 import cn.nukkit.metadata.LevelMetadataStore;
 import cn.nukkit.metadata.PlayerMetadataStore;
-import cn.nukkit.metrics.NukkitMetrics;
 import cn.nukkit.nbt.NBTIO;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.DoubleTag;
@@ -77,10 +74,10 @@ import cn.nukkit.scheduler.Task;
 import cn.nukkit.scoreboard.manager.IScoreboardManager;
 import cn.nukkit.scoreboard.manager.ScoreboardManager;
 import cn.nukkit.scoreboard.storage.JSONScoreboardStorage;
+import cn.nukkit.spark.SparkInstaller;
 import cn.nukkit.utils.*;
 import cn.nukkit.utils.bugreport.ExceptionHandler;
 import cn.nukkit.utils.collection.FreezableArrayManager;
-import co.aikar.timings.Timings;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
@@ -98,16 +95,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.security.*;
+import java.sql.Array;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
@@ -135,49 +130,33 @@ import java.util.stream.Stream;
 @Log4j2
 public class Server {
 
+    @PyCMCOnly
+    public static List<String> customProperties = new ArrayList<String>();
+
     public static final String BROADCAST_CHANNEL_ADMINISTRATIVE = "nukkit.broadcast.admin";
     public static final String BROADCAST_CHANNEL_USERS = "nukkit.broadcast.user";
 
     private static Server instance = null;
-
     private BanList banByName;
-
     private BanList banByIP;
-
     private Config operators;
-
     private Config whitelist;
-
-    private AtomicBoolean isRunning = new AtomicBoolean(true);
-
-    private LongList busyingTime = LongLists.synchronize(new LongArrayList(0));
-
+    private final AtomicBoolean isRunning = new AtomicBoolean(true);
+    private final LongList busyingTime = LongLists.synchronize(new LongArrayList(0));
     private boolean hasStopped = false;
-
     private PluginManager pluginManager;
-
-    private int profilingTickrate = 20;
-
     private ServerScheduler scheduler;
 
     /**
      * 一个tick计数器,记录服务器已经经过的tick数
      */
     private int tickCounter;
-
     private long nextTick;
-
     private final float[] tickAverage = {20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20};
-
     private final float[] useAverage = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
     private float maxTick = 20;
-
     private float maxUse = 0;
-
     private int sendUsageTicker = 0;
-
-    private boolean dispatchSignals = false;
 
     private final NukkitConsole console;
     private final ConsoleThread consoleThread;
@@ -188,53 +167,37 @@ public class Server {
      * FJP thread pool responsible for terrain generation, data compression and other computing tasks
      */
     public final ForkJoinPool computeThreadPool;
-
     private SimpleCommandMap commandMap;
-
     private CraftingManager craftingManager;
-
     private ResourcePackManager resourcePackManager;
-
     private ConsoleCommandSender consoleSender;
-
     private IScoreboardManager scoreboardManager;
-
     private FunctionManager functionManager;
-
     private TickingAreaManager tickingAreaManager;
 
     private int maxPlayers;
-
     private boolean autoSave = true;
-
     private boolean redstoneEnabled = true;
-
 
     /**
      * 配置项是否检查登录时间.<P>Does the configuration item check the login time.
      */
     public boolean checkLoginTime = true;
-
     private boolean educationEditionEnabled = false;
 
+    @PyCMCOnly
     private boolean forceCustomItems = false;
 
     private RCON rcon;
-
     private EntityMetadataStore entityMetadata;
-
     private PlayerMetadataStore playerMetadata;
-
     private LevelMetadataStore levelMetadata;
-
     private Network network;
-
     private boolean networkCompressionAsync = true;
     /**
      * 网络压缩级别<P>Network compression level
      */
     public int networkCompressionLevel = 7;
-    private int networkZlibProvider = 0;
 
     @PowerNukkitXOnly
     @Since("1.19.30-r2")
@@ -259,8 +222,8 @@ public class Server {
     private int autoSaveTicker = 0;
     private int autoSaveTicks = 6000;
 
-    private BaseLang baseLang;
-    private LangCode baseLangCode;
+    private final BaseLang baseLang;
+    private final LangCode baseLangCode;
 
     private boolean forceLanguage = false;
 
@@ -277,8 +240,8 @@ public class Server {
 
     private QueryRegenerateEvent queryRegenerateEvent;
 
-    private Config properties;
-    private Config config;
+    private final Config properties;
+    private final Config config;
 
     private final Map<InetSocketAddress, Player> players = new HashMap<>();
 
@@ -351,6 +314,11 @@ public class Server {
     @Since("1.19.50-r1")
     private FreezableArrayManager freezableArrayManager;
 
+    @PowerNukkitXOnly
+    @Since("1.19.80-r2")
+    public boolean enabledNetworkEncryption;
+
+
     /**
      * 最小初始化测试
      * Minimal initializer for testing
@@ -401,6 +369,7 @@ public class Server {
 
         setMaxPlayers(10);
 
+        this.registerProfessions();
         this.registerEntities();
         this.registerBlockEntities();
     }
@@ -626,7 +595,7 @@ public class Server {
                 put("sub-motd", "https://powernukkitx.cn");
                 put("server-port", 19132);
                 put("server-ip", "0.0.0.0");
-                put("view-distance", 10);
+                put("view-distance", 12);
                 put("white-list", false);
                 put("achievements", true);
                 put("announce-player-achievements", true);
@@ -660,6 +629,7 @@ public class Server {
                 put("disable-auto-bug-report", false);
                 put("allow-shaded", false);
                 put("server-authoritative-movement", "server-auth");// Allowed values: "client-auth", "server-auth", "server-auth-with-rewind"
+                put("network-encryption", true);
             }
         });
         // Allow Nether? (determines if we create a nether world if one doesn't exist on startup)
@@ -713,8 +683,8 @@ public class Server {
 
         ServerScheduler.WORKERS = (int) poolSize;
 
-        this.networkZlibProvider = this.getConfig("network.zlib-provider", 2);
-        Zlib.setProvider(this.networkZlibProvider);
+        int networkZlibProvider = this.getConfig("network.zlib-provider", 2);
+        Zlib.setProvider(networkZlibProvider);
 
         this.maximumStaleDatagrams = this.getConfig("network.maximum-stale-datagrams", 512);
         this.networkCompressionLevel = this.getConfig("network.compression-level", 7);
@@ -735,6 +705,7 @@ public class Server {
             case "server-auth-with-rewind" -> 2;
             default -> throw new IllegalArgumentException();
         };
+        this.enabledNetworkEncryption = this.properties.getBoolean("network-encryption", true);
 
         this.maximumSizePerChunk = this.getConfig("chunk-saving.maximum-size-per-chunk", 1048576);
         //unlimited if value == -1
@@ -795,6 +766,7 @@ public class Server {
         // NukkitMetrics.startNow(this);
 
         this.registerEntities();
+        this.registerProfessions();
         this.registerBlockEntities();
 
         Block.init();
@@ -954,339 +926,21 @@ public class Server {
 
         this.enablePlugins(PluginLoadOrder.POSTWORLD);
 
+        EntityProperty.buildPacket();
+        EntityProperty.buildPlayerProperty();
+
+        if (this.getConfig("settings.download-spark", false)) {
+            SparkInstaller.initSpark(this);
+        }
+
         if (/*Nukkit.DEBUG < 2 && */!Boolean.parseBoolean(System.getProperty("disableWatchdog", "false"))) {
             this.watchdog = new Watchdog(this, 60000);
             this.watchdog.start();
         }
-
-        System.runFinalization();
         this.start();
     }
 
-
-    /**
-     * 广播一条消息给所有玩家<p>Broadcast a message to all players
-     *
-     * @param message 消息
-     * @return int 玩家数量<br>Number of players
-     */
-    public int broadcastMessage(String message) {
-        return this.broadcast(message, BROADCAST_CHANNEL_USERS);
-    }
-
-
-    /**
-     * @see #broadcastMessage(String)
-     */
-    public int broadcastMessage(TextContainer message) {
-        return this.broadcast(message, BROADCAST_CHANNEL_USERS);
-    }
-
-    /**
-     * 广播一条消息给指定的{@link CommandSender recipients}<p>Broadcast a message to the specified {@link CommandSender recipients}
-     *
-     * @param message 消息
-     * @return int {@link CommandSender recipients}数量<br>Number of {@link CommandSender recipients}
-     */
-    public int broadcastMessage(String message, CommandSender[] recipients) {
-        for (CommandSender recipient : recipients) {
-            recipient.sendMessage(message);
-        }
-
-        return recipients.length;
-    }
-
-
-    /**
-     * @see #broadcastMessage(String, CommandSender[])
-     */
-    public int broadcastMessage(String message, Collection<? extends CommandSender> recipients) {
-        for (CommandSender recipient : recipients) {
-            recipient.sendMessage(message);
-        }
-
-        return recipients.size();
-    }
-
-    /**
-     * @see #broadcastMessage(String, CommandSender[])
-     */
-    public int broadcastMessage(TextContainer message, Collection<? extends CommandSender> recipients) {
-        for (CommandSender recipient : recipients) {
-            recipient.sendMessage(message);
-        }
-
-        return recipients.size();
-    }
-
-
-    /**
-     * 从指定的许可名获取发送者们，广播一条消息给他们.可以指定多个许可名，以<b> ; </b>分割.<br>
-     * 一个permission在{@link PluginManager#permSubs}对应一个{@link CommandSender 发送者}Set.<p>
-     * Get the sender to broadcast a message from the specified permission name, multiple permissions can be specified, split by <b> ; </b><br>
-     * The permission corresponds to a {@link CommandSender Sender} set in {@link PluginManager#permSubs}.
-     *
-     * @param message     消息内容<br>Message content
-     * @param permissions 许可名，需要先通过{@link PluginManager#subscribeToPermission subscribeToPermission}注册<br>Permissions name, need to register first through {@link PluginManager#subscribeToPermission subscribeToPermission}
-     * @return int 接受到消息的{@link CommandSender 发送者}数量<br>Number of {@link CommandSender senders} who received the message
-     */
-    public int broadcast(String message, String permissions) {
-        Set<CommandSender> recipients = new HashSet<>();
-
-        for (String permission : permissions.split(";")) {
-            for (Permissible permissible : this.pluginManager.getPermissionSubscriptions(permission)) {
-                if (permissible instanceof CommandSender && permissible.hasPermission(permission)) {
-                    recipients.add((CommandSender) permissible);
-                }
-            }
-        }
-
-        for (CommandSender recipient : recipients) {
-            recipient.sendMessage(message);
-        }
-
-        return recipients.size();
-    }
-
-
-    /**
-     * @see #broadcast(String, String)
-     */
-    public int broadcast(TextContainer message, String permissions) {
-        Set<CommandSender> recipients = new HashSet<>();
-
-        for (String permission : permissions.split(";")) {
-            for (Permissible permissible : this.pluginManager.getPermissionSubscriptions(permission)) {
-                if (permissible instanceof CommandSender && permissible.hasPermission(permission)) {
-                    recipients.add((CommandSender) permissible);
-                }
-            }
-        }
-
-        for (CommandSender recipient : recipients) {
-            recipient.sendMessage(message);
-        }
-
-        return recipients.size();
-    }
-
-    /**
-     * @see #broadcastPacket(Player[], DataPacket)
-     */
-    public static void broadcastPacket(Collection<Player> players, DataPacket packet) {
-        packet.tryEncode();
-
-        for (Player player : players) {
-            player.dataPacket(packet);
-        }
-    }
-
-    /**
-     * 广播一个数据包给指定的玩家们.<p>Broadcast a packet to the specified players.
-     *
-     * @param players 接受数据包的所有玩家<br>All players receiving the data package
-     * @param packet  数据包
-     */
-    public static void broadcastPacket(Player[] players, DataPacket packet) {
-        packet.tryEncode();
-
-        for (Player player : players) {
-            player.dataPacket(packet);
-        }
-    }
-
-    @DeprecationDetails(since = "1.4.0.0-PN", by = "Cloudburst Nukkit",
-            reason = "Packet management was refactored, batching is done automatically near the RakNet layer")
-    @Deprecated
-    public void batchPackets(Player[] players, DataPacket[] packets) {
-        this.batchPackets(players, packets, false);
-    }
-
-    @DeprecationDetails(since = "1.4.0.0-PN", by = "Cloudburst Nukkit",
-            reason = "Packet management was refactored, batching is done automatically near the RakNet layer")
-    @Deprecated
-    public void batchPackets(Player[] players, DataPacket[] packets, boolean forceSync) {
-        if (players == null || packets == null || players.length == 0 || packets.length == 0) {
-            return;
-        }
-
-        BatchPacketsEvent ev = new BatchPacketsEvent(players, packets, forceSync);
-        getPluginManager().callEvent(ev);
-        if (ev.isCancelled()) {
-            return;
-        }
-
-        Timings.playerNetworkSendTimer.startTiming();
-        byte[][] payload = new byte[packets.length * 2][];
-        for (int i = 0; i < packets.length; i++) {
-            DataPacket p = packets[i];
-            int idx = i * 2;
-            p.tryEncode();
-            byte[] buf = p.getBuffer();
-            payload[idx] = Binary.writeUnsignedVarInt(buf.length);
-            payload[idx + 1] = buf;
-            packets[i] = null;
-        }
-
-        List<InetSocketAddress> targets = new ArrayList<>();
-        for (Player p : players) {
-            if (p.isConnected()) {
-                targets.add(p.getRawSocketAddress());
-            }
-        }
-
-        if (!forceSync && this.networkCompressionAsync) {
-            this.getScheduler().scheduleAsyncTask(new CompressBatchedTask(payload, targets, this.networkCompressionLevel));
-        } else {
-            try {
-                byte[] data = Binary.appendBytes(payload);
-                this.broadcastPacketsCallback(Network.deflateRaw(data, this.networkCompressionLevel), targets);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-        Timings.playerNetworkSendTimer.stopTiming();
-    }
-
-    public void broadcastPacketsCallback(byte[] data, List<InetSocketAddress> targets) {
-        BatchPacket pk = new BatchPacket();
-        pk.payload = data;
-
-        for (InetSocketAddress i : targets) {
-            if (this.players.containsKey(i)) {
-                this.players.get(i).dataPacket(pk);
-            }
-        }
-    }
-
-    /**
-     * 以指定插件加载顺序启用插件<p>
-     * Enable plugins in the specified plugin loading order
-     *
-     * @param type 插件加载顺序<br>Plugin loading order
-     */
-    public void enablePlugins(PluginLoadOrder type) {
-        for (Plugin plugin : new ArrayList<>(this.pluginManager.getPlugins().values())) {
-            if (!plugin.isEnabled() && type == plugin.getDescription().getOrder()) {
-                this.enablePlugin(plugin);
-            }
-        }
-
-        if (type == PluginLoadOrder.POSTWORLD) {
-            this.commandMap.registerServerAliases();
-            DefaultPermissions.registerCorePermissions();
-        }
-    }
-
-    /**
-     * 启用一个指定插件<p>
-     * Enable a specified plugin
-     *
-     * @param plugin 插件实例<br>Plugin instance
-     */
-    public void enablePlugin(Plugin plugin) {
-        this.pluginManager.enablePlugin(plugin);
-    }
-
-    /**
-     * 禁用全部插件<p>Disable all plugins
-     */
-    public void disablePlugins() {
-        this.pluginManager.disablePlugins();
-    }
-
-
-    @Deprecated
-    @DeprecationDetails(since = "1.19.60-r1", reason = "use Server#executeCommand")
-    public boolean dispatchCommand(CommandSender sender, String commandLine) throws ServerException {
-        return this.executeCommand(sender, commandLine) > 0;
-    }
-
-    /**
-     * 以sender身份执行一行命令
-     * <p>
-     * Execute one line of command as sender
-     *
-     * @param sender      命令执行者
-     * @param commandLine 一行命令
-     * @return 返回0代表执行失败, 返回大于等于1代表执行成功<br>Returns 0 for failed execution, greater than or equal to 1 for successful execution
-     * @throws ServerException 服务器异常
-     */
-    public int executeCommand(CommandSender sender, String commandLine) throws ServerException {
-        // First we need to check if this command is on the main thread or not, if not, warn the user
-        if (!this.isPrimaryThread()) {
-            log.warn("Command Dispatched Async: {}\nPlease notify author of plugin causing this execution to fix this bug!", commandLine,
-                    new ConcurrentModificationException("Command Dispatched Async: " + commandLine));
-
-            this.scheduler.scheduleTask(null, () -> executeCommand(sender, commandLine));
-            return 1;
-        }
-        if (sender == null) {
-            throw new ServerException("CommandSender is not valid");
-        }
-        //pre
-        var cmd = commandLine.stripLeading();
-        cmd = cmd.charAt(0) == '/' ? cmd.substring(1) : cmd;
-
-        return this.commandMap.executeCommand(sender, cmd);
-    }
-
-    /**
-     * 以该控制台身份静音执行这些命令，无视权限
-     * <p>
-     * Execute these commands silently as the console, ignoring permissions.
-     *
-     * @param commands the commands
-     * @throws ServerException 服务器异常
-     */
-    public void silentExecuteCommand(String... commands) {
-        this.silentExecuteCommand(null, commands);
-    }
-
-    /**
-     * 以该玩家身份静音执行这些命令无视权限
-     * <p>
-     * Execute these commands silently as this player, ignoring permissions.
-     *
-     * @param sender   命令执行者<br>command sender
-     * @param commands the commands
-     * @throws ServerException 服务器异常
-     */
-    public void silentExecuteCommand(@Nullable Player sender, String... commands) {
-        final var revert = new ArrayList<Level>();
-        final var server = Server.getInstance();
-        for (var level : server.getLevels().values()) {
-            if (level.getGameRules().getBoolean(GameRule.SEND_COMMAND_FEEDBACK)) {
-                level.getGameRules().setGameRule(GameRule.SEND_COMMAND_FEEDBACK, false);
-                revert.add(level);
-            }
-        }
-        if (sender == null) {
-            for (var cmd : commands) {
-                server.executeCommand(server.getConsoleSender(), cmd);
-            }
-        } else {
-            for (var cmd : commands) {
-                server.executeCommand(server.getConsoleSender(), "execute as " + "\"" + sender.getName() + "\" run " + cmd);
-            }
-        }
-
-        for (var level : revert) {
-            level.getGameRules().setGameRule(GameRule.SEND_COMMAND_FEEDBACK, true);
-        }
-    }
-
-    /**
-     * 得到控制台发送者
-     * <p>
-     * Get the console sender
-     *
-     * @return {@link ConsoleCommandSender}
-     */
-    //todo: use ticker to check console
-    public ConsoleCommandSender getConsoleSender() {
-        return consoleSender;
-    }
+    // region lifecycle & ticking - 生命周期与游戏刻
 
     /**
      * 重载服务器
@@ -1341,7 +995,6 @@ public class Server {
         this.enablePlugins(PluginLoadOrder.POSTWORLD);
         ServerStartedEvent serverStartedEvent = new ServerStartedEvent();
         getPluginManager().callEvent(serverStartedEvent);
-        Timings.reset();
     }
 
 
@@ -1424,9 +1077,6 @@ public class Server {
             // NukkitMetrics.closeNow(this);
             //close computeThreadPool
             this.computeThreadPool.shutdownNow();
-
-            log.debug("Disabling timings");
-            Timings.stopServer();
             //todo other things
         } catch (Exception e) {
             log.fatal("Exception happened while shutting down, exiting the process", e);
@@ -1460,34 +1110,12 @@ public class Server {
         this.forceShutdown();
     }
 
-    public void handlePacket(InetSocketAddress address, ByteBuf payload) {
-        try {
-            if (!payload.isReadable(3)) {
-                return;
-            }
-            byte[] prefix = new byte[2];
-            payload.readBytes(prefix);
-
-            if (!Arrays.equals(prefix, new byte[]{(byte) 0xfe, (byte) 0xfd})) {
-                return;
-            }
-            if (this.queryHandler != null) {
-                this.queryHandler.handle(address, payload);
-            }
-        } catch (Exception e) {
-            log.error("Error whilst handling packet", e);
-
-            this.network.blockAddress(address.getAddress(), -1);
-        }
-    }
-
     private int lastLevelGC;
 
     public void tickProcessor() {
         getScheduler().scheduleDelayedTask(new Task() {
             @Override
             public void onRun(int currentTick) {
-                System.runFinalization();
                 System.gc();
             }
         }, 60);
@@ -1519,6 +1147,7 @@ public class Server {
                         }
 
                         if (allocated > 0) {
+                            //noinspection BusyWait
                             Thread.sleep(allocated, 900000);
                         }
                     }
@@ -1530,6 +1159,715 @@ public class Server {
             log.fatal("Exception happened while ticking server\n{}", Utils.getAllThreadDumps(), e);
         }
     }
+
+    public boolean getCheckXUID() {
+        return this.getPropertyBoolean("check-xuid", true);
+    }
+
+    private void checkTickUpdates(int currentTick, long tickTime) {
+        if (this.alwaysTickPlayers) {
+            for (Player p : new ArrayList<>(this.players.values())) {
+                p.onUpdate(currentTick);
+            }
+        }
+
+        //Do level ticks
+        for (Level level : this.levelArray) {
+            if (level.getTickRate() > this.baseTickRate && --level.tickRateCounter > 0) {
+                continue;
+            }
+
+            try {
+                long levelTime = System.currentTimeMillis();
+                //Ensures that the server won't try to tick a level without providers.
+                if(level.getProvider().getLevel() == null) {
+                    log.warn("Tried to tick Level " + level.getName() + " without a provider!");
+                    continue;
+                }
+                level.doTick(currentTick);
+                int tickMs = (int) (System.currentTimeMillis() - levelTime);
+                level.tickRateTime = tickMs;
+                if ((currentTick & 511) == 0) { // % 511
+                    level.tickRateOptDelay = level.recalcTickOptDelay();
+                }
+
+                if (this.autoTickRate) {
+                    if (tickMs < 50 && level.getTickRate() > this.baseTickRate) {
+                        int r;
+                        level.setTickRate(r = level.getTickRate() - 1);
+                        if (r > this.baseTickRate) {
+                            level.tickRateCounter = level.getTickRate();
+                        }
+                        log.debug("Raising level \"{}\" tick rate to {} ticks", level.getName(), level.getTickRate());
+                    } else if (tickMs >= 50) {
+                        if (level.getTickRate() == this.baseTickRate) {
+                            level.setTickRate(Math.max(this.baseTickRate + 1, Math.min(this.autoTickRateLimit, tickMs / 50)));
+                            log.debug("Level \"{}\" took {}ms, setting tick rate to {} ticks", level.getName(), NukkitMath.round(tickMs, 2), level.getTickRate());
+                        } else if ((tickMs / level.getTickRate()) >= 50 && level.getTickRate() < this.autoTickRateLimit) {
+                            level.setTickRate(level.getTickRate() + 1);
+                            log.debug("Level \"{}\" took {}ms, setting tick rate to {} ticks", level.getName(), NukkitMath.round(tickMs, 2), level.getTickRate());
+                        }
+                        level.tickRateCounter = level.getTickRate();
+                    }
+                }
+            } catch (Exception e) {
+                log.error(this.getLanguage().tr("nukkit.level.tickError",
+                        level.getFolderName(), Utils.getExceptionMessage(e)), e);
+            }
+        }
+    }
+
+    public void doAutoSave() {
+        if (this.getAutoSave()) {
+            for (Player player : new ArrayList<>(this.players.values())) {
+                if (player.isOnline() && !player.closed) {
+                    player.save(true);
+                } else if (!player.isConnected() || player.closed) {
+                    this.removePlayer(player);
+                }
+            }
+
+            for (Level level : this.levelArray) {
+                level.save();
+            }
+            this.getScoreboardManager().save();
+        }
+    }
+
+    private boolean tick() {
+        long tickTime = System.currentTimeMillis();
+
+        // TODO
+        long time = tickTime - this.nextTick;
+        if (time < -25) {
+            try {
+                Thread.sleep(Math.max(5, -time - 25));
+            } catch (InterruptedException e) {
+                log.debug("The thread {} got interrupted", Thread.currentThread().getName(), e);
+            }
+        }
+
+        long tickTimeNano = System.nanoTime();
+        if ((tickTime - this.nextTick) < -25) {
+            return false;
+        }
+
+        ++this.tickCounter;
+        this.network.processInterfaces();
+
+        if (this.rcon != null) {
+            this.rcon.check();
+        }
+
+        this.scheduler.mainThreadHeartbeat(this.tickCounter);
+
+        this.checkTickUpdates(this.tickCounter, tickTime);
+
+        for (Player player : new ArrayList<>(this.players.values())) {
+            player.checkNetwork();
+        }
+
+        if ((this.tickCounter & 0b1111) == 0) {
+            this.titleTick();
+            this.network.resetStatistics();
+            this.maxTick = 20;
+            this.maxUse = 0;
+
+            if ((this.tickCounter & 0b111111111) == 0) {
+                try {
+                    this.getPluginManager().callEvent(this.queryRegenerateEvent = new QueryRegenerateEvent(this, 5));
+                    if (this.queryHandler != null) {
+                        this.queryHandler.regenerateInfo();
+                    }
+                } catch (Exception e) {
+                    log.error(e);
+                }
+            }
+
+            this.getNetwork().updateName();
+        }
+
+        if (this.autoSave && ++this.autoSaveTicker >= this.autoSaveTicks) {
+            this.autoSaveTicker = 0;
+            this.doAutoSave();
+        }
+
+        if (this.sendUsageTicker > 0 && --this.sendUsageTicker == 0) {
+            this.sendUsageTicker = 6000;
+            //todo sendUsage
+        }
+
+        if (this.tickCounter % 100 == 0) {
+            CompletableFuture.allOf(Arrays.stream(this.levelArray).parallel()
+                    .flatMap(l -> l.asyncChunkGarbageCollection().stream())
+                    .toArray(CompletableFuture[]::new));
+        }
+
+        // 处理可冻结数组
+        int freezableArrayCompressTime = (int) (50 - (System.currentTimeMillis() - tickTime));
+        if (freezableArrayCompressTime > 4) {
+            freezableArrayManager.setMaxCompressionTime(freezableArrayCompressTime).tick();
+        }
+
+        //long now = System.currentTimeMillis();
+        long nowNano = System.nanoTime();
+        //float tick = Math.min(20, 1000 / Math.max(1, now - tickTime));
+        //float use = Math.min(1, (now - tickTime) / 50);
+
+        float tick = (float) Math.min(20, 1000000000 / Math.max(1000000, ((double) nowNano - tickTimeNano)));
+        float use = (float) Math.min(1, ((double) (nowNano - tickTimeNano)) / 50000000);
+
+        if (this.maxTick > tick) {
+            this.maxTick = tick;
+        }
+
+        if (this.maxUse < use) {
+            this.maxUse = use;
+        }
+
+        System.arraycopy(this.tickAverage, 1, this.tickAverage, 0, this.tickAverage.length - 1);
+        this.tickAverage[this.tickAverage.length - 1] = tick;
+
+        System.arraycopy(this.useAverage, 1, this.useAverage, 0, this.useAverage.length - 1);
+        this.useAverage[this.useAverage.length - 1] = use;
+
+        if ((this.nextTick - tickTime) < -1000) {
+            this.nextTick = tickTime;
+        } else {
+            this.nextTick += 50;
+        }
+
+        return true;
+    }
+
+    public long getNextTick() {
+        return nextTick;
+    }
+
+    /**
+     * @return 返回服务器经历过的tick数<br>Returns the number of ticks recorded by the server
+     */
+    public int getTick() {
+        return tickCounter;
+    }
+
+    public float getTicksPerSecond() {
+        return ((float) Math.round(this.maxTick * 100)) / 100;
+    }
+
+    public float getTicksPerSecondAverage() {
+        float sum = 0;
+        int count = this.tickAverage.length;
+        for (float aTickAverage : this.tickAverage) {
+            sum += aTickAverage;
+        }
+        return (float) NukkitMath.round(sum / count, 2);
+    }
+
+    public float getTickUsage() {
+        return (float) NukkitMath.round(this.maxUse * 100, 2);
+    }
+
+    public float getTickUsageAverage() {
+        float sum = 0;
+        int count = this.useAverage.length;
+        for (float aUseAverage : this.useAverage) {
+            sum += aUseAverage;
+        }
+        return ((float) Math.round(sum / count * 100)) / 100;
+    }
+
+    // TODO: Fix title tick
+    public void titleTick() {
+        if (!Nukkit.ANSI || !Nukkit.TITLE) {
+            return;
+        }
+
+        Runtime runtime = Runtime.getRuntime();
+        double used = NukkitMath.round((double) (runtime.totalMemory() - runtime.freeMemory()) / 1024 / 1024, 2);
+        double max = NukkitMath.round(((double) runtime.maxMemory()) / 1024 / 1024, 2);
+        String usage = Math.round(used / max * 100) + "%";
+        String title = (char) 0x1b + "]0;" + this.getName() + " "
+                + this.getNukkitVersion()
+                + " | " + this.getGitCommit()
+                + " | Online " + this.players.size() + "/" + this.getMaxPlayers()
+                + " | Memory " + usage;
+        if (!Nukkit.shortTitle) {
+            title += " | U " + NukkitMath.round((this.network.getUpload() / 1024 * 1000), 2)
+                    + " D " + NukkitMath.round((this.network.getDownload() / 1024 * 1000), 2) + " kB/s";
+        }
+        title += " | TPS " + this.getTicksPerSecond()
+                + " | Load " + this.getTickUsage() + "%" + (char) 0x07;
+
+        System.out.print(title);
+    }
+
+    public boolean isRunning() {
+        return isRunning.get();
+    }
+
+    /**
+     * 将服务器设置为繁忙状态，这可以阻止相关代码认为服务器处于无响应状态。
+     * 请牢记，必须在设置之后清除。
+     *
+     * @param busyTime 单位为毫秒
+     * @return id
+     */
+    public int addBusying(long busyTime) {
+        this.busyingTime.add(busyTime);
+        return this.busyingTime.size() - 1;
+    }
+
+    public void removeBusying(int index) {
+        this.busyingTime.removeLong(index);
+    }
+
+    public long getBusyingTime() {
+        if (this.busyingTime.isEmpty()) {
+            return -1;
+        }
+        return this.busyingTime.getLong(this.busyingTime.size() - 1);
+    }
+
+    public TickingAreaManager getTickingAreaManager() {
+        return tickingAreaManager;
+    }
+
+    @PowerNukkitOnly
+    @Since("1.4.0.0-PN")
+    public long getLaunchTime() {
+        return launchTime;
+    }
+
+    // endregion
+
+    // region chat & commands - 聊天与命令
+
+    /**
+     * 广播一条消息给所有玩家<p>Broadcast a message to all players
+     *
+     * @param message 消息
+     * @return int 玩家数量<br>Number of players
+     */
+    public int broadcastMessage(String message) {
+        return this.broadcast(message, BROADCAST_CHANNEL_USERS);
+    }
+
+
+    /**
+     * @see #broadcastMessage(String)
+     */
+    public int broadcastMessage(TextContainer message) {
+        return this.broadcast(message, BROADCAST_CHANNEL_USERS);
+    }
+
+    /**
+     * 广播一条消息给指定的{@link CommandSender recipients}<p>Broadcast a message to the specified {@link CommandSender recipients}
+     *
+     * @param message 消息
+     * @return int {@link CommandSender recipients}数量<br>Number of {@link CommandSender recipients}
+     */
+    public int broadcastMessage(String message, CommandSender[] recipients) {
+        for (CommandSender recipient : recipients) {
+            recipient.sendMessage(message);
+        }
+
+        return recipients.length;
+    }
+
+
+    /**
+     * @see #broadcastMessage(String, CommandSender[])
+     */
+    public int broadcastMessage(String message, Collection<? extends CommandSender> recipients) {
+        for (CommandSender recipient : recipients) {
+            recipient.sendMessage(message);
+        }
+
+        return recipients.size();
+    }
+
+    /**
+     * @see #broadcastMessage(String, CommandSender[])
+     */
+    public int broadcastMessage(TextContainer message, Collection<? extends CommandSender> recipients) {
+        for (CommandSender recipient : recipients) {
+            recipient.sendMessage(message);
+        }
+
+        return recipients.size();
+    }
+
+
+    /**
+     * 从指定的许可名获取发送者们，广播一条消息给他们.可以指定多个许可名，以<b> ; </b>分割.<br>
+     * 一个permission在{@link PluginManager#}对应一个{@link CommandSender 发送者}Set.<p>
+     * Get the sender to broadcast a message from the specified permission name, multiple permissions can be specified, split by <b> ; </b><br>
+     * The permission corresponds to a {@link CommandSender Sender} set in {@link PluginManager#}.
+     *
+     * @param message     消息内容<br>Message content
+     * @param permissions 许可名，需要先通过{@link PluginManager#subscribeToPermission subscribeToPermission}注册<br>Permissions name, need to register first through {@link PluginManager#subscribeToPermission subscribeToPermission}
+     * @return int 接受到消息的{@link CommandSender 发送者}数量<br>Number of {@link CommandSender senders} who received the message
+     */
+    public int broadcast(String message, String permissions) {
+        Set<CommandSender> recipients = new HashSet<>();
+
+        for (String permission : permissions.split(";")) {
+            for (Permissible permissible : this.pluginManager.getPermissionSubscriptions(permission)) {
+                if (permissible instanceof CommandSender && permissible.hasPermission(permission)) {
+                    recipients.add((CommandSender) permissible);
+                }
+            }
+        }
+
+        for (CommandSender recipient : recipients) {
+            recipient.sendMessage(message);
+        }
+
+        return recipients.size();
+    }
+
+
+    /**
+     * @see #broadcast(String, String)
+     */
+    public int broadcast(TextContainer message, String permissions) {
+        Set<CommandSender> recipients = new HashSet<>();
+
+        for (String permission : permissions.split(";")) {
+            for (Permissible permissible : this.pluginManager.getPermissionSubscriptions(permission)) {
+                if (permissible instanceof CommandSender && permissible.hasPermission(permission)) {
+                    recipients.add((CommandSender) permissible);
+                }
+            }
+        }
+
+        for (CommandSender recipient : recipients) {
+            recipient.sendMessage(message);
+        }
+
+        return recipients.size();
+    }
+
+
+    @Deprecated
+    @DeprecationDetails(since = "1.19.60-r1", reason = "use Server#executeCommand")
+    public boolean dispatchCommand(CommandSender sender, String commandLine) throws ServerException {
+        return this.executeCommand(sender, commandLine) > 0;
+    }
+
+    /**
+     * 以sender身份执行一行命令
+     * <p>
+     * Execute one line of command as sender
+     *
+     * @param sender      命令执行者
+     * @param commandLine 一行命令
+     * @return 返回0代表执行失败, 返回大于等于1代表执行成功<br>Returns 0 for failed execution, greater than or equal to 1 for successful execution
+     * @throws ServerException 服务器异常
+     */
+    public int executeCommand(CommandSender sender, String commandLine) throws ServerException {
+        // First we need to check if this command is on the main thread or not, if not, warn the user
+        if (!this.isPrimaryThread()) {
+            log.warn("Command Dispatched Async: {}\nPlease notify author of plugin causing this execution to fix this bug!", commandLine,
+                    new ConcurrentModificationException("Command Dispatched Async: " + commandLine));
+
+            this.scheduler.scheduleTask(null, () -> executeCommand(sender, commandLine));
+            return 1;
+        }
+        if (sender == null) {
+            throw new ServerException("CommandSender is not valid");
+        }
+        //pre
+        var cmd = commandLine.stripLeading();
+        cmd = cmd.charAt(0) == '/' ? cmd.substring(1) : cmd;
+
+        return this.commandMap.executeCommand(sender, cmd);
+    }
+
+    /**
+     * 以该控制台身份静音执行这些命令，无视权限
+     * <p>
+     * Execute these commands silently as the console, ignoring permissions.
+     *
+     * @param commands the commands
+     * @throws ServerException 服务器异常
+     */
+    public void silentExecuteCommand(String... commands) {
+        this.silentExecuteCommand(null, commands);
+    }
+    
+    public static Server getInstance() {
+        return instance;
+    }
+    
+    public Map<Integer, Level> getLevels() {
+        return levels;
+    }
+
+    /**
+     * 以该玩家身份静音执行这些命令无视权限
+     * <p>
+     * Execute these commands silently as this player, ignoring permissions.
+     *
+     * @param sender   命令执行者<br>command sender
+     * @param commands the commands
+     * @throws ServerException 服务器异常
+     */
+    public void silentExecuteCommand(@Nullable Player sender, String... commands) {
+        final var revert = new ArrayList<Level>();
+        final var server = Server.getInstance();
+        for (var level : server.getLevels().values()) {
+            if (level.getGameRules().getBoolean(GameRule.SEND_COMMAND_FEEDBACK)) {
+                level.getGameRules().setGameRule(GameRule.SEND_COMMAND_FEEDBACK, false);
+                revert.add(level);
+            }
+        }
+        if (sender == null) {
+            for (var cmd : commands) {
+                server.executeCommand(server.getConsoleSender(), cmd);
+            }
+        } else {
+            for (var cmd : commands) {
+                server.executeCommand(server.getConsoleSender(), "execute as " + "\"" + sender.getName() + "\" run " + cmd);
+            }
+        }
+
+        for (var level : revert) {
+            level.getGameRules().setGameRule(GameRule.SEND_COMMAND_FEEDBACK, true);
+        }
+    }
+
+    /**
+     * 得到控制台发送者
+     * <p>
+     * Get the console sender
+     *
+     * @return {@link ConsoleCommandSender}
+     */
+    //todo: use ticker to check console
+    public ConsoleCommandSender getConsoleSender() {
+        return consoleSender;
+    }
+
+    public SimpleCommandMap getCommandMap() {
+        return commandMap;
+    }
+
+    public PluginIdentifiableCommand getPluginCommand(String name) {
+        Command command = this.commandMap.getCommand(name);
+        if (command instanceof PluginIdentifiableCommand) {
+            return (PluginIdentifiableCommand) command;
+        } else {
+            return null;
+        }
+    }
+
+    public Map<String, List<String>> getCommandAliases() {
+        Object section = this.getConfig("aliases");
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        if (section instanceof Map) {
+            for (Map.Entry entry : (Set<Map.Entry>) ((Map) section).entrySet()) {
+                List<String> commands = new ArrayList<>();
+                String key = (String) entry.getKey();
+                Object value = entry.getValue();
+                if (value instanceof List) {
+                    commands.addAll((List<String>) value);
+                } else {
+                    commands.add((String) value);
+                }
+
+                result.put(key, commands);
+            }
+        }
+
+        return result;
+
+    }
+
+    public IScoreboardManager getScoreboardManager() {
+        return scoreboardManager;
+    }
+
+    public FunctionManager getFunctionManager() {
+        return functionManager;
+    }
+
+    // endregion
+
+    // region networking - 网络相关
+
+    /**
+     * @see #broadcastPacket(Player[], DataPacket)
+     */
+    public static void broadcastPacket(Collection<Player> players, DataPacket packet) {
+        packet.tryEncode();
+
+        for (Player player : players) {
+            player.dataPacket(packet);
+        }
+    }
+
+    /**
+     * 广播一个数据包给指定的玩家们.<p>Broadcast a packet to the specified players.
+     *
+     * @param players 接受数据包的所有玩家<br>All players receiving the data package
+     * @param packet  数据包
+     */
+    public static void broadcastPacket(Player[] players, DataPacket packet) {
+        packet.tryEncode();
+
+        for (Player player : players) {
+            player.dataPacket(packet);
+        }
+    }
+
+    @DeprecationDetails(since = "1.4.0.0-PN", by = "Cloudburst Nukkit",
+            reason = "Packet management was refactored, batching is done automatically near the RakNet layer")
+    @Deprecated
+    public void batchPackets(Player[] players, DataPacket[] packets) {
+        this.batchPackets(players, packets, false);
+    }
+
+    @DeprecationDetails(since = "1.4.0.0-PN", by = "Cloudburst Nukkit",
+            reason = "Packet management was refactored, batching is done automatically near the RakNet layer")
+    @Deprecated
+    public void batchPackets(Player[] players, DataPacket[] packets, boolean forceSync) {
+        if (players == null || packets == null || players.length == 0 || packets.length == 0) {
+            return;
+        }
+
+        BatchPacketsEvent ev = new BatchPacketsEvent(players, packets, forceSync);
+        getPluginManager().callEvent(ev);
+        if (ev.isCancelled()) {
+            return;
+        }
+
+        byte[][] payload = new byte[packets.length * 2][];
+        for (int i = 0; i < packets.length; i++) {
+            DataPacket p = packets[i];
+            int idx = i * 2;
+            p.tryEncode();
+            byte[] buf = p.getBuffer();
+            payload[idx] = Binary.writeUnsignedVarInt(buf.length);
+            payload[idx + 1] = buf;
+            packets[i] = null;
+        }
+
+        List<InetSocketAddress> targets = new ArrayList<>();
+        for (Player p : players) {
+            if (p.isConnected()) {
+                targets.add(p.getRawSocketAddress());
+            }
+        }
+
+        if (!forceSync && this.networkCompressionAsync) {
+            this.getScheduler().scheduleAsyncTask(new CompressBatchedTask(payload, targets, this.networkCompressionLevel));
+        } else {
+            try {
+                byte[] data = Binary.appendBytes(payload);
+                if (Server.getInstance().isEnableSnappy()) {
+                    this.broadcastPacketsCallback(SnappyCompression.compress(data), targets);
+                } else {
+                    this.broadcastPacketsCallback(Network.deflateRaw(data, this.networkCompressionLevel), targets);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public void broadcastPacketsCallback(byte[] data, List<InetSocketAddress> targets) {
+        BatchPacket pk = new BatchPacket();
+        pk.payload = data;
+
+        for (InetSocketAddress i : targets) {
+            if (this.players.containsKey(i)) {
+                this.players.get(i).dataPacket(pk);
+            }
+        }
+    }
+
+    public void handlePacket(InetSocketAddress address, ByteBuf payload) {
+        try {
+            if (!payload.isReadable(3)) {
+                return;
+            }
+            byte[] prefix = new byte[2];
+            payload.readBytes(prefix);
+
+            if (!Arrays.equals(prefix, new byte[]{(byte) 0xfe, (byte) 0xfd})) {
+                return;
+            }
+            if (this.queryHandler != null) {
+                this.queryHandler.handle(address, payload);
+            }
+        } catch (Exception e) {
+            log.error("Error whilst handling packet", e);
+
+            this.network.blockAddress(address.getAddress(), -1);
+        }
+    }
+
+    public QueryRegenerateEvent getQueryInformation() {
+        return this.queryRegenerateEvent;
+    }
+
+    public Network getNetwork() {
+        return network;
+    }
+
+    // endregion
+
+    // region plugins - 插件相关
+
+    /**
+     * 以指定插件加载顺序启用插件<p>
+     * Enable plugins in the specified plugin loading order
+     *
+     * @param type 插件加载顺序<br>Plugin loading order
+     */
+    public void enablePlugins(PluginLoadOrder type) {
+        for (Plugin plugin : new ArrayList<>(this.pluginManager.getPlugins().values())) {
+            if (!plugin.isEnabled() && type == plugin.getDescription().getOrder()) {
+                this.enablePlugin(plugin);
+            }
+        }
+
+        if (type == PluginLoadOrder.POSTWORLD) {
+            this.commandMap.registerServerAliases();
+            DefaultPermissions.registerCorePermissions();
+        }
+    }
+
+    /**
+     * 启用一个指定插件<p>
+     * Enable a specified plugin
+     *
+     * @param plugin 插件实例<br>Plugin instance
+     */
+    public void enablePlugin(Plugin plugin) {
+        this.pluginManager.enablePlugin(plugin);
+    }
+
+    /**
+     * 禁用全部插件<p>Disable all plugins
+     */
+    public void disablePlugins() {
+        this.pluginManager.disablePlugins();
+    }
+
+    public PluginManager getPluginManager() {
+        return this.pluginManager;
+    }
+
+    public ServiceManager getServiceManager() {
+        return serviceManager;
+    }
+
+    // endregion
+
+    // region Players - 玩家相关
 
     public void onPlayerCompleteLoginSequence(Player player) {
         this.sendFullPlayerListData(player);
@@ -1665,712 +2003,6 @@ public class Server {
 
         player.dataPacket(pk);
     }
-
-    public boolean getCheckXUID() {
-        return this.getPropertyBoolean("check-xuid", true);
-    }
-
-    /**
-     * 发送配方列表数据包给一个玩家.<p>
-     * Send a recipe list packet to a player.
-     *
-     * @param player 玩家
-     */
-    public void sendRecipeList(Player player) {
-        player.dataPacket(CraftingManager.getCraftingPacket());
-    }
-
-    private void checkTickUpdates(int currentTick, long tickTime) {
-        if (this.alwaysTickPlayers) {
-            for (Player p : new ArrayList<>(this.players.values())) {
-                p.onUpdate(currentTick);
-            }
-        }
-
-        //Do level ticks
-        for (Level level : this.levelArray) {
-            if (level.getTickRate() > this.baseTickRate && --level.tickRateCounter > 0) {
-                continue;
-            }
-
-            try {
-                long levelTime = System.currentTimeMillis();
-                level.doTick(currentTick);
-                int tickMs = (int) (System.currentTimeMillis() - levelTime);
-                level.tickRateTime = tickMs;
-                if ((currentTick & 511) == 0) { // % 511
-                    level.tickRateOptDelay = level.recalcTickOptDelay();
-                }
-
-                if (this.autoTickRate) {
-                    if (tickMs < 50 && level.getTickRate() > this.baseTickRate) {
-                        int r;
-                        level.setTickRate(r = level.getTickRate() - 1);
-                        if (r > this.baseTickRate) {
-                            level.tickRateCounter = level.getTickRate();
-                        }
-                        log.debug("Raising level \"{}\" tick rate to {} ticks", level.getName(), level.getTickRate());
-                    } else if (tickMs >= 50) {
-                        if (level.getTickRate() == this.baseTickRate) {
-                            level.setTickRate(Math.max(this.baseTickRate + 1, Math.min(this.autoTickRateLimit, tickMs / 50)));
-                            log.debug("Level \"{}\" took {}ms, setting tick rate to {} ticks", level.getName(), NukkitMath.round(tickMs, 2), level.getTickRate());
-                        } else if ((tickMs / level.getTickRate()) >= 50 && level.getTickRate() < this.autoTickRateLimit) {
-                            level.setTickRate(level.getTickRate() + 1);
-                            log.debug("Level \"{}\" took {}ms, setting tick rate to {} ticks", level.getName(), NukkitMath.round(tickMs, 2), level.getTickRate());
-                        }
-                        level.tickRateCounter = level.getTickRate();
-                    }
-                }
-            } catch (Exception e) {
-                log.error(this.getLanguage().tr("nukkit.level.tickError",
-                        level.getFolderName(), Utils.getExceptionMessage(e)), e);
-            }
-        }
-    }
-
-    public void doAutoSave() {
-        if (this.getAutoSave()) {
-            Timings.levelSaveTimer.startTiming();
-            for (Player player : new ArrayList<>(this.players.values())) {
-                if (player.isOnline() && !player.closed) {
-                    player.save(true);
-                } else if (!player.isConnected() || player.closed) {
-                    this.removePlayer(player);
-                }
-            }
-
-            for (Level level : this.levelArray) {
-                level.save();
-            }
-            Timings.levelSaveTimer.stopTiming();
-            this.getScoreboardManager().save();
-        }
-    }
-
-    private boolean tick() {
-        long tickTime = System.currentTimeMillis();
-
-        // TODO
-        long time = tickTime - this.nextTick;
-        if (time < -25) {
-            try {
-                Thread.sleep(Math.max(5, -time - 25));
-            } catch (InterruptedException e) {
-                log.debug("The thread {} got interrupted", Thread.currentThread().getName(), e);
-            }
-        }
-
-        long tickTimeNano = System.nanoTime();
-        if ((tickTime - this.nextTick) < -25) {
-            return false;
-        }
-
-        Timings.fullServerTickTimer.startTiming();
-
-        ++this.tickCounter;
-
-        Timings.connectionTimer.startTiming();
-        this.network.processInterfaces();
-
-        if (this.rcon != null) {
-            this.rcon.check();
-        }
-        Timings.connectionTimer.stopTiming();
-
-        Timings.schedulerTimer.startTiming();
-        this.scheduler.mainThreadHeartbeat(this.tickCounter);
-        Timings.schedulerTimer.stopTiming();
-
-        this.checkTickUpdates(this.tickCounter, tickTime);
-
-        for (Player player : new ArrayList<>(this.players.values())) {
-            player.checkNetwork();
-        }
-
-        if ((this.tickCounter & 0b1111) == 0) {
-            this.titleTick();
-            this.network.resetStatistics();
-            this.maxTick = 20;
-            this.maxUse = 0;
-
-            if ((this.tickCounter & 0b111111111) == 0) {
-                try {
-                    this.getPluginManager().callEvent(this.queryRegenerateEvent = new QueryRegenerateEvent(this, 5));
-                    if (this.queryHandler != null) {
-                        this.queryHandler.regenerateInfo();
-                    }
-                } catch (Exception e) {
-                    log.error(e);
-                }
-            }
-
-            this.getNetwork().updateName();
-        }
-
-        if (this.autoSave && ++this.autoSaveTicker >= this.autoSaveTicks) {
-            this.autoSaveTicker = 0;
-            this.doAutoSave();
-        }
-
-        if (this.sendUsageTicker > 0 && --this.sendUsageTicker == 0) {
-            this.sendUsageTicker = 6000;
-            //todo sendUsage
-        }
-
-        if (this.tickCounter % 100 == 0) {
-            CompletableFuture.allOf(Arrays.stream(this.levelArray).parallel()
-                    .flatMap(l -> l.asyncChunkGarbageCollection().stream())
-                    .toArray(CompletableFuture[]::new));
-        }
-
-        // 处理可冻结数组
-        int freezableArrayCompressTime = (int) (50 - (System.currentTimeMillis() - tickTime));
-        if (freezableArrayCompressTime > 4) {
-            freezableArrayManager.setMaxCompressionTime(freezableArrayCompressTime).tick();
-        }
-
-
-        Timings.fullServerTickTimer.stopTiming();
-        //long now = System.currentTimeMillis();
-        long nowNano = System.nanoTime();
-        //float tick = Math.min(20, 1000 / Math.max(1, now - tickTime));
-        //float use = Math.min(1, (now - tickTime) / 50);
-
-        float tick = (float) Math.min(20, 1000000000 / Math.max(1000000, ((double) nowNano - tickTimeNano)));
-        float use = (float) Math.min(1, ((double) (nowNano - tickTimeNano)) / 50000000);
-
-        if (this.maxTick > tick) {
-            this.maxTick = tick;
-        }
-
-        if (this.maxUse < use) {
-            this.maxUse = use;
-        }
-
-        System.arraycopy(this.tickAverage, 1, this.tickAverage, 0, this.tickAverage.length - 1);
-        this.tickAverage[this.tickAverage.length - 1] = tick;
-
-        System.arraycopy(this.useAverage, 1, this.useAverage, 0, this.useAverage.length - 1);
-        this.useAverage[this.useAverage.length - 1] = use;
-
-        if ((this.nextTick - tickTime) < -1000) {
-            this.nextTick = tickTime;
-        } else {
-            this.nextTick += 50;
-        }
-
-        return true;
-    }
-
-    public long getNextTick() {
-        return nextTick;
-    }
-
-    // TODO: Fix title tick
-    public void titleTick() {
-        if (!Nukkit.ANSI || !Nukkit.TITLE) {
-            return;
-        }
-
-        Runtime runtime = Runtime.getRuntime();
-        double used = NukkitMath.round((double) (runtime.totalMemory() - runtime.freeMemory()) / 1024 / 1024, 2);
-        double max = NukkitMath.round(((double) runtime.maxMemory()) / 1024 / 1024, 2);
-        String usage = Math.round(used / max * 100) + "%";
-        String title = (char) 0x1b + "]0;" + this.getName() + " "
-                + this.getNukkitVersion()
-                + " | " + this.getGitCommit()
-                + " | Online " + this.players.size() + "/" + this.getMaxPlayers()
-                + " | Memory " + usage;
-        if (!Nukkit.shortTitle) {
-            title += " | U " + NukkitMath.round((this.network.getUpload() / 1024 * 1000), 2)
-                    + " D " + NukkitMath.round((this.network.getDownload() / 1024 * 1000), 2) + " kB/s";
-        }
-        title += " | TPS " + this.getTicksPerSecond()
-                + " | Load " + this.getTickUsage() + "%" + (char) 0x07;
-
-        System.out.print(title);
-    }
-
-    public QueryRegenerateEvent getQueryInformation() {
-        return this.queryRegenerateEvent;
-    }
-
-
-    /**
-     * @return 服务器名称<br>The name of server
-     */
-    public String getName() {
-        return "Nukkit";
-    }
-
-    public boolean isRunning() {
-        return isRunning.get();
-    }
-
-    public String getNukkitVersion() {
-        return Nukkit.VERSION;
-    }
-
-    public String getBStatsNukkitVersion() {
-        return Nukkit.VERSION;
-    }
-
-    @PowerNukkitOnly
-    public String getGitCommit() {
-        return Nukkit.GIT_COMMIT;
-    }
-
-    public String getCodename() {
-        return Nukkit.CODENAME;
-    }
-
-    public String getVersion() {
-        return ProtocolInfo.MINECRAFT_VERSION;
-    }
-
-    public String getApiVersion() {
-        return Nukkit.API_VERSION;
-    }
-
-    public String getFilePath() {
-        return filePath;
-    }
-
-    public String getDataPath() {
-        return dataPath;
-    }
-
-    public String getPluginPath() {
-        return pluginPath;
-    }
-
-    public int getMaxPlayers() {
-        return maxPlayers;
-    }
-
-    public void setMaxPlayers(int maxPlayers) {
-        this.maxPlayers = maxPlayers;
-    }
-
-    /**
-     * 将服务器设置为繁忙状态，这可以阻止相关代码认为服务器处于无响应状态。
-     * 请牢记，必须在设置之后清除。
-     *
-     * @param busyTime 单位为毫秒
-     * @return id
-     */
-    public int addBusying(long busyTime) {
-        this.busyingTime.add(busyTime);
-        return this.busyingTime.size() - 1;
-    }
-
-    public void removeBusying(int index) {
-        this.busyingTime.removeLong(index);
-    }
-
-    public long getBusyingTime() {
-        if (this.busyingTime.isEmpty()) {
-            return -1;
-        }
-        return this.busyingTime.getLong(this.busyingTime.size() - 1);
-    }
-
-    /**
-     * @return 服务器端口<br>server port
-     */
-    public int getPort() {
-        return this.getPropertyInt("server-port", 19132);
-    }
-
-    /**
-     * @return 可视距离<br>server view distance
-     */
-    public int getViewDistance() {
-        return this.getPropertyInt("view-distance", 10);
-    }
-
-    /**
-     * @return 服务器网络地址<br>server ip
-     */
-    public String getIp() {
-        return this.getPropertyString("server-ip", this.getPropertyBoolean("xbox-auth") ? "0.0.0.0" : "127.0.0.1");
-    }
-
-    /**
-     * @return 服务器UUID<br>server UUID
-     */
-    public UUID getServerUniqueId() {
-        return this.serverID;
-    }
-
-    /**
-     * @return 服务器是否会自动保存<br>Does the server automatically save
-     */
-    public boolean getAutoSave() {
-        return this.autoSave;
-    }
-
-    /**
-     * 设置服务器自动保存
-     * <p>
-     * Set server autosave
-     *
-     * @param autoSave 是否自动保存<br>Whether to save automatically
-     */
-    public void setAutoSave(boolean autoSave) {
-        this.autoSave = autoSave;
-        for (Level level : this.levelArray) {
-            level.setAutoSave(this.autoSave);
-        }
-    }
-
-    public String getLevelType() {
-        return this.getPropertyString("level-type", "DEFAULT");
-    }
-
-    /**
-     * @return 服务器是否生成结构<br>Whether the server generate the structure.
-     */
-    public boolean getGenerateStructures() {
-        return this.getPropertyBoolean("generate-structures", true);
-    }
-
-    /**
-     * 得到服务器的gamemode
-     * <p>
-     * Get the gamemode of the server
-     *
-     * @return gamemode id
-     */
-    public int getGamemode() {
-        try {
-            return this.getPropertyInt("gamemode", 0) & 0b11;
-        } catch (NumberFormatException exception) {
-            return getGamemodeFromString(this.getPropertyString("gamemode")) & 0b11;
-        }
-    }
-
-    public boolean getForceGamemode() {
-        return this.getPropertyBoolean("force-gamemode", false);
-    }
-
-
-    /**
-     * 默认{@code direct=false}
-     *
-     * @see #getGamemodeString(int, boolean)
-     */
-    public static String getGamemodeString(int mode) {
-        return getGamemodeString(mode, false);
-    }
-
-    /**
-     * 从gamemode id获取游戏模式字符串.
-     * <p>
-     * Get game mode string from gamemode id.
-     *
-     * @param mode   gamemode id
-     * @param direct 如果为true就直接返回字符串,为false返回代表游戏模式的硬编码字符串.<br>If true, the string is returned directly, and if false, the hard-coded string representing the game mode is returned.
-     * @return 游戏模式字符串<br>Game Mode String
-     */
-    public static String getGamemodeString(int mode, boolean direct) {
-        switch (mode) {
-            case Player.SURVIVAL:
-                return direct ? "Survival" : "%gameMode.survival";
-            case Player.CREATIVE:
-                return direct ? "Creative" : "%gameMode.creative";
-            case Player.ADVENTURE:
-                return direct ? "Adventure" : "%gameMode.adventure";
-            case Player.SPECTATOR:
-                return direct ? "Spectator" : "%gameMode.spectator";
-        }
-        return "UNKNOWN";
-    }
-
-    /**
-     * 从字符串获取gamemode
-     * <p>
-     * Get gamemode from string
-     *
-     * @param str 代表游戏模式的字符串，例如0,survival...<br>A string representing the game mode, e.g. 0,survival...
-     * @return 游戏模式id<br>gamemode id
-     */
-    public static int getGamemodeFromString(String str) {
-        switch (str.trim().toLowerCase()) {
-            case "0":
-            case "survival":
-            case "s":
-                return Player.SURVIVAL;
-
-            case "1":
-            case "creative":
-            case "c":
-                return Player.CREATIVE;
-
-            case "2":
-            case "adventure":
-            case "a":
-                return Player.ADVENTURE;
-
-            case "3":
-            case "spectator":
-            case "spc":
-            case "view":
-            case "v":
-                return Player.SPECTATOR;
-        }
-        return -1;
-    }
-
-    /**
-     * 从字符串获取游戏难度
-     * <p>
-     * Get game difficulty from string
-     *
-     * @param str 代表游戏难度的字符串，例如0,peaceful...<br>A string representing the game difficulty, e.g. 0,peaceful...
-     * @return 游戏难度id<br>game difficulty id
-     */
-    public static int getDifficultyFromString(String str) {
-        switch (str.trim().toLowerCase()) {
-            case "0":
-            case "peaceful":
-            case "p":
-                return 0;
-
-            case "1":
-            case "easy":
-            case "e":
-                return 1;
-
-            case "2":
-            case "normal":
-            case "n":
-                return 2;
-
-            case "3":
-            case "hard":
-            case "h":
-                return 3;
-        }
-        return -1;
-    }
-
-    /**
-     * 获得服务器游戏难度
-     * <p>
-     * Get server game difficulty
-     *
-     * @return 游戏难度id<br>game difficulty id
-     */
-    public int getDifficulty() {
-        if (this.difficulty == Integer.MAX_VALUE) {
-            this.difficulty = getDifficultyFromString(this.getPropertyString("difficulty", "1"));
-        }
-        return this.difficulty;
-    }
-
-    /**
-     * 设置服务器游戏难度
-     * <p>
-     * set server game difficulty
-     *
-     * @param difficulty 游戏难度id<br>game difficulty id
-     */
-    public void setDifficulty(int difficulty) {
-        int value = difficulty;
-        if (value < 0) value = 0;
-        if (value > 3) value = 3;
-        this.difficulty = value;
-        this.setPropertyInt("difficulty", value);
-    }
-
-    /**
-     * @return 是否开启白名单<br>Whether to start server whitelist
-     */
-    public boolean hasWhitelist() {
-        return this.getPropertyBoolean("white-list", false);
-    }
-
-    /**
-     * @return 得到服务器出生点保护半径<br>Get server birth point protection radius
-     */
-    public int getSpawnRadius() {
-        return this.getPropertyInt("spawn-protection", 16);
-    }
-
-    /**
-     * @return 服务器是否允许飞行<br>Whether the server allows flying
-     */
-    public boolean getAllowFlight() {
-        if (getAllowFlight == null) {
-            getAllowFlight = this.getPropertyBoolean("allow-flight", false);
-        }
-        return getAllowFlight;
-    }
-
-    /**
-     * @return 服务器是否为硬核模式<br>Whether the server is in hardcore mode
-     */
-    public boolean isHardcore() {
-        return this.getPropertyBoolean("hardcore", false);
-    }
-
-    /**
-     * @return 获取默认gamemode<br>Get default gamemode
-     */
-    public int getDefaultGamemode() {
-        if (this.defaultGamemode == Integer.MAX_VALUE) {
-            this.defaultGamemode = this.getGamemode();
-        }
-        return this.defaultGamemode;
-    }
-
-    /**
-     * @return 得到服务器标题<br>Get server motd
-     */
-    public String getMotd() {
-        return this.getPropertyString("motd", "PowerNukkitX Server");
-    }
-
-    /**
-     * @return 得到服务器子标题<br>Get the server subheading
-     */
-    public String getSubMotd() {
-        String subMotd = this.getPropertyString("sub-motd", "https://powernukkitx.cn");
-        if (subMotd.isEmpty()) {
-            subMotd = "https://powernukkitx.cn"; // The client doesn't allow empty sub-motd in 1.16.210
-        }
-        return subMotd;
-    }
-
-    /**
-     * @return 是否强制使用服务器资源包<br>Whether to force the use of server resourcepack
-     */
-    public boolean getForceResources() {
-        return this.getPropertyBoolean("force-resources", false);
-    }
-
-    /**
-     * @return 是否强制使用服务器资源包的同时允许加载客户端资源包<br>Whether to force the use of server resourcepack while allowing the loading of client resourcepack
-     */
-    public boolean getForceResourcesAllowOwnPacks() {
-        return this.getPropertyBoolean("force-resources-allow-client-packs", false);
-    }
-
-
-    @Deprecated
-    @DeprecationDetails(since = "1.4.0.0-PN", by = "PowerNukkit", reason = "Use your own logger, sharing loggers makes bug analyses harder.",
-            replaceWith = "@Log4j2 annotation in the class and use the `log` static field that is generated by lombok, " +
-                    "also make sure to log the exception as the last argument, don't concatenate it or use it as parameter replacement. " +
-                    "Just put it as last argument and SLF4J will understand that the log message was caused by that exception/throwable.")
-    public MainLogger getLogger() {
-        return MainLogger.getLogger();
-    }
-
-    public EntityMetadataStore getEntityMetadata() {
-        return entityMetadata;
-    }
-
-    public PlayerMetadataStore getPlayerMetadata() {
-        return playerMetadata;
-    }
-
-    public LevelMetadataStore getLevelMetadata() {
-        return levelMetadata;
-    }
-
-    public PluginManager getPluginManager() {
-        return this.pluginManager;
-    }
-
-    public CraftingManager getCraftingManager() {
-        return craftingManager;
-    }
-
-    public ResourcePackManager getResourcePackManager() {
-        return resourcePackManager;
-    }
-
-    public IScoreboardManager getScoreboardManager() {
-        return scoreboardManager;
-    }
-
-    public FunctionManager getFunctionManager() {
-        return functionManager;
-    }
-
-    public TickingAreaManager getTickingAreaManager() {
-        return tickingAreaManager;
-    }
-
-    public FreezableArrayManager getFreezableArrayManager() {
-        return freezableArrayManager;
-    }
-
-    public ServerScheduler getScheduler() {
-        return scheduler;
-    }
-
-    /**
-     * @return 返回服务器经历过的tick数<br>Returns the number of ticks recorded by the server
-     */
-    public int getTick() {
-        return tickCounter;
-    }
-
-    public float getTicksPerSecond() {
-        return ((float) Math.round(this.maxTick * 100)) / 100;
-    }
-
-    public float getTicksPerSecondAverage() {
-        float sum = 0;
-        int count = this.tickAverage.length;
-        for (float aTickAverage : this.tickAverage) {
-            sum += aTickAverage;
-        }
-        return (float) NukkitMath.round(sum / count, 2);
-    }
-
-    public float getTickUsage() {
-        return (float) NukkitMath.round(this.maxUse * 100, 2);
-    }
-
-    public float getTickUsageAverage() {
-        float sum = 0;
-        int count = this.useAverage.length;
-        for (float aUseAverage : this.useAverage) {
-            sum += aUseAverage;
-        }
-        return ((float) Math.round(sum / count * 100)) / 100;
-    }
-
-    public SimpleCommandMap getCommandMap() {
-        return commandMap;
-    }
-
-    /**
-     * 获得所有在线的玩家Map.
-     * <p>
-     * Get all online players Map.
-     *
-     * @return 所有的在线玩家Map
-     */
-    public Map<UUID, Player> getOnlinePlayers() {
-        return ImmutableMap.copyOf(playerList);
-    }
-
-
-    /**
-     * 注册配方到配方管理器
-     * <p>
-     * Register Recipe to Recipe Manager
-     *
-     * @param recipe 配方
-     */
-    public void addRecipe(Recipe recipe) {
-        this.craftingManager.registerRecipe(recipe);
-    }
-
 
     /**
      * 从指定的UUID得到玩家实例.
@@ -2775,12 +2407,159 @@ public class Server {
         }
     }
 
+    public PlayerDataSerializer getPlayerDataSerializer() {
+        return playerDataSerializer;
+    }
+
+    public void setPlayerDataSerializer(PlayerDataSerializer playerDataSerializer) {
+        this.playerDataSerializer = Preconditions.checkNotNull(playerDataSerializer, "playerDataSerializer");
+    }
 
     /**
-     * @return 获得所有游戏世界<br>Get all the game world
+     * 获得所有在线的玩家Map.
+     * <p>
+     * Get all online players Map.
+     *
+     * @return 所有的在线玩家Map
      */
-    public Map<Integer, Level> getLevels() {
-        return levels;
+    public Map<UUID, Player> getOnlinePlayers() {
+        return ImmutableMap.copyOf(playerList);
+    }
+
+    // endregion
+
+    // region constants - 常量
+
+    /**
+     * @return 服务器名称<br>The name of server
+     */
+    public String getName() {
+        return "Nukkit";
+    }
+
+    public String getNukkitVersion() {
+        return Nukkit.VERSION;
+    }
+
+    public String getBStatsNukkitVersion() {
+        return Nukkit.VERSION;
+    }
+
+    @PowerNukkitOnly
+    public String getGitCommit() {
+        return Nukkit.GIT_COMMIT;
+    }
+
+    public String getCodename() {
+        return Nukkit.CODENAME;
+    }
+
+    public String getVersion() {
+        return ProtocolInfo.MINECRAFT_VERSION;
+    }
+
+    public String getApiVersion() {
+        return Nukkit.API_VERSION;
+    }
+
+    // endregion
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public String getDataPath() {
+        return dataPath;
+    }
+
+    public String getPluginPath() {
+        return pluginPath;
+    }
+
+    /**
+     * @return 服务器UUID<br>server UUID
+     */
+    public UUID getServerUniqueId() {
+        return this.serverID;
+    }
+
+    @Deprecated
+    @DeprecationDetails(since = "1.4.0.0-PN", by = "PowerNukkit", reason = "Use your own logger, sharing loggers makes bug analyses harder.",
+            replaceWith = "@Log4j2 annotation in the class and use the `log` static field that is generated by lombok, " +
+                    "also make sure to log the exception as the last argument, don't concatenate it or use it as parameter replacement. " +
+                    "Just put it as last argument and SLF4J will understand that the log message was caused by that exception/throwable.")
+    public MainLogger getLogger() {
+        return MainLogger.getLogger();
+    }
+
+    public EntityMetadataStore getEntityMetadata() {
+        return entityMetadata;
+    }
+
+    public PlayerMetadataStore getPlayerMetadata() {
+        return playerMetadata;
+    }
+
+    public LevelMetadataStore getLevelMetadata() {
+        return levelMetadata;
+    }
+
+
+    public ResourcePackManager getResourcePackManager() {
+        return resourcePackManager;
+    }
+
+    public FreezableArrayManager getFreezableArrayManager() {
+        return freezableArrayManager;
+    }
+
+    // TODO: update PNX Junit5 test framework to remove dependency on this method
+    private void registerProfessions() {
+        Profession.init();
+    }
+
+    // TODO: update PNX Junit5 test framework to remove dependency on this method
+    private void registerEntities() {
+        Entity.init();
+    }
+
+    // TODO: update PNX Junit5 test framework to remove dependency on this method
+    private void registerBlockEntities() {
+        BlockEntity.init();
+    }
+
+    @PowerNukkitOnly
+    @Since("1.4.0.0-PN")
+    @NotNull
+    public PositionTrackingService getPositionTrackingService() {
+        return positionTrackingService;
+    }
+
+    // region crafting & recipe - 合成与配方
+
+    /**
+     * 发送配方列表数据包给一个玩家.<p>
+     * Send a recipe list packet to a player.
+     *
+     * @param player 玩家
+     */
+    public void sendRecipeList(Player player) {
+        player.dataPacket(CraftingManager.getCraftingPacket());
+    }
+
+    /**
+     * 注册配方到配方管理器
+     * <p>
+     * Register Recipe to Recipe Manager
+     *
+     * @param recipe 配方
+     */
+    public void addRecipe(Recipe recipe) {
+        this.craftingManager.registerRecipe(recipe);
+    }
+
+    public CraftingManager getCraftingManager() {
+        return craftingManager;
     }
 
     /**
@@ -2909,7 +2688,7 @@ public class Server {
         level.initLevel();
 
         //convert old Nukkit World
-        if (level.getProvider() instanceof Anvil anvil && anvil.isOldAnvil() && level.isOverWorld()) {
+        /*if (level.getProvider() instanceof Anvil anvil && anvil.isOldAnvil() && level.isOverWorld()) {
             log.info(Server.getInstance().getLanguage().tr("nukkit.anvil.converter.update"));
             var scan = new Scanner(System.in);
             var result = scan.next();
@@ -2947,7 +2726,7 @@ public class Server {
                     }
                 }
             } else System.exit(0);
-        }
+        }*/
 
         this.getPluginManager().callEvent(new LevelLoadEvent(level));
         level.setTickRate(this.baseTickRate);
@@ -3071,6 +2850,359 @@ public class Server {
         return true;
     }
 
+    // endregion
+
+    // region Ban, OP and whitelist - Ban，OP与白名单
+
+    public BanList getNameBans() {
+        return this.banByName;
+    }
+
+    public BanList getIPBans() {
+        return this.banByIP;
+    }
+
+    public void addOp(String name) {
+        this.operators.set(name.toLowerCase(), true);
+        Player player = this.getPlayerExact(name);
+        if (player != null) {
+            player.recalculatePermissions();
+            player.getAdventureSettings().onOpChange(true);
+            player.getAdventureSettings().update();
+            player.sendCommandData();
+        }
+        this.operators.save(true);
+    }
+
+    public void removeOp(String name) {
+        this.operators.remove(name.toLowerCase());
+        Player player = this.getPlayerExact(name);
+        if (player != null) {
+            player.recalculatePermissions();
+            player.getAdventureSettings().onOpChange(false);
+            player.getAdventureSettings().update();
+            player.sendCommandData();
+        }
+        this.operators.save();
+    }
+
+    public void addWhitelist(String name) {
+        this.whitelist.set(name.toLowerCase(), true);
+        this.whitelist.save(true);
+    }
+
+    public void removeWhitelist(String name) {
+        this.whitelist.remove(name.toLowerCase());
+        this.whitelist.save(true);
+    }
+
+    public boolean isWhitelisted(String name) {
+        return !this.hasWhitelist() || this.operators.exists(name, true) || this.whitelist.exists(name, true);
+    }
+
+    public boolean isOp(String name) {
+        return name != null && this.operators.exists(name, true);
+    }
+
+    public Config getWhitelist() {
+        return whitelist;
+    }
+
+    public Config getOps() {
+        return operators;
+    }
+
+    public void reloadWhitelist() {
+        this.whitelist.reload();
+    }
+
+    // endregion
+
+    // region configs - 配置相关
+
+    public int getMaxPlayers() {
+        return maxPlayers;
+    }
+
+    public void setMaxPlayers(int maxPlayers) {
+        this.maxPlayers = maxPlayers;
+    }
+
+    /**
+     * @return 服务器端口<br>server port
+     */
+    public int getPort() {
+        return this.getPropertyInt("server-port", 19132);
+    }
+
+    /**
+     * @return 可视距离<br>server view distance
+     */
+    public int getViewDistance() {
+        return this.getPropertyInt("view-distance", 10);
+    }
+
+    /**
+     * @return 服务器网络地址<br>server ip
+     */
+    public String getIp() {
+        return this.getPropertyString("server-ip", "0.0.0.0");
+    }
+
+    /**
+     * @return 服务器是否会自动保存<br>Does the server automatically save
+     */
+    public boolean getAutoSave() {
+        return this.autoSave;
+    }
+
+    /**
+     * 设置服务器自动保存
+     * <p>
+     * Set server autosave
+     *
+     * @param autoSave 是否自动保存<br>Whether to save automatically
+     */
+    public void setAutoSave(boolean autoSave) {
+        this.autoSave = autoSave;
+        for (Level level : this.levelArray) {
+            level.setAutoSave(this.autoSave);
+        }
+    }
+
+    public String getLevelType() {
+        return this.getPropertyString("level-type", "DEFAULT");
+    }
+
+    /**
+     * @return 服务器是否生成结构<br>Whether the server generate the structure.
+     */
+    public boolean getGenerateStructures() {
+        return this.getPropertyBoolean("generate-structures", true);
+    }
+
+    /**
+     * 得到服务器的gamemode
+     * <p>
+     * Get the gamemode of the server
+     *
+     * @return gamemode id
+     */
+    public int getGamemode() {
+        try {
+            return this.getPropertyInt("gamemode", 0) & 0b11;
+        } catch (NumberFormatException exception) {
+            return getGamemodeFromString(this.getPropertyString("gamemode")) & 0b11;
+        }
+    }
+
+    public boolean getForceGamemode() {
+        return this.getPropertyBoolean("force-gamemode", false);
+    }
+
+
+    /**
+     * 默认{@code direct=false}
+     *
+     * @see #getGamemodeString(int, boolean)
+     */
+    public static String getGamemodeString(int mode) {
+        return getGamemodeString(mode, false);
+    }
+
+    /**
+     * 从gamemode id获取游戏模式字符串.
+     * <p>
+     * Get game mode string from gamemode id.
+     *
+     * @param mode   gamemode id
+     * @param direct 如果为true就直接返回字符串,为false返回代表游戏模式的硬编码字符串.<br>If true, the string is returned directly, and if false, the hard-coded string representing the game mode is returned.
+     * @return 游戏模式字符串<br>Game Mode String
+     */
+    public static String getGamemodeString(int mode, boolean direct) {
+        switch (mode) {
+            case Player.SURVIVAL:
+                return direct ? "Survival" : "%gameMode.survival";
+            case Player.CREATIVE:
+                return direct ? "Creative" : "%gameMode.creative";
+            case Player.ADVENTURE:
+                return direct ? "Adventure" : "%gameMode.adventure";
+            case Player.SPECTATOR:
+                return direct ? "Spectator" : "%gameMode.spectator";
+        }
+        return "UNKNOWN";
+    }
+
+    /**
+     * 从字符串获取gamemode
+     * <p>
+     * Get gamemode from string
+     *
+     * @param str 代表游戏模式的字符串，例如0,survival...<br>A string representing the game mode, e.g. 0,survival...
+     * @return 游戏模式id<br>gamemode id
+     */
+    public static int getGamemodeFromString(String str) {
+        switch (str.trim().toLowerCase()) {
+            case "0":
+            case "survival":
+            case "s":
+                return Player.SURVIVAL;
+
+            case "1":
+            case "creative":
+            case "c":
+                return Player.CREATIVE;
+
+            case "2":
+            case "adventure":
+            case "a":
+                return Player.ADVENTURE;
+
+            case "3":
+            case "spectator":
+            case "spc":
+            case "view":
+            case "v":
+                return Player.SPECTATOR;
+        }
+        return -1;
+    }
+
+    /**
+     * 从字符串获取游戏难度
+     * <p>
+     * Get game difficulty from string
+     *
+     * @param str 代表游戏难度的字符串，例如0,peaceful...<br>A string representing the game difficulty, e.g. 0,peaceful...
+     * @return 游戏难度id<br>game difficulty id
+     */
+    public static int getDifficultyFromString(String str) {
+        switch (str.trim().toLowerCase()) {
+            case "0":
+            case "peaceful":
+            case "p":
+                return 0;
+
+            case "1":
+            case "easy":
+            case "e":
+                return 1;
+
+            case "2":
+            case "normal":
+            case "n":
+                return 2;
+
+            case "3":
+            case "hard":
+            case "h":
+                return 3;
+        }
+        return -1;
+    }
+
+    /**
+     * 获得服务器游戏难度
+     * <p>
+     * Get server game difficulty
+     *
+     * @return 游戏难度id<br>game difficulty id
+     */
+    public int getDifficulty() {
+        if (this.difficulty == Integer.MAX_VALUE) {
+            this.difficulty = getDifficultyFromString(this.getPropertyString("difficulty", "1"));
+        }
+        return this.difficulty;
+    }
+
+    /**
+     * 设置服务器游戏难度
+     * <p>
+     * set server game difficulty
+     *
+     * @param difficulty 游戏难度id<br>game difficulty id
+     */
+    public void setDifficulty(int difficulty) {
+        int value = difficulty;
+        if (value < 0) value = 0;
+        if (value > 3) value = 3;
+        this.difficulty = value;
+        this.setPropertyInt("difficulty", value);
+    }
+
+    /**
+     * @return 是否开启白名单<br>Whether to start server whitelist
+     */
+    public boolean hasWhitelist() {
+        return this.getPropertyBoolean("white-list", false);
+    }
+
+    /**
+     * @return 得到服务器出生点保护半径<br>Get server birth point protection radius
+     */
+    public int getSpawnRadius() {
+        return this.getPropertyInt("spawn-protection", 16);
+    }
+
+    /**
+     * @return 服务器是否允许飞行<br>Whether the server allows flying
+     */
+    public boolean getAllowFlight() {
+        if (getAllowFlight == null) {
+            getAllowFlight = this.getPropertyBoolean("allow-flight", false);
+        }
+        return getAllowFlight;
+    }
+
+    /**
+     * @return 服务器是否为硬核模式<br>Whether the server is in hardcore mode
+     */
+    public boolean isHardcore() {
+        return this.getPropertyBoolean("hardcore", false);
+    }
+
+    /**
+     * @return 获取默认gamemode<br>Get default gamemode
+     */
+    public int getDefaultGamemode() {
+        if (this.defaultGamemode == Integer.MAX_VALUE) {
+            this.defaultGamemode = this.getGamemode();
+        }
+        return this.defaultGamemode;
+    }
+
+    /**
+     * @return 得到服务器标题<br>Get server motd
+     */
+    public String getMotd() {
+        return this.getPropertyString("motd", "PowerNukkitX Server");
+    }
+
+    /**
+     * @return 得到服务器子标题<br>Get the server subheading
+     */
+    public String getSubMotd() {
+        String subMotd = this.getPropertyString("sub-motd", "https://powernukkitx.cn");
+        if (subMotd.isEmpty()) {
+            subMotd = "https://powernukkitx.cn"; // The client doesn't allow empty sub-motd in 1.16.210
+        }
+        return subMotd;
+    }
+
+    /**
+     * @return 是否强制使用服务器资源包<br>Whether to force the use of server resourcepack
+     */
+    public boolean getForceResources() {
+        return this.getPropertyBoolean("force-resources", false);
+    }
+
+    /**
+     * @return 是否强制使用服务器资源包的同时允许加载客户端资源包<br>Whether to force the use of server resourcepack while allowing the loading of client resourcepack
+     */
+    public boolean getForceResourcesAllowOwnPacks() {
+        return this.getPropertyBoolean("force-resources-allow-client-packs", false);
+    }
+
     public BaseLang getLanguage() {
         return baseLang;
     }
@@ -3123,10 +3255,6 @@ public class Server {
 
     public void setEducationEditionEnabled(boolean educationEditionEnabled) {
         this.educationEditionEnabled = educationEditionEnabled;
-    }
-
-    public Network getNetwork() {
-        return network;
     }
 
     //Revising later...
@@ -3206,103 +3334,6 @@ public class Server {
         this.properties.save();
     }
 
-    public PluginIdentifiableCommand getPluginCommand(String name) {
-        Command command = this.commandMap.getCommand(name);
-        if (command instanceof PluginIdentifiableCommand) {
-            return (PluginIdentifiableCommand) command;
-        } else {
-            return null;
-        }
-    }
-
-    public BanList getNameBans() {
-        return this.banByName;
-    }
-
-    public BanList getIPBans() {
-        return this.banByIP;
-    }
-
-    public void addOp(String name) {
-        this.operators.set(name.toLowerCase(), true);
-        Player player = this.getPlayerExact(name);
-        if (player != null) {
-            player.recalculatePermissions();
-            player.getAdventureSettings().onOpChange(true);
-            player.getAdventureSettings().update();
-            player.sendCommandData();
-        }
-        this.operators.save(true);
-    }
-
-    public void removeOp(String name) {
-        this.operators.remove(name.toLowerCase());
-        Player player = this.getPlayerExact(name);
-        if (player != null) {
-            player.recalculatePermissions();
-            player.getAdventureSettings().onOpChange(false);
-            player.getAdventureSettings().update();
-            player.sendCommandData();
-        }
-        this.operators.save();
-    }
-
-    public void addWhitelist(String name) {
-        this.whitelist.set(name.toLowerCase(), true);
-        this.whitelist.save(true);
-    }
-
-    public void removeWhitelist(String name) {
-        this.whitelist.remove(name.toLowerCase());
-        this.whitelist.save(true);
-    }
-
-    public boolean isWhitelisted(String name) {
-        return !this.hasWhitelist() || this.operators.exists(name, true) || this.whitelist.exists(name, true);
-    }
-
-    public boolean isOp(String name) {
-        return name != null && this.operators.exists(name, true);
-    }
-
-    public Config getWhitelist() {
-        return whitelist;
-    }
-
-    public Config getOps() {
-        return operators;
-    }
-
-    public void reloadWhitelist() {
-        this.whitelist.reload();
-    }
-
-    public ServiceManager getServiceManager() {
-        return serviceManager;
-    }
-
-    public Map<String, List<String>> getCommandAliases() {
-        Object section = this.getConfig("aliases");
-        Map<String, List<String>> result = new LinkedHashMap<>();
-        if (section instanceof Map) {
-            for (Map.Entry entry : (Set<Map.Entry>) ((Map) section).entrySet()) {
-                List<String> commands = new ArrayList<>();
-                String key = (String) entry.getKey();
-                Object value = entry.getValue();
-                if (value instanceof List) {
-                    commands.addAll((List<String>) value);
-                } else {
-                    commands.add((String) value);
-                }
-
-                result.put(key, commands);
-            }
-        }
-
-        return result;
-
-    }
-
     public boolean shouldSavePlayerData() {
         return this.getConfig("player.save-player-data", true);
     }
@@ -3311,26 +3342,8 @@ public class Server {
         return this.getConfig("player.skin-change-cooldown", 30);
     }
 
-    // TODO: update PNX Junit5 test framework to remove dependency on this method
-    private void registerEntities() {
-        Entity.init();
-    }
-
-    // TODO: update PNX Junit5 test framework to remove dependency on this method
-    private void registerBlockEntities() {
-        BlockEntity.init();
-    }
-
     public boolean isNetherAllowed() {
         return this.allowNether;
-    }
-
-    public PlayerDataSerializer getPlayerDataSerializer() {
-        return playerDataSerializer;
-    }
-
-    public void setPlayerDataSerializer(PlayerDataSerializer playerDataSerializer) {
-        this.playerDataSerializer = Preconditions.checkNotNull(playerDataSerializer, "playerDataSerializer");
     }
 
     @Since("1.3.0.0-PN")
@@ -3344,17 +3357,6 @@ public class Server {
         return safeSpawn;
     }
 
-    public static Server getInstance() {
-        return instance;
-    }
-
-    @PowerNukkitOnly
-    @Since("1.4.0.0-PN")
-    @NotNull
-    public PositionTrackingService getPositionTrackingService() {
-        return positionTrackingService;
-    }
-
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public boolean isForceSkinTrusted() {
@@ -3365,12 +3367,6 @@ public class Server {
     @Since("1.4.0.0-PN")
     public boolean isCheckMovement() {
         return checkMovement;
-    }
-
-    @PowerNukkitOnly
-    @Since("1.4.0.0-PN")
-    public long getLaunchTime() {
-        return launchTime;
     }
 
     @PowerNukkitOnly
@@ -3403,10 +3399,12 @@ public class Server {
         return maximumSizePerChunk;
     }
 
+    @PyCMCOnly
     public boolean isForceCustomItems() {
         return forceCustomItems;
     }
 
+    @PyCMCOnly
     public void setForceCustomItems(boolean forceCustomItems) {
         this.forceCustomItems = forceCustomItems;
     }
@@ -3416,6 +3414,14 @@ public class Server {
     public int getServerAuthoritativeMovement() {
         return serverAuthoritativeMovementMode;
     }
+
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    public boolean isEnableSnappy() {
+        return this.getConfig("network.snappy", false);
+    }
+
+    // endregion
 
     // region threading - 并发基础设施
 
@@ -3437,6 +3443,10 @@ public class Server {
 
     public Thread getPrimaryThread() {
         return currentThread;
+    }
+
+    public ServerScheduler getScheduler() {
+        return scheduler;
     }
 
     //todo NukkitConsole 会阻塞关不掉

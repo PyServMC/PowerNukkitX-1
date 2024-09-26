@@ -17,11 +17,9 @@ import cn.nukkit.item.ItemTool;
 import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Hash;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -154,25 +152,26 @@ public class BlockLeaves extends BlockTransparentMeta {
         int stickOdds;
         int saplingOdds;
         switch (fortune) {
-            case 0:
+            case 0 -> {
                 appleOdds = 200;
                 stickOdds = 50;
-                saplingOdds = getType() == WoodType.JUNGLE? 40 : 20;
-                break;
-            case 1:
+                saplingOdds = getType() == WoodType.JUNGLE ? 40 : 20;
+            }
+            case 1 -> {
                 appleOdds = 180;
                 stickOdds = 45;
-                saplingOdds = getType() == WoodType.JUNGLE? 36 : 16;
-                break;
-            case 2:
+                saplingOdds = getType() == WoodType.JUNGLE ? 36 : 16;
+            }
+            case 2 -> {
                 appleOdds = 160;
                 stickOdds = 40;
-                saplingOdds = getType() == WoodType.JUNGLE? 32 : 12;
-                break;
-            default:
+                saplingOdds = getType() == WoodType.JUNGLE ? 32 : 12;
+            }
+            default -> {
                 appleOdds = 120;
                 stickOdds = 30;
-                saplingOdds = getType() == WoodType.JUNGLE? 24 : 10;
+                saplingOdds = getType() == WoodType.JUNGLE ? 24 : 10;
+            }
         }
 
         ThreadLocalRandom random = ThreadLocalRandom.current();
@@ -214,8 +213,7 @@ public class BlockLeaves extends BlockTransparentMeta {
             // Slowly propagates the need to update instead of peaking down the TPS for huge trees
             for (BlockFace side : BlockFace.values()) {
                 Block other = getSide(side);
-                if (other instanceof BlockLeaves) {
-                    BlockLeaves otherLeave = (BlockLeaves) other;
+                if (other instanceof BlockLeaves otherLeave) {
                     if (!otherLeave.isCheckDecay()) {
                         getLevel().scheduleUpdate(otherLeave, 2);
                     }
@@ -231,7 +229,7 @@ public class BlockLeaves extends BlockTransparentMeta {
             visited = new Long2LongOpenHashMap();
             visited.defaultReturnValue(-1);
         }
-        if (current instanceof BlockWood) {
+        if (current instanceof IBlockWood || current instanceof BlockMangroveRoots) {
             return true;
         }
         if (distance == 0 || !(current instanceof BlockLeaves)) {
@@ -264,11 +262,6 @@ public class BlockLeaves extends BlockTransparentMeta {
 
     public void setPersistent(boolean persistent) {
         setBooleanValue(PERSISTENT, persistent);
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.FOLIAGE_BLOCK_COLOR;
     }
 
     @Override

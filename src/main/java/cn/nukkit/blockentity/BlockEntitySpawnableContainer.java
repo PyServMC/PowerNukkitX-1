@@ -53,6 +53,16 @@ public abstract class BlockEntitySpawnableContainer extends BlockEntitySpawnable
     }
 
     @Override
+    public void closeS() {
+        if (!closed) {
+            for (Player player : new HashSet<>(this.getInventory().getViewers())) {
+                player.removeWindow(this.getInventory());
+            }
+            super.close();
+        }
+    }
+
+    @Override
     public void onBreak() {
         for (Item content : inventory.getContents().values()) {
             level.dropItem(this, content);
@@ -64,7 +74,7 @@ public abstract class BlockEntitySpawnableContainer extends BlockEntitySpawnable
     public void saveNBT() {
         super.saveNBT();
         this.namedTag.putList(new ListTag<CompoundTag>("Items"));
-        for (int index = 0; index < this.getSize(); index++) {
+        for (int index = 0; index < this.getInventory().getSize(); index++) {
             this.setItem(index, this.inventory.getItem(index));
         }
     }

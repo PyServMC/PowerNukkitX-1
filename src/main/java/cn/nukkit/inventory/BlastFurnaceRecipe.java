@@ -1,20 +1,29 @@
 package cn.nukkit.inventory;
 
 import cn.nukkit.api.PowerNukkitOnly;
+import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.item.Item;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 @PowerNukkitOnly
 public class BlastFurnaceRecipe implements SmeltingRecipe {
-
     private final Item output;
-
     private Item ingredient;
+    private String recipeId;
 
     private double experience;
 
     @PowerNukkitOnly
     public BlastFurnaceRecipe(Item result, Item ingredient) {
+        this(null, result, ingredient);
+    }
+
+    @PowerNukkitXOnly
+    public BlastFurnaceRecipe(@Nullable String recipeId, Item result, Item ingredient) {
         this(result, ingredient, 0);
+        this.recipeId = recipeId == null ? CraftingManager.getMultiItemHash(List.of(ingredient, result)).toString() : recipeId;
     }
 
     public BlastFurnaceRecipe(Item result, Item ingredient, double experience) {
@@ -32,6 +41,11 @@ public class BlastFurnaceRecipe implements SmeltingRecipe {
     @Override
     public Item getInput() {
         return this.ingredient.clone();
+    }
+
+    @Override
+    public String getRecipeId() {
+        return null;
     }
 
     @Override

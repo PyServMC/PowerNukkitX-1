@@ -4,17 +4,14 @@ import cn.nukkit.Player;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.blockproperty.BlockProperties;
+import cn.nukkit.blockproperty.CommonBlockProperties;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemBlock;
 import cn.nukkit.item.ItemID;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
-
 import org.jetbrains.annotations.NotNull;
-
-import static cn.nukkit.blockproperty.CommonBlockProperties.DIRECTION;
 
 /**
  * @author xtypr
@@ -24,9 +21,9 @@ public class BlockPumpkin extends BlockSolidMeta implements Faceable {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public static final BlockProperties PROPERTIES = new BlockProperties(
-        DIRECTION
+            CommonBlockProperties.CARDINAL_DIRECTION
     );
-    
+
     public BlockPumpkin() {
         this(0);
     }
@@ -51,7 +48,7 @@ public class BlockPumpkin extends BlockSolidMeta implements Faceable {
     public BlockProperties getProperties() {
         return PROPERTIES;
     }
-    
+
     @Override
     public double getHardness() {
         return 1;
@@ -71,7 +68,7 @@ public class BlockPumpkin extends BlockSolidMeta implements Faceable {
     public Item toItem() {
         return new ItemBlock(this, 0);
     }
-    
+
     @Override
     public boolean canBeActivated() {
         return true;
@@ -107,11 +104,6 @@ public class BlockPumpkin extends BlockSolidMeta implements Faceable {
     }
 
     @Override
-    public BlockColor getColor() {
-        return BlockColor.ORANGE_BLOCK_COLOR;
-    }
-
-    @Override
     @PowerNukkitOnly
     public boolean breaksWhenMoved() {
         return true;
@@ -119,18 +111,18 @@ public class BlockPumpkin extends BlockSolidMeta implements Faceable {
 
     @Override
     @PowerNukkitOnly
-    public  boolean sticksToPiston() {
+    public boolean sticksToPiston() {
         return false;
     }
-    
+
     @Override
     public BlockFace getBlockFace() {
-        return getPropertyValue(DIRECTION);
+        return getPropertyValue(CommonBlockProperties.CARDINAL_DIRECTION);
     }
 
     @PowerNukkitOnly
     @Override
     public void setBlockFace(BlockFace face) {
-        setPropertyValue(DIRECTION, face);
+        setPropertyValue(CommonBlockProperties.CARDINAL_DIRECTION, face);
     }
 }

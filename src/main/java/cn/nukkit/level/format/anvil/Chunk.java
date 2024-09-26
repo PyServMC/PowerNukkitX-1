@@ -1,6 +1,7 @@
 package cn.nukkit.level.format.anvil;
 
 import cn.nukkit.Player;
+import cn.nukkit.api.PowerNukkitXDifference;
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
 import cn.nukkit.api.UsedByReflection;
@@ -41,6 +42,8 @@ public class Chunk extends BaseChunk {
     protected long inhabitedTime;
     protected boolean terrainPopulated;
     protected boolean terrainGenerated;
+    protected boolean isNew384World = true;
+
     @PowerNukkitXOnly
     @Since("1.19.20-r4")
     protected DimensionData dimensionData = null;
@@ -104,7 +107,7 @@ public class Chunk extends BaseChunk {
         }
         if (nbt == null) {
             this.biomes = new byte[16 * 16];
-            this.heightMap = new byte[256];
+            this.heightMap = new short[256];
             this.NBTentities = new ArrayList<>(0);
             this.NBTtiles = new ArrayList<>(0);
             return;
@@ -170,12 +173,12 @@ public class Chunk extends BaseChunk {
         }
 
         int[] heightMap = nbt.getIntArray("HeightMap");
-        this.heightMap = new byte[256];
+        this.heightMap = new short[256];
         if (heightMap.length != 256) {
-            Arrays.fill(this.heightMap, (byte) 255);
+            Arrays.fill(this.heightMap, (short) 0);
         } else {
             for (int i = 0; i < heightMap.length; i++) {
-                this.heightMap[i] = (byte) heightMap[i];
+                this.heightMap[i] = (short) heightMap[i];
             }
         }
 
@@ -224,8 +227,10 @@ public class Chunk extends BaseChunk {
         this.inhabitedTime = nbt.getLong("InhabitedTime");
         this.terrainPopulated = nbt.getBoolean("TerrainPopulated");
         this.terrainGenerated = nbt.getBoolean("TerrainGenerated");
-        if (nbt.contains("isNew384World")) {
-            nbt.remove("isNew384World");//todo 临时移除无用字段，后续版本移除
+        if (!nbt.contains("isNew384World")) {
+            this.isNew384World = false;
+        } else {
+            this.isNew384World = true;
         }
     }
 
@@ -298,7 +303,7 @@ public class Chunk extends BaseChunk {
 
             chunk.setPosition(chunkX, chunkZ);
 
-            chunk.heightMap = new byte[256];
+            chunk.heightMap = new short[256];
             chunk.inhabitedTime = 0;
             chunk.terrainGenerated = false;
             chunk.terrainPopulated = false;
@@ -434,10 +439,13 @@ public class Chunk extends BaseChunk {
 
         tag.put("TerrainGenerated", new ByteTag("TerrainGenerated", (byte) (isGenerated() ? 1 : 0)));
         tag.put("TerrainPopulated", new ByteTag("TerrainPopulated", (byte) (isPopulated() ? 1 : 0)));
+        tag.putBoolean("isNew384World", this.isNew384World);
+
         return tag;
     }
 
     @Override
+    @PowerNukkitXDifference(since = "1.20.0-r2", info = "Do not calc heightMap since it's not used in this method.")
     public byte[] toFastBinary() {
         CompoundTag nbt = this.getNBT().copy();
         nbt.remove("BiomeColors");
@@ -446,11 +454,6 @@ public class Chunk extends BaseChunk {
         nbt.putInt("zPos", this.getZ());
 
         nbt.putByteArray("Biomes", this.getBiomeIdArray());
-        int[] heightInts = new int[256];
-        byte[] heightBytes = this.getHeightMapArray();
-        for (int i = 0; i < heightInts.length; i++) {
-            heightInts[i] = heightBytes[i] & 0xFF;
-        }
 
         for (cn.nukkit.level.format.ChunkSection section : this.getSections()) {
             CompoundTag s = section.toNBT();
@@ -459,7 +462,7 @@ public class Chunk extends BaseChunk {
 
         ArrayList<CompoundTag> entities = new ArrayList<>();
         for (Entity entity : this.getEntities().values()) {
-            if (!(entity instanceof Player) && !entity.closed) {
+            if (!(entity instanceof Player) && !entity.closed && entity.canBeSavedWithChunk()) {
                 entity.saveNBT();
                 entities.add(entity.namedTag);
             }
@@ -519,6 +522,7 @@ public class Chunk extends BaseChunk {
     }
 
     @Override
+    @PowerNukkitXDifference(since= "1.20.10-r1", info = "Do not save entities which marked as not savable with chunk.")
     public byte[] toBinary() {
         CompoundTag nbt = this.getNBT().copy();
         nbt.remove("BiomeColors");
@@ -534,15 +538,15 @@ public class Chunk extends BaseChunk {
 
         nbt.putByteArray("Biomes", this.getBiomeIdArray());
         int[] heightInts = new int[256];
-        byte[] heightBytes = this.getHeightMapArray();
+        short[] heightBytes = this.getNewHeightMapArray();
         for (int i = 0; i < heightInts.length; i++) {
-            heightInts[i] = heightBytes[i] & 0xFF;
+            heightInts[i] = heightBytes[i];
         }
         nbt.putIntArray("HeightMap", heightInts);
 
         ArrayList<CompoundTag> entities = new ArrayList<>();
         for (Entity entity : this.getEntities().values()) {
-            if (!(entity instanceof Player) && !entity.closed) {
+            if (!(entity instanceof Player) && !entity.closed && entity.canBeSavedWithChunk()) {
                 entity.saveNBT();
                 entities.add(entity.namedTag);
             }

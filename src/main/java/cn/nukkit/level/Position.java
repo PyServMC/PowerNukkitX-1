@@ -12,7 +12,6 @@ import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.positiontracking.NamedPosition;
 import cn.nukkit.utils.LevelException;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -145,9 +144,14 @@ public class Position extends NamedPosition {
     }
 
     public Block getLevelBlock() {
-        return getValidLevel().getBlock(this);
+        return getLevelBlock(true);
     }
 
+    @PowerNukkitXOnly
+    @Since("1.6.0.0-PNX")
+    public Block getLevelBlock(boolean load) {
+        return getValidLevel().getBlock(this, load);
+    }
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
     public Block getLevelBlock(int layer) {

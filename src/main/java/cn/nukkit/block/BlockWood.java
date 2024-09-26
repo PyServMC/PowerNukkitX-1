@@ -2,6 +2,7 @@ package cn.nukkit.block;
 
 import cn.nukkit.api.PowerNukkitDifference;
 import cn.nukkit.api.PowerNukkitOnly;
+import cn.nukkit.api.PowerNukkitXDifference;
 import cn.nukkit.api.Since;
 import cn.nukkit.blockproperty.ArrayBlockProperty;
 import cn.nukkit.blockproperty.BlockProperties;
@@ -24,13 +25,7 @@ import static cn.nukkit.blockproperty.CommonBlockProperties.PILLAR_AXIS;
 public class BlockWood extends BlockLog {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    public static final BlockProperty<WoodType> OLD_LOG_TYPE = new ArrayBlockProperty<>("old_log_type", true, new WoodType[]{
-            WoodType.OAK, WoodType.SPRUCE, WoodType.BIRCH, WoodType.JUNGLE
-    });
-
-    @PowerNukkitOnly
-    @Since("1.4.0.0-PN")
-    public static final BlockProperties PROPERTIES = new BlockProperties(OLD_LOG_TYPE, PILLAR_AXIS);
+    public static final BlockProperties PROPERTIES = new BlockProperties(WoodType.PROPERTY, PILLAR_AXIS);
     
     public static final int OAK = 0;
     public static final int SPRUCE = 1;
@@ -82,13 +77,13 @@ public class BlockWood extends BlockLog {
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public WoodType getWoodType() {
-        return getPropertyValue(OLD_LOG_TYPE);
+        return getPropertyValue(WoodType.PROPERTY);
     }
     
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public void setWoodType(WoodType woodType) {
-        setPropertyValue(OLD_LOG_TYPE, woodType);
+        setPropertyValue(WoodType.PROPERTY, woodType);
     }
     
     @Override
@@ -132,7 +127,7 @@ public class BlockWood extends BlockLog {
 
     @PowerNukkitOnly
     @Override
-    protected BlockState getStrippedState() {
+    public BlockState getStrippedState() {
         int strippedId;
         switch (getWoodType()) {
             default:
@@ -158,8 +153,4 @@ public class BlockWood extends BlockLog {
         return BlockState.of(strippedId).withProperty(PILLAR_AXIS, getPillarAxis());
     }
 
-    @Override
-    public BlockColor getColor() {
-        return getWoodType().getColor();
-    }
 }

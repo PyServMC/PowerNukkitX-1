@@ -8,7 +8,6 @@ import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.level.Level;
-import cn.nukkit.utils.BlockColor;
 
 /**
  * @author MagicDroidX (Nukkit Project)
@@ -81,13 +80,13 @@ public class BlockIce extends BlockTransparent {
     }
 
     @Override
-    public BlockColor getColor() {
-        return BlockColor.ICE_BLOCK_COLOR;
+    public boolean canSilkTouch() {
+        return true;
     }
 
     @Override
-    public boolean canSilkTouch() {
-        return true;
+    public int getBurnChance() {
+        return -1;
     }
 
     @Since("1.4.0.0-PN")

@@ -10,7 +10,6 @@ import cn.nukkit.math.BlockFace.Plane;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.nbt.tag.Tag;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -38,7 +37,7 @@ public class BlockTrappedChest extends BlockChest {
 
     @Override
     public boolean place(@NotNull Item item, @NotNull Block block, @NotNull Block target, @NotNull BlockFace face, double fx, double fy, double fz, Player player) {
-        int[] faces = {2, 5, 3, 4};
+        int[] faces = {2, 3, 0, 1};
 
         BlockEntityChest chest = null;
         this.setDamage(faces[player != null ? player.getDirection().getHorizontalIndex() : 0]);

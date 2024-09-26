@@ -19,7 +19,6 @@ import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.SimpleAxisAlignedBB;
 import cn.nukkit.math.Vector3;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
 import org.jetbrains.annotations.NotNull;
 
@@ -41,7 +40,7 @@ public class BlockBigDripleaf extends BlockFlowable implements Faceable {
 
     @PowerNukkitXOnly
     @Since("1.6.0.0-PNX")
-    public static final BlockProperties PROPERTIES = new BlockProperties(CommonBlockProperties.DIRECTION, TILT, HEAD);
+    public static final BlockProperties PROPERTIES = new BlockProperties(CommonBlockProperties.CARDINAL_DIRECTION, TILT, HEAD);
 
     protected BlockBigDripleaf() {
         super(0);
@@ -67,14 +66,14 @@ public class BlockBigDripleaf extends BlockFlowable implements Faceable {
 
     @Override
     public BlockFace getBlockFace() {
-        return getPropertyValue(CommonBlockProperties.DIRECTION);
+        return getPropertyValue(CommonBlockProperties.CARDINAL_DIRECTION);
     }
 
     @Since("1.6.0.0-PNX")
     @PowerNukkitOnly
     @Override
     public void setBlockFace(BlockFace face) {
-        setPropertyValue(CommonBlockProperties.DIRECTION, face);
+        setPropertyValue(CommonBlockProperties.CARDINAL_DIRECTION, face);
     }
 
     public boolean isHead() {
@@ -325,11 +324,6 @@ public class BlockBigDripleaf extends BlockFlowable implements Faceable {
     @Override
     public boolean isSolid(BlockFace side) {
         return false;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.FOLIAGE_BLOCK_COLOR;
     }
 
     private boolean canSurvive() {

@@ -11,7 +11,6 @@ import cn.nukkit.item.Item;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.particle.BoneMealParticle;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -150,7 +149,8 @@ public abstract class BlockCrops extends BlockFlowable {
     }
 
     @Override
-    public BlockColor getColor() {
-        return BlockColor.FOLIAGE_BLOCK_COLOR;
+    public boolean isFertilizable() {
+        return true;
     }
+
 }

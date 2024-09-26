@@ -21,7 +21,6 @@ import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.SimpleAxisAlignedBB;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.network.protocol.UpdateBlockPacket;
-import cn.nukkit.utils.BlockColor;
 import com.google.common.base.Preconditions;
 import org.jetbrains.annotations.NotNull;
 
@@ -124,7 +123,7 @@ public class BlockSnowLayer extends BlockFallableMeta {
 
     @Override
     public double getHardness() {
-        return 0.1;
+        return 0.2;
     }
 
     @PowerNukkitDifference(since = "1.4.0.0-PN", info = "0.1 instead of 0.5")
@@ -314,11 +313,6 @@ public class BlockSnowLayer extends BlockFallableMeta {
                 amount = 4;
         }
         return new Item[]{Item.get(ItemID.SNOWBALL, 0, amount)};
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.SNOW_BLOCK_COLOR;
     }
 
     @Override

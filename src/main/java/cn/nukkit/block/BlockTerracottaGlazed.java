@@ -9,7 +9,6 @@ import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.utils.Faceable;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -82,7 +81,7 @@ public abstract class BlockTerracottaGlazed extends BlockSolidMeta implements Fa
     }
 
     //带釉陶瓦可以被推动但不能被收回
-    //see: https://minecraft.fandom.com/zh/wiki/%E5%B8%A6%E9%87%89%E9%99%B6%E7%93%A6
+    //see: https://zh.minecraft.wiki/w/%E5%B8%A6%E9%87%89%E9%99%B6%E7%93%A6
 
     @Override
     public boolean canBePushed() {

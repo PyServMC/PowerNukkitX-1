@@ -2,11 +2,7 @@ package cn.nukkit.block;
 
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.Since;
-import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.item.ItemTool;
-import cn.nukkit.utils.BlockColor;
-
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author GoodLucky777
@@ -35,12 +31,6 @@ public class BlockSlabDeepslatePolished extends BlockSlab {
     @Override
     public String getSlabName() {
         return "Polished Deepslate";
-    }
-
-    @NotNull
-    @Override
-    public BlockProperties getProperties() {
-        return SIMPLE_SLAB_PROPERTIES;
     }
     
     @Override
@@ -72,9 +62,5 @@ public class BlockSlabDeepslatePolished extends BlockSlab {
     public boolean isSameType(BlockSlab slab) {
         return getId() == slab.getId();
     }
-    
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.DEEPSLATE_GRAY;
-    }
+
 }

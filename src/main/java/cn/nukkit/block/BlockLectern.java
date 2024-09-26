@@ -9,28 +9,26 @@ import cn.nukkit.blockentity.BlockEntityLectern;
 import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.event.block.BlockRedstoneEvent;
 import cn.nukkit.event.block.LecternDropBookEvent;
-import cn.nukkit.event.player.PlayerInteractEvent.Action;
+import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemID;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.level.Level;
 import cn.nukkit.level.Sound;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.Faceable;
 import cn.nukkit.utils.RedstoneComponent;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 
-import static cn.nukkit.blockproperty.CommonBlockProperties.DIRECTION;
-import static cn.nukkit.blockproperty.CommonBlockProperties.POWERED;
+import static cn.nukkit.blockproperty.CommonBlockProperties.*;
 
 @PowerNukkitOnly
 public class BlockLectern extends BlockTransparentMeta implements RedstoneComponent, Faceable, BlockEntityHolder<BlockEntityLectern> {
     @PowerNukkitOnly
     @Since("1.5.0.0-PN")
-    public static final BlockProperties PROPERTIES = new BlockProperties(DIRECTION, POWERED);
+    public static final BlockProperties PROPERTIES = new BlockProperties(CARDINAL_DIRECTION, POWERED);
 
     @PowerNukkitOnly
     public BlockLectern() {
@@ -150,20 +148,21 @@ public class BlockLectern extends BlockTransparentMeta implements RedstoneCompon
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
     @Override
-    public int onTouch(@Nullable Player player, Action action) {
-        if (player != null && action == Action.LEFT_CLICK_BLOCK && player.isSurvival()) {
+    public int onTouch(@Nullable Player player, PlayerInteractEvent.Action action, BlockFace face) {
+        onUpdate(Level.BLOCK_UPDATE_TOUCH);
+        if (player != null && action == PlayerInteractEvent.Action.LEFT_CLICK_BLOCK && player.isSurvival()) {
             dropBook(player);
             return 1;
         }
         return 0;
     }
-
+  
     @Override
     public boolean onActivate(@NotNull Item item, @Nullable Player player) {
         BlockEntityLectern lectern = getOrCreateBlockEntity();
         Item currentBook = lectern.getBook();
         if (!currentBook.isNull()) {
-            return false;
+            return true;
         }
 
         if (item.getId() != ItemID.WRITTEN_BOOK && item.getId() != ItemID.BOOK_AND_QUILL) {
@@ -246,11 +245,6 @@ public class BlockLectern extends BlockTransparentMeta implements RedstoneCompon
         }
 
         return 0;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.WOOD_BLOCK_COLOR;
     }
 
     @PowerNukkitOnly

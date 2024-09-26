@@ -15,8 +15,6 @@ import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.SimpleAxisAlignedBB;
 import cn.nukkit.nbt.tag.CompoundTag;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 @PowerNukkitOnly
@@ -265,11 +263,6 @@ public class BlockScaffolding extends BlockFallableMeta {
     @Override
     public boolean isTransparent() {
         return true;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.TRANSPARENT_BLOCK_COLOR;
     }
 
     @Override

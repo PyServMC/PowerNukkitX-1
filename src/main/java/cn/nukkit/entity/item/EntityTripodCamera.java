@@ -115,7 +115,6 @@ public class EntityTripodCamera extends Entity implements EntityInteractable {
             return hasUpdated;
         }
         
-        this.timing.startTiming();
         lastUpdate = currentTick;
         boolean hasUpdate = entityBaseTick(tickDiff);
         
@@ -141,7 +140,6 @@ public class EntityTripodCamera extends Entity implements EntityInteractable {
             hasUpdate = true;
         }
         
-        this.timing.stopTiming();
         
         return hasUpdate || !onGround || Math.abs(motionX) > 0.00001 || Math.abs(motionY) > 0.00001 || Math.abs(motionZ) > 0.00001;
     }

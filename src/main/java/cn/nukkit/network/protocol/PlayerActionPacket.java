@@ -41,6 +41,10 @@ public class PlayerActionPacket extends DataPacket {
     public static final int ACTION_START_ITEM_USE_ON = 28;
     public static final int ACTION_STOP_ITEM_USE_ON = 29;
 
+    public static final int ACTION_START_FLYING = 34;
+    public static final int ACTION_STOP_FLYING = 35;
+    public static final int ACTION_RECEIVED_SERVER_DATA = 36;
+
     public long entityId;
     public int action;
     public int x;
@@ -67,7 +71,7 @@ public class PlayerActionPacket extends DataPacket {
         this.putEntityRuntimeId(this.entityId);
         this.putVarInt(this.action);
         this.putBlockVector3(this.x, this.y, this.z);
-        this.putBlockVector3(this.resultPosition);
+        this.putBlockVector3(this.resultPosition != null ? this.resultPosition : new BlockVector3());
         this.putVarInt(this.face);
     }
 

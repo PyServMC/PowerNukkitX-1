@@ -27,24 +27,32 @@ import cn.nukkit.math.NukkitMath;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.metadata.MetadataValue;
 import cn.nukkit.metadata.Metadatable;
+import cn.nukkit.nbt.NBTIO;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.plugin.Plugin;
 import cn.nukkit.potion.Effect;
 import cn.nukkit.utils.*;
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonParser;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
+import java.nio.ByteOrder;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -67,7 +75,7 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
     //<editor-fold desc="static fields" defaultstate="collapsed">
     @DeprecationDetails(since = "1.4.0.0-PN", reason = "It is being replaced by an other solution that don't require a fixed size")
     @PowerNukkitOnly
-    public static final int MAX_BLOCK_ID = dynamic(850);
+    public static final int MAX_BLOCK_ID = dynamic(868);
 
     @Deprecated
     @DeprecationDetails(since = "1.4.0.0-PN", reason = "It's not a constant value, it may be changed on major updates and" +
@@ -713,7 +721,7 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
             list[SOUL_TORCH] = BlockSoulTorch.class; //523
             list[SOUL_LANTERN] = BlockSoulLantern.class; //524
             list[NETHERITE_BLOCK] = BlockNetheriteBlock.class; //525
-            list[ANCIENT_DERBRIS] = BlockAncientDebris.class; //526
+            list[ANCIENT_DEBRIS] = BlockAncientDebris.class; //526
             list[RESPAWN_ANCHOR] = BlockRespawnAnchor.class; //527
             list[BLACKSTONE] = BlockBlackstone.class; //528
             list[POLISHED_BLACKSTONE_BRICKS] = BlockBricksBlackstonePolished.class; //529
@@ -942,22 +950,66 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
             list[MANGROVE_WOOD] = BlockWoodMangrove.class;//752
             list[STRIPPED_MANGROVE_WOOD] = BlockWoodStrippedMangrove.class;//753
             list[DOUBLE_MANGROVE_SLAB] = BlockDoubleSlabMangrove.class;//754
+            list[OAK_HANGING_SIGN] = BlockOakHangingSign.class;//755
+            list[SPRUCE_HANGING_SIGN] = BlockSpruceHangingSign.class;//756
+            list[BIRCH_HANGING_SIGN] = BlockBirchHangingSign.class;//757
+            list[JUNGLE_HANGING_SIGN] = BlockJungleHangingSign.class;//758
+            list[ACACIA_HANGING_SIGN] = BlockAcaciaHangingSign.class;//759
+            list[DARK_OAK_HANGING_SIGN] = BlockDarkOakHangingSign.class;//760
+            list[CRIMSON_HANGING_SIGN] = BlockCrimsonHangingSign.class;//761
+            list[WARPED_HANGING_SIGN] = BlockWarpedHangingSign.class;//762
+            list[MANGROVE_HANGING_SIGN] = BlockMangroveHangingSign.class;//763
+            list[BAMBOO_MOSAIC] = BlockBambooMosaic.class;//764
+            list[BAMBOO_PLANKS] = BlockBambooPlanks.class;//765
+            list[BAMBOO_BUTTON] = BlockBambooButton.class;//766
+            list[BAMBOO_STAIRS] = BlockBambooStairs.class;//767
+            list[BAMBOO_SLAB] = BlockBambooSlab.class;//768
+            list[BAMBOO_PRESSURE_PLATE] = BlockBambooPressurePlate.class;//769
+            list[BAMBOO_FENCE] = BlockBambooFence.class;//770
+            list[BAMBOO_FENCE_GATE] = BlockBambooFenceGate.class;//771
+            list[BAMBOO_DOOR] = BlockBambooDoor.class;//772
+            list[BAMBOO_STANDING_SIGN] = BlockBambooStandingSign.class;//773
+            list[BAMBOO_WALL_SIGN] = BlockBambooWallSign.class;//774
+            list[BAMBOO_TRAPDOOR] = BlockBambooTrapdoor.class;//775
+            list[BAMBOO_DOUBLE_SLAB] = BlockBambooDoubleSlab.class;//776
+            list[BAMBOO_HANGING_SIGN] = BlockBambooHangingSign.class;//777
+            list[BAMBOO_MOSAIC_STAIRS] = BlockBambooMosaicStairs.class;//778
+            list[BAMBOO_MOSAIC_SLAB] = BlockBambooMosaicSlab.class;//779
+            list[BAMBOO_MOSAIC_DOUBLE_SLAB] = BlockBambooMosaicDoubleSlab.class;//780
+            list[CHISELED_BOOKSHELF] = BlockChiseledBookshelf.class;//781
+            list[BAMBOO_BLOCK] = BlockBambooBlock.class;//782
+            list[STRIPPED_BAMBOO_BLOCK] = BlockStrippedBambooBlock.class;//783
+            list[SUSPICIOUS_SAND] = BlockSuspiciousSand.class;//784
 
-            list[LIGHT_GRAY_WOOL] = BlockLightGrayWool.class;//807
-            list[GRAY_WOOL] = BlockGrayWool.class;//808
-            list[BLACK_WOOL] = BlockBlackWool.class;//809
-            list[BROWN_WOOL] = BlockBrownWool.class;//810
-            list[RED_WOOL] = BlockRedWool.class;//811
-            list[ORANGE_WOOL] = BlockOrangeWool.class;//812
-            list[YELLOW_WOOL] = BlockYellowWool.class;//813
-            list[LIME_WOOL] = BlockLimeWool.class;//814
-            list[GREEN_WOOL] = BlockGreenWool.class;//815
-            list[CYAN_WOOL] = BlockCyanWool.class;//816
-            list[LIGHT_BLUE_WOOL] = BlockLightBlueWool.class;//817
-            list[BLUE_WOOL] = BlockBlueWool.class;//818
-            list[PURPLE_WOOL] = BlockPurpleWool.class;//819
-            list[MAGENTA_WOOL] = BlockMagentaWool.class;//820
-            list[PINK_WOOL] = BlockPinkWool.class;//821
+            list[CHERRY_BUTTON] = BlockButtonCherry.class;//785
+            list[CHERRY_DOOR] = BlockDoorCherry.class;//786
+            list[CHERRY_FENCE] = BlockFenceCherry.class;//787
+            list[CHERRY_FENCE_GATE] = BlockFenceGateCherry.class;//788
+            list[CHERRY_HANGING_SIGN] = BlockCherryHangingSign.class;//789
+
+            list[STRIPPED_CHERRY_LOG] = BlockLogStrippedCherry.class;//790
+            list[CHERRY_LOG] = BlockCherryLog.class;//791
+            list[CHERRY_PLANKS] = BlockPlanksCherry.class;//792
+            list[CHERRY_PRESSURE_PLATE] = BlockPressurePlateCherry.class;//793
+            list[CHERRY_SLAB] = BlockSlabCherry.class;//794
+            list[DOUBLE_CHERRY_SLAB] = BlockDoubleSlabCherry.class;//795
+            list[CHERRY_STAIRS] = BlockStairsCherry.class;//796
+            list[CHERRY_STANDING_SIGN] = BlockCherrySignPost.class;//797
+            list[CHERRY_TRAPDOOR] = BlockTrapdoorCherry.class;//798
+            list[CHERRY_WALL_SIGN] = BlockCherryWallSign.class;//799
+            list[STRIPPED_CHERRY_WOOD] = BlockWoodStrippedCherry.class;//800
+            list[CHERRY_WOOD] = BlockWoodCherry.class;//801
+            list[CHERRY_SAPLING] = BlockCherrySapling.class;//802
+            list[CHERRY_LEAVES] = BlockCherryLeaves.class;//803
+            list[PINK_PETALS] = BlockPinkPetals.class;//804
+            list[DECORATED_POT] = BlockDecoratedPot.class;//806
+            list[TORCHFLOWER_CROP] = BlockTorchflowerCrop.class;//822
+            list[TORCHFLOWER] = BlockTorchflower.class;//823
+            list[SUSPICIOUS_GRAVEL] = BlockSuspiciousGravel.class;//828
+            list[PITCHER_CROP] = BlockPitcherCrop.class;//829
+            list[CALIBRATED_SCULK_SENSOR] = BlockCalibratedSculkSensor.class;//835
+            list[SNIFFER_EGG] = BlockSnifferEgg.class;//851
+            list[PITCHER_PLANT] = BlockPitcherPlant.class;//867
             initializing = true;
 
             for (int id = 0; id < MAX_BLOCK_ID; id++) {
@@ -1432,7 +1484,9 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
                 throw new CustomBlockStateRegisterException("Register CustomBlock state error, please check all your CustomBlock plugins,contact the plugin author! Error:", result.getError());
             }
             RuntimeItems.getRuntimeMapping().registerCustomBlock(blocks);//注册物品
-            blocks.forEach(b -> Item.addCreativeItem(b.toItem()));//注册创造栏物品
+            blocks.stream().filter( CustomBlock::shouldBeRegisteredInCreative ).forEach(
+                b -> Item.addCreativeItem(b.toItem())
+            );//注册创造栏物品
         }
     }
 
@@ -1499,7 +1553,7 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
         return this.getLevel().setBlock(this, this, true, true);
     }
 
-    //http://minecraft.gamepedia.com/Breaking
+    //http://minecraft.wiki/w/Breaking
     public boolean canHarvestWithHand() {  //used for calculating breaking time
         return true;
     }
@@ -1533,8 +1587,21 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
      */
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
-    public int onTouch(@Nullable Player player, PlayerInteractEvent.Action action) {
+    public int onTouch(@Nullable Player player, PlayerInteractEvent.Action action, BlockFace face) {
+        onUpdate(Level.BLOCK_UPDATE_TOUCH);
         return 0;
+    }
+
+    @PowerNukkitOnly
+    @Since("1.4.0.0-PN")
+    public int onTouch(@Nullable Player player, PlayerInteractEvent.Action action) {
+        onUpdate(Level.BLOCK_UPDATE_TOUCH);
+        return 0;
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    public void onPlayerRightClick(@NotNull Player player, Item item, BlockFace face, Vector3 clickPoint) {
     }
 
     @PowerNukkitOnly
@@ -1580,10 +1647,23 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
         return 1;
     }
 
+    /**
+     * 这个值越大，这个方块本身越容易起火
+     * 返回-1,这个方块不能被点燃
+     * <p>
+     * The higher this value, the more likely the block itself is to catch fire
+     *
+     * @return the burn chance
+     */
     public int getBurnChance() {
         return 0;
     }
 
+    /**
+     * 这个值越大，越有可能被旁边的火焰引燃
+     * <p>
+     * The higher this value, the more likely it is to be ignited by the fire next to it
+     */
     public int getBurnAbility() {
         return 0;
     }
@@ -1600,9 +1680,9 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
     public static final double DEFAULT_FRICTION_FACTOR = 0.6;
 
     /**
-     * 控制方块的摩擦因素。此值越小阻力越大
-     *
-     * @return 方块的摩擦因素 (0-1)
+     * 服务端侧的摩擦系数，用于控制玩家丢弃物品、实体、船其在上方移动的速度。值越大，移动越快。
+     * <p>
+     * The friction on the server side, which is used to control the speed that player drops item,entity walk and boat movement on the block.The larger the value, the faster the movement.
      */
     public double getFrictionFactor() {
         return DEFAULT_FRICTION_FACTOR;
@@ -1671,7 +1751,7 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
         return isSideFull(side);
     }
 
-    // https://minecraft.gamepedia.com/Opacity#Lighting
+    // https://minecraft.wiki/w/Opacity#Lighting
     @PowerNukkitOnly
     public boolean diffusesSkyLight() {
         return false;
@@ -1773,8 +1853,34 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
         return false;
     }
 
+    protected static final Map<Long, BlockColor> VANILLA_BLOCK_COLOR_MAP = new Long2ObjectOpenHashMap<>();
+
+    static {
+        try (var reader = new InputStreamReader(new BufferedInputStream(Objects.requireNonNull(Block.class.getClassLoader().getResourceAsStream("block_color.json"))))) {
+            var parser = JsonParser.parseReader(reader);
+            for (var entry : parser.getAsJsonObject().entrySet()) {
+                var r = entry.getValue().getAsJsonObject().get("r").getAsInt();
+                var g = entry.getValue().getAsJsonObject().get("g").getAsInt();
+                var b = entry.getValue().getAsJsonObject().get("b").getAsInt();
+                var a = entry.getValue().getAsJsonObject().get("a").getAsInt();
+                VANILLA_BLOCK_COLOR_MAP.put(Long.parseLong(entry.getKey()), new BlockColor(r, g, b, a));
+            }
+        } catch (IOException e) {
+            log.error("Failed to load block color map", e);
+        }
+    }
+
+    protected BlockColor color;
+
     public BlockColor getColor() {
-        return BlockColor.VOID_BLOCK_COLOR;
+        if (color != null) return color;
+        else color = VANILLA_BLOCK_COLOR_MAP.get(computeUnsignedBlockStateHash());
+        if (color == null) {
+            log.error("Failed to get color of block " + getName());
+            log.error("Current block state hash: " + computeUnsignedBlockStateHash());
+            color = BlockColor.VOID_BLOCK_COLOR;
+        }
+        return color;
     }
 
     public abstract String getName();
@@ -1996,7 +2102,7 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
                 (blockId == COBWEB && item.isShears());
     }
 
-    //http://minecraft.gamepedia.com/Breaking
+    //http://minecraft.wiki/w/Breaking
     private static double breakTime0(double blockHardness, boolean correctTool, boolean canHarvestWithHand,
                                      int blockId, int toolType, int toolTier, int efficiencyLoreLevel, int hasteEffectLevel,
                                      boolean insideOfWaterWithoutAquaAffinity, boolean outOfWaterButNotOnGround) {
@@ -2119,7 +2225,7 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
     }
 
     /**
-     * 计算方块挖掘需要多少tick (计算算法来自https://minecraft.fandom.com/wiki/Breaking)
+     * 计算方块挖掘需要多少tick (计算算法来自https://minecraft.wiki/w/Breaking)
      *
      * @param item   挖掘工具
      * @param player 挖掘方块的玩家
@@ -3062,10 +3168,45 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
             if (this instanceof BlockEntityHolder<?> holder1 && otherBlock instanceof BlockEntityHolder<?> holder2) {
                 BlockEntity be1 = holder1.getOrCreateBlockEntity();
                 BlockEntity be2 = holder2.getOrCreateBlockEntity();
-                if ((be1 == null) != (be2 == null)) return false;
                 return this.getId() == otherBlock.getId() && this.getDamage() == otherBlock.getDamage() && be1.getCleanedNBT().equals(be2.getCleanedNBT());
             }
         }
         return false;
     }
+
+    private int cachedBlockStateHash = -1;
+
+    @PowerNukkitXOnly
+    @Since("1.19.80-r3")
+    @SneakyThrows
+    public int computeBlockStateHash() {
+        if (cachedBlockStateHash != -1) {
+            return cachedBlockStateHash;
+        } else {
+            if (getPersistenceName().equals("minecraft:unknown")) {
+                return cachedBlockStateHash = -2; // This is special case
+            }
+            var tag = NBTIO.putBlockHelper(this, "").remove("version");
+            return cachedBlockStateHash = MinecraftNamespaceComparator.fnv1a_32(NBTIO.write(tag, ByteOrder.LITTLE_ENDIAN));
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return ((int) x ^ ((int) z << 12)) ^ ((int) (y + 64) << 23);
+    }
+
+
+    @PowerNukkitXOnly
+    @Since("1.19.80-r3")
+    @SneakyThrows
+    public long computeUnsignedBlockStateHash() {
+        return Integer.toUnsignedLong(computeBlockStateHash());
+    }
+    @PowerNukkitXOnly
+    @Since("1.20.10-r2")
+    public boolean isFertilizable() {
+        return false;
+    }
+
 }

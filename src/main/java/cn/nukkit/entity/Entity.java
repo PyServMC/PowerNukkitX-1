@@ -10,6 +10,7 @@ import cn.nukkit.blockstate.BlockState;
 import cn.nukkit.entity.custom.CustomEntity;
 import cn.nukkit.entity.custom.CustomEntityDefinition;
 import cn.nukkit.entity.data.*;
+import cn.nukkit.entity.data.property.*;
 import cn.nukkit.entity.item.*;
 import cn.nukkit.entity.mob.*;
 import cn.nukkit.entity.passive.*;
@@ -41,13 +42,11 @@ import cn.nukkit.metadata.Metadatable;
 import cn.nukkit.nbt.tag.*;
 import cn.nukkit.network.protocol.*;
 import cn.nukkit.network.protocol.types.EntityLink;
+import cn.nukkit.network.protocol.types.PropertySyncData;
 import cn.nukkit.plugin.Plugin;
 import cn.nukkit.potion.Effect;
 import cn.nukkit.scheduler.Task;
 import cn.nukkit.utils.*;
-import co.aikar.timings.Timing;
-import co.aikar.timings.Timings;
-import co.aikar.timings.TimingsHistory;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntCollection;
@@ -123,12 +122,12 @@ public abstract class Entity extends Location implements Metadatable {
     @DeprecationDetails(since = "1.4.0.0-PN", by = "PowerNukkit",
             reason = "Apparently this the ID 24 was reused to represent CLIENT_EVENT but Cloudburst Nukkit is still mapping it as age")
     public static final int DATA_ENTITY_AGE = dynamic(DATA_CLIENT_EVENT); //short
+    public static final int DATA_PLAYER_FLAG_SLEEP = 1;
+    public static final int DATA_PLAYER_FLAG_DEAD = 2;
     @PowerNukkitOnly
     @Since("1.4.0.0-PN")
     public static final int DATA_USING_ITEM = dynamic(25); //byte
 
-    public static final int DATA_PLAYER_FLAG_SLEEP = 1;
-    public static final int DATA_PLAYER_FLAG_DEAD = 2;
     public static final int DATA_PLAYER_FLAGS = dynamic(26); //byte
     @Since("1.2.0.0-PN")
     public static final int DATA_PLAYER_INDEX = dynamic(27);
@@ -296,6 +295,9 @@ public abstract class Entity extends Location implements Metadatable {
     @Since("1.19.40-r3")
     public static final int DATA_PLAYER_HAS_DIED = 129;// ???
 
+    @Since("1.20.10-r1")
+    public static final int DATA_COLLISION_BOX = 130; //vector3f
+
     // Flags
     public static final int DATA_FLAG_ONFIRE = dynamic(0);
     public static final int DATA_FLAG_SNEAKING = dynamic(1);
@@ -337,6 +339,7 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_FLAG_CHESTED = dynamic(36);
     public static final int DATA_FLAG_STACKABLE = dynamic(37);
     public static final int DATA_FLAG_SHOWBASE = dynamic(38);
+    //STANDING
     public static final int DATA_FLAG_REARING = dynamic(39);
     public static final int DATA_FLAG_VIBRATING = dynamic(40);
     public static final int DATA_FLAG_IDLING = dynamic(41);
@@ -467,6 +470,8 @@ public abstract class Entity extends Location implements Metadatable {
     public static final int DATA_FLAG_FEELING_HAPPY = dynamic(112);
     @Since("1.19.70-r1")
     public static final int DATA_FLAG_SEARCHING = dynamic(113);
+    @Since("1.20.10-r1")
+    public static final int DATA_FLAG_CRAWLING = dynamic(114);
 
     private static final Set<CustomEntityDefinition> entityDefinitions = new HashSet<>();
     private static final Map<String, EntityProvider<? extends Entity>> knownEntities = new HashMap<>();
@@ -484,6 +489,11 @@ public abstract class Entity extends Location implements Metadatable {
             .putString(DATA_NAMETAG, "")
             .putLong(DATA_LEAD_HOLDER_EID, -1)
             .putFloat(DATA_SCALE, 1f);
+    /**
+     * 这个实体骑在谁身上
+     * <p>
+     * Who is this entity riding on
+     */
     public Entity riding = null;
     public FullChunk chunk;
     public List<Block> blocksAround = new ArrayList<>();
@@ -566,15 +576,29 @@ public abstract class Entity extends Location implements Metadatable {
     protected boolean inEndPortal;
     protected boolean isStatic = false;
     protected Server server;
-    protected Timing timing;
     protected boolean isPlayer = this instanceof Player;
     private int maxHealth = 20;
     private volatile boolean initialized;
 
+    @PowerNukkitXOnly
+    @Since("1.20.10-r1")
+    protected volatile boolean saveWithChunk = true;
+
+    @PowerNukkitXOnly
+    @Since("1.20.10-r2")
+    private Map<String, Integer> intProperties = new LinkedHashMap<>();
+
+    @PowerNukkitXOnly
+    @Since("1.20.10-r2")
+    private Map<String, Float> floatProperties = new LinkedHashMap<>();
+
     public Entity(FullChunk chunk, CompoundTag nbt) {
         if (this instanceof Player) {
+            initEntityProperties("minecraft:player");
             return;
         }
+
+        initEntityProperties();
 
         this.init(chunk, nbt);
     }
@@ -649,11 +673,12 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     /**
-     * @see #registerEntity(String, Class<? extends Entity>, boolean)
+     * @see #registerEntity(String, Class, boolean)
      */
     @Nullable
     public static Entity createEntity(@NotNull String name, @NotNull FullChunk chunk, @NotNull CompoundTag nbt, @Nullable Object... args) {
         var provider = knownEntities.get(name);
+        nbt.putBoolean("movedV3", true);
         if (provider != null) {
             return provider.provideEntity(chunk, nbt, args);
         }
@@ -701,7 +726,7 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     /**
-     * @see #registerEntity(EntityProvider<? extends Entity>, boolean)
+     * @see #registerEntity(EntityProvider, boolean)
      */
     @PowerNukkitXOnly
     @Since("1.19.21-r2")
@@ -761,9 +786,6 @@ public abstract class Entity extends Location implements Metadatable {
     @PowerNukkitXOnly
     @Since("1.19.21-r2")
     public static OK<?> registerCustomEntity(CustomEntityProvider customEntityProvider) {
-        if (!Server.getInstance().isEnableExperimentMode() || Server.getInstance().getConfig("settings.waterdogpe", false)) {
-            return new OK<>(false, "The server does not have the experiment mode feature enabled.Unable to register custom entity!");
-        }
         entityDefinitions.add(customEntityProvider.getCustomEntityDefinition());
         return new OK<Void>(registerEntity(customEntityProvider, true));
     }
@@ -950,7 +972,7 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     /**
-     * @see #playAnimationOnEntities(AnimateEntityPacket.Animation, Collection<Entity>, Collection<Player>)
+     * @see #playAnimationOnEntities(AnimateEntityPacket.Animation, Collection, Collection)
      */
     @PowerNukkitXOnly
     @Since("1.19.50-r3")
@@ -1166,6 +1188,15 @@ public abstract class Entity extends Location implements Metadatable {
         return 1;
     }
 
+    /**
+     * 实体初始化顺序，先初始化Entity类字段->Entity构造函数->进入init方法->调用initEntity方法->子类字段初始化->子类构造函数
+     * <p>
+     * 用于初始化实体的NBT和实体字段的方法
+     * <p>
+     * Entity initialization order, first initialize the Entity class field->Entity constructor->Enter the init method->Call the init Entity method-> subclass field initialization-> subclass constructor
+     * <p>
+     * The method used to initialize the NBT and entity fields of the entity
+     */
     protected void initEntity() {
         if (!(this instanceof Player)) {
             if (this.namedTag.contains("uuid")) {
@@ -1218,8 +1249,6 @@ public abstract class Entity extends Location implements Metadatable {
         }
         this.initialized = true;
 
-        this.timing = Timings.getEntityTiming(this);
-
         this.isPlayer = this instanceof Player;
         this.temporalVector = new Vector3();
 
@@ -1236,6 +1265,7 @@ public abstract class Entity extends Location implements Metadatable {
         ListTag<DoubleTag> posList = this.namedTag.getList("Pos", DoubleTag.class);
         ListTag<FloatTag> rotationList = this.namedTag.getList("Rotation", FloatTag.class);
         ListTag<DoubleTag> motionList = this.namedTag.getList("Motion", DoubleTag.class);
+
         this.setPositionAndRotation(
                 this.temporalVector.setComponents(
                         posList.get(0).data,
@@ -1289,7 +1319,6 @@ public abstract class Entity extends Location implements Metadatable {
             this.chunk.addEntity(this);
             this.level.addEntity(this);
 
-            //TODO: 此方法放在这里调用不合适
             this.initEntity();
 
             this.lastUpdate = this.server.getTick();
@@ -1688,6 +1717,13 @@ public abstract class Entity extends Location implements Metadatable {
         return shortNames.getOrDefault(this.getClass().getSimpleName(), "");
     }
 
+    /**
+     * 将这个实体在客户端生成，让该玩家可以看到它
+     * <p>
+     * Spawn this entity on the client side so that the player can see it
+     *
+     * @param player the player
+     */
     public void spawnTo(Player player) {
 
         if (!this.hasSpawned.containsKey(player.getLoaderId()) && this.chunk != null && player.usedChunks.containsKey(Level.chunkHash(this.chunk.getX(), this.chunk.getZ()))) {
@@ -1761,6 +1797,7 @@ public abstract class Entity extends Location implements Metadatable {
         SetEntityDataPacket pk = new SetEntityDataPacket();
         pk.eid = this.getId();
         pk.metadata = data == null ? this.dataProperties : data;
+        pk.syncedProperties = this.propertySyncData();
 
         player.dataPacket(pk);
     }
@@ -1773,6 +1810,7 @@ public abstract class Entity extends Location implements Metadatable {
         SetEntityDataPacket pk = new SetEntityDataPacket();
         pk.eid = this.getId();
         pk.metadata = data == null ? this.dataProperties : data;
+        pk.syncedProperties = this.propertySyncData();
 
         for (Player player : players) {
             if (player == this) {
@@ -1850,11 +1888,11 @@ public abstract class Entity extends Location implements Metadatable {
         if (newHealth < 1 && this instanceof Player player) {
             if (source.getCause() != DamageCause.VOID && source.getCause() != DamageCause.SUICIDE) {
                 boolean totem = false;
+                boolean isOffhand = false;
                 if (player.getOffhandInventory().getItem(0) instanceof ItemTotem) {
-                    player.getOffhandInventory().clear(0, true);
                     totem = true;
+                    isOffhand = true;
                 } else if (player.getInventory().getItemInHand() instanceof ItemTotem) {
-                    player.getInventory().clear(player.getInventory().getHeldItemIndex(), true);
                     totem = true;
                 }
                 //复活图腾实现
@@ -1873,6 +1911,12 @@ public abstract class Entity extends Location implements Metadatable {
                     pk.eid = this.getId();
                     pk.event = EntityEventPacket.CONSUME_TOTEM;
                     player.dataPacket(pk);
+
+                    if (isOffhand) {
+                        player.getOffhandInventory().clear(0, true);
+                    } else {
+                        player.getInventory().clear(player.getInventory().getHeldItemIndex(), true);
+                    }
 
                     source.setCancelled(true);
                     return false;
@@ -1960,8 +2004,16 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     public boolean canCollideWith(Entity entity) {
-        return !this.justCreated && this != entity;
+        return !this.justCreated && this != entity && !this.noClip;
     }
+
+    @PowerNukkitXOnly
+    @Since("1.20.10-r1")
+    public boolean canBeSavedWithChunk() { return saveWithChunk; }
+
+    @PowerNukkitXOnly
+    @Since("1.20.10-r1")
+    public void setCanBeSavedWithChunk(boolean saveWithChunk) { this.saveWithChunk = saveWithChunk; }
 
     protected boolean checkObstruction(double x, double y, double z) {
         if (this.level.fastCollisionCubes(this, this.getBoundingBox(), false).size() == 0 || this.noClip) {
@@ -2063,8 +2115,6 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     public boolean entityBaseTick(int tickDiff) {
-        Timings.entityBaseTickTimer.startTiming();
-
         if (!this.isPlayer) {
             this.blocksAround = null;
             this.collisionBlocks = null;
@@ -2077,7 +2127,6 @@ public abstract class Entity extends Location implements Metadatable {
             if (!this.isPlayer) {
                 this.close();
             }
-            Timings.entityBaseTickTimer.stopTiming();
             return false;
         }
         if (riding != null && !riding.isAlive() && riding instanceof EntityRideable) {
@@ -2178,9 +2227,7 @@ public abstract class Entity extends Location implements Metadatable {
         }
         this.age += tickDiff;
         this.ticksLived += tickDiff;
-        TimingsHistory.activatedEntityTicks++;
 
-        Timings.entityBaseTickTimer.stopTiming();
         return hasUpdate;
     }
 
@@ -2452,7 +2499,7 @@ public abstract class Entity extends Location implements Metadatable {
         pk.vehicleUniqueId = getId();         // To the?
         pk.riderUniqueId = rider.getId(); // From who?
         pk.type = type;
-
+        pk.riderInitiated = type > 0;
         Server.broadcastPacket(this.hasSpawned.values(), pk);
     }
 
@@ -2566,6 +2613,7 @@ public abstract class Entity extends Location implements Metadatable {
                 Block lb = this.getLevelBlock();
                 Block lb2 = this.getLevelBlockAtLayer(1);
                 // TODO: BlockFenceGate
+                if(this.namedTag.contains("NO_FALLING") && this.namedTag.getBoolean("NO_FALLING")) return;
                 if (this instanceof EntityLiving &&  !(this.getLevelBlock() instanceof BlockPowderSnow) && !(lb instanceof BlockWater || lb instanceof BlockFence || (lb2 instanceof BlockWater && lb2.getMaxY() == 1d))) {
                     this.fall(fallDistance);
                 }
@@ -2632,7 +2680,8 @@ public abstract class Entity extends Location implements Metadatable {
         }
     }
 
-    private boolean onPhysicalInteraction(Block block, boolean cancelled) {
+    @PowerNukkitXDifference(info = "change to protected")
+    protected boolean onPhysicalInteraction(Block block, boolean cancelled) {
         Event ev;
 
         if (this instanceof Player) {
@@ -2871,8 +2920,6 @@ public abstract class Entity extends Location implements Metadatable {
             return true;
         }
 
-        Timings.entityMoveTimer.startTiming();
-
         AxisAlignedBB newBB = this.boundingBox.getOffsetBoundingBox(dx, dy, dz);
 
         if (server.getAllowFlight()
@@ -2895,7 +2942,6 @@ public abstract class Entity extends Location implements Metadatable {
         }
         this.isCollided = this.onGround;
         this.updateFallState(this.onGround);
-        Timings.entityMoveTimer.stopTiming();
         return true;
     }
 
@@ -2913,8 +2959,6 @@ public abstract class Entity extends Location implements Metadatable {
             this.onGround = this.isPlayer;
             return true;
         } else {
-
-            Timings.entityMoveTimer.startTiming();
 
             this.ySize *= 0.4;
 
@@ -3013,7 +3057,6 @@ public abstract class Entity extends Location implements Metadatable {
             }
 
             //TODO: vehicle collision events (first we need to spawn them!)
-            Timings.entityMoveTimer.stopTiming();
             return true;
         }
     }
@@ -3160,7 +3203,8 @@ public abstract class Entity extends Location implements Metadatable {
             outerScaffolding:
             for (int i = minX; i <= maxX; i++) {
                 for (int j = minZ; j <= maxZ; j++) {
-                    if (level.getBlockIdAt(i, Y, j) == BlockID.SCAFFOLDING) {
+                    Location location = new Location(i, Y, j,level);
+                    if (location.getLevelBlock(false).getId() == BlockID.SCAFFOLDING) {
                         setDataFlag(DATA_FLAGS_EXTENDED, DATA_FLAG_OVER_SCAFFOLDING, true);
                         break outerScaffolding;
                     }
@@ -3880,5 +3924,106 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     private record OldStringClass(String key, Class<? extends Entity> value) {
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.20.10-r2")
+    private boolean validateAndSetIntProperty(String identifier, int value) {
+        if(!intProperties.containsKey(identifier)) return false;
+        intProperties.put(identifier, value);
+        return true;
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.20.10-r2")
+    public final boolean setIntEntityProperty(String identifier, int value) {
+        return validateAndSetIntProperty(identifier, value);
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.20.10-r2")
+    public final boolean setBooleanEntityProperty(String identifier, boolean value) {
+        return validateAndSetIntProperty(identifier, value ? 1 : 0);
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.20.10-r2")
+    public final boolean setFloatEntityProperty(String identifier, float value) {
+        if(!floatProperties.containsKey(identifier)) return false;
+        floatProperties.put(identifier, value);
+        return true;
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.20.10-r2")
+    public final boolean setEnumEntityProperty(String identifier, String value) {
+        if(!intProperties.containsKey(identifier)) return false;
+        List<EntityProperty> entityPropertyList = EntityProperty.getEntityProperty(this.getIdentifier().toString());
+
+        for (EntityProperty property : entityPropertyList) {
+            if(property.getIdentifier() == identifier && property instanceof EnumEntityProperty) {
+                int index = ((EnumEntityProperty) property).findIndex(value);
+
+                if(index >= 0) {
+                    intProperties.put(identifier, index);
+                    return true;
+                }
+                return false;
+            }
+        }
+        return false;
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.20.10-r2")
+    private void initEntityProperties() {
+        if(this.getIdentifier() != null) {
+            initEntityProperties(this.getIdentifier().toString());
+        }
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.20.10-r2")
+    private void initEntityProperties(String entityIdentifier) {
+        List<EntityProperty> entityPropertyList = EntityProperty.getEntityProperty(entityIdentifier);
+        if (entityPropertyList.isEmpty()) return;
+
+        for (EntityProperty property : entityPropertyList) {
+            final String identifier = property.getIdentifier();
+
+            if (property instanceof FloatEntityProperty) {
+                FloatEntityProperty floatProperty = (FloatEntityProperty) property;
+                floatProperties.put(identifier, floatProperty.getDefaultValue());
+            } else if (property instanceof IntEntityProperty) {
+                IntEntityProperty intProperty = (IntEntityProperty) property;
+                intProperties.put(identifier, intProperty.getDefaultValue());
+            } else if (property instanceof BooleanEntityProperty) {
+                BooleanEntityProperty booleanProperty = (BooleanEntityProperty) property;
+                intProperties.put(identifier, booleanProperty.getDefaultValue() ? 1 : 0);
+            } else if (property instanceof EnumEntityProperty) {
+                EnumEntityProperty enumProperty = (EnumEntityProperty) property;
+                intProperties.put(identifier, enumProperty.findIndex(enumProperty.getDefaultValue()));
+            }
+        }
+    }
+
+    @PowerNukkitXOnly
+    @Since("1.20.10-r2")
+    private PropertySyncData propertySyncData() {
+        Collection<Integer> intValues = intProperties.values();
+        int[] intArray = new int[intValues.size()];
+        int i = 0;
+        for (Integer value : intValues) {
+            intArray[i++] = value;
+        }
+
+        Collection<Float> floatValues = floatProperties.values();
+        float[] floatArray = new float[floatValues.size()];
+        i = 0;
+        for (Float value : floatValues) {
+            floatArray[i++] = value;
+        }
+
+        return new PropertySyncData(intArray, floatArray);
     }
 }

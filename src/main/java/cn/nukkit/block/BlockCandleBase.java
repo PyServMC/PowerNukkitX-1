@@ -147,11 +147,11 @@ public abstract class BlockCandleBase extends BlockTransparent {
     }
 
     @Override
-    public int onTouch(@Nullable Player player, PlayerInteractEvent.Action action) {
+    public int onTouch(@Nullable Player player, PlayerInteractEvent.Action action, BlockFace face) {
         if(player != null && action == PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK && player.getInventory().getItemInHand().isNull()) {
             this.setLit(false);
             this.getLevel().setBlock(this, this, true, true);
         }
-        return super.onTouch(player, action);
+        return super.onTouch(player, action, face);
     }
 }

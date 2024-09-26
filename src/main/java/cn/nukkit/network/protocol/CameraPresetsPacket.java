@@ -2,14 +2,19 @@ package cn.nukkit.network.protocol;
 
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
-import cn.nukkit.nbt.tag.CompoundTag;
+import cn.nukkit.camera.data.CameraPreset;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.Getter;
+import lombok.Setter;
+
+import java.util.List;
 
 @Since("1.19.70-r1")
 @PowerNukkitXOnly
 @Getter
+@Setter
 public class CameraPresetsPacket extends DataPacket {
-    private CompoundTag data;
+    private final List<CameraPreset> presets = new ObjectArrayList<>();
 
     @Override
     public byte pid() {
@@ -18,12 +23,26 @@ public class CameraPresetsPacket extends DataPacket {
 
     @Override
     public void decode() {
-        this.data = this.getTag();
     }
 
     @Override
     public void encode() {
         this.reset();
-        this.putTag(this.data);
+        putUnsignedVarInt(presets.size());
+        for (var p : presets) {
+            writePreset(p);
+        }
+    }
+
+    public void writePreset(CameraPreset preset) {
+        putString(preset.getIdentifier());
+        putString(preset.getInheritFrom());
+        putNotNull(preset.getPos(), (v) -> putLFloat(v.getX()));
+        putNotNull(preset.getPos(), (v) -> putLFloat(v.getY()));
+        putNotNull(preset.getPos(), (v) -> putLFloat(v.getZ()));
+        putNotNull(preset.getPitch(), this::putLFloat);
+        putNotNull(preset.getYaw(), this::putLFloat);
+        putNotNull(preset.getListener(), (l) -> putByte((byte) l.ordinal()));
+        putOptional(preset.getPlayEffect(), this::putBoolean);
     }
 }

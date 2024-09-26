@@ -7,7 +7,7 @@ import cn.nukkit.event.block.BlockFromToEvent;
 import cn.nukkit.event.player.PlayerInteractEvent.Action;
 import cn.nukkit.level.Level;
 import cn.nukkit.network.protocol.LevelEventPacket;
-import cn.nukkit.utils.BlockColor;
+import cn.nukkit.math.BlockFace;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.ThreadLocalRandom;
@@ -43,11 +43,6 @@ public class BlockDragonEgg extends BlockFallable {
     }
 
     @Override
-    public BlockColor getColor() {
-        return BlockColor.OBSIDIAN_BLOCK_COLOR;
-    }
-
-    @Override
     public boolean isTransparent() {
         return true;
     }
@@ -69,9 +64,12 @@ public class BlockDragonEgg extends BlockFallable {
     @Since("1.4.0.0-PN")
     @PowerNukkitOnly
     @Override
-    public int onTouch(@Nullable Player player, Action action) {
-        if (player != null && !player.isCreative() && (action == Action.RIGHT_CLICK_BLOCK || action == Action.LEFT_CLICK_BLOCK)) {
-            this.teleport();
+    public int onTouch(@Nullable Player player, Action action, BlockFace face) {
+        if (player != null && (action == Action.RIGHT_CLICK_BLOCK || action == Action.LEFT_CLICK_BLOCK)) {
+            if (player.isCreative() && action == Action.LEFT_CLICK_BLOCK) {
+                return 0;
+            }
+            onUpdate(Level.BLOCK_UPDATE_TOUCH);
             return 1;
         }
         return 0;
@@ -80,7 +78,7 @@ public class BlockDragonEgg extends BlockFallable {
     public void teleport() {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         for (int i = 0; i < 1000; ++i) {
-            Block to = this.getLevel().getBlock(this.add(random.nextInt(-16, 16), random.nextInt(-16, 16), random.nextInt(-16, 16)));
+            Block to = this.getLevel().getBlock(this.add(random.nextInt(-16, 16), random.nextInt(0, 16), random.nextInt(-16, 16)));
             if (to.getId() == AIR) {
                 BlockFromToEvent event = new BlockFromToEvent(this, to);
                 this.level.getServer().getPluginManager().callEvent(event);

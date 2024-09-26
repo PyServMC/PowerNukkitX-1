@@ -4,6 +4,7 @@ import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.api.*;
 import cn.nukkit.nbt.stream.FastByteArrayOutputStream;
+import cn.nukkit.network.process.DataPacketManager;
 import cn.nukkit.network.protocol.*;
 import cn.nukkit.utils.*;
 import cn.powernukkitx.libdeflate.CompressionType;
@@ -59,13 +60,13 @@ public class Network {
     public static final byte CHANNEL_TEXT = 7; //Chat and other text stuff
     public static final byte CHANNEL_END = 31;
 
-    private Int2ObjectOpenHashMap<Class<? extends DataPacket>> packetPool = new Int2ObjectOpenHashMap<>(256);
+    private final Int2ObjectOpenHashMap<Class<? extends DataPacket>> packetPool = new Int2ObjectOpenHashMap<>(256);
 
     private final Server server;
 
     private final Set<SourceInterface> interfaces = new HashSet<>();
 
-    private final Set<AdvancedSourceInterface> advancedInterfaces = new HashSet<>();
+    private final Set<AdvancedSourceInterface> advancedInterfaces = new HashSet<>(2);
 
     private final LinkedList<NetWorkStatisticData> netWorkStatisticDataList = new LinkedList<>();
 
@@ -77,8 +78,10 @@ public class Network {
     @Since("1.19.20-r3")
     private final List<NetworkIF> hardWareNetworkInterfaces;
 
+    @PowerNukkitXDifference(since = "1.19.80-r2", info = "DataPacketManager.registerDefaultProcessors()")
     public Network(Server server) {
         this.registerPackets();
+        DataPacketManager.registerDefaultProcessors();
         this.server = server;
         List<NetworkIF> tmpIfs = null;
         try {
@@ -407,6 +410,7 @@ public class Network {
         return getPacket((int) id);
     }
 
+    // TODO: 2023/4/30 将低性能的newInstance替换为其他方式以提高数据包创建性能
     @Since("1.4.0.0-PN")
     public DataPacket getPacket(int id) {
         Class<? extends DataPacket> clazz = this.packetPool.get(id);
@@ -447,6 +451,8 @@ public class Network {
     private void registerPackets() {
         this.packetPool.clear();
 
+        this.registerPacket(ProtocolInfo.SERVER_TO_CLIENT_HANDSHAKE_PACKET, ServerToClientHandshakePacket.class);
+        this.registerPacket(ProtocolInfo.CLIENT_TO_SERVER_HANDSHAKE_PACKET, ClientToServerHandshakePacket.class);
         this.registerPacket(ProtocolInfo.ADD_ENTITY_PACKET, AddEntityPacket.class);
         this.registerPacket(ProtocolInfo.ADD_ITEM_ENTITY_PACKET, AddItemEntityPacket.class);
         this.registerPacket(ProtocolInfo.ADD_PAINTING_PACKET, AddPaintingPacket.class);
@@ -527,6 +533,7 @@ public class Network {
         this.registerPacket(ProtocolInfo.START_GAME_PACKET, StartGamePacket.class);
         this.registerPacket(ProtocolInfo.TAKE_ITEM_ENTITY_PACKET, TakeItemEntityPacket.class);
         this.registerPacket(ProtocolInfo.TEXT_PACKET, TextPacket.class);
+        this.registerPacket(ProtocolInfo.SERVER_POST_MOVE_POSITION, ServerPostMovePositionPacket.class);
         this.registerPacket(ProtocolInfo.UPDATE_ATTRIBUTES_PACKET, UpdateAttributesPacket.class);
         this.registerPacket(ProtocolInfo.UPDATE_BLOCK_PACKET, UpdateBlockPacket.class);
         this.registerPacket(ProtocolInfo.UPDATE_TRADE_PACKET, UpdateTradePacket.class);
@@ -537,7 +544,7 @@ public class Network {
         this.registerPacket(ProtocolInfo.NETWORK_CHUNK_PUBLISHER_UPDATE_PACKET, NetworkChunkPublisherUpdatePacket.class);
         this.registerPacket(ProtocolInfo.AVAILABLE_ENTITY_IDENTIFIERS_PACKET, AvailableEntityIdentifiersPacket.class);
         this.registerPacket(ProtocolInfo.LEVEL_SOUND_EVENT_PACKET_V2, LevelSoundEventPacket.class);
-        this.registerPacket(ProtocolInfo.SCRIPT_CUSTOM_EVENT_PACKET, ScriptCustomEventPacket.class);
+//        this.registerPacket(ProtocolInfo.SCRIPT_CUSTOM_EVENT_PACKET, ScriptCustomEventPacket.class); // deprecated since 1.20.10
         this.registerPacket(ProtocolInfo.SPAWN_PARTICLE_EFFECT_PACKET, SpawnParticleEffectPacket.class);
         this.registerPacket(ProtocolInfo.BIOME_DEFINITION_LIST_PACKET, BiomeDefinitionListPacket.class);
         this.registerPacket(ProtocolInfo.LEVEL_SOUND_EVENT_PACKET, LevelSoundEventPacket.class);
@@ -608,6 +615,11 @@ public class Network {
         this.registerPacketNew(ProtocolInfo.toNewProtocolID(ProtocolInfo.CAMERA_PRESETS_PACKET), CameraPresetsPacket.class);
         this.registerPacketNew(ProtocolInfo.toNewProtocolID(ProtocolInfo.UNLOCKED_RECIPES_PACKET), UnlockedRecipesPacket.class);
         this.registerPacketNew(ProtocolInfo.CAMERA_INSTRUCTION_PACKET, CameraInstructionPacket.class);
+        this.registerPacketNew(ProtocolInfo.COMPRESSED_BIOME_DEFINITIONS_LIST, CompressedBiomeDefinitionListPacket.class);
+        this.registerPacketNew(ProtocolInfo.TRIM_DATA, TrimDataPacket.class);
+        this.registerPacketNew(ProtocolInfo.OPEN_SIGN, OpenSignPacket.class);
+        this.registerPacketNew(ProtocolInfo.AGENT_ANIMATION, AgentAnimationPacket.class);
+        this.registerPacketNew(ProtocolInfo.TOGGLE_CRAFTER_SLOT_REQUEST, ToggleCrafterSlotRequestPacket.class);
 
         this.packetPool.trim();
     }

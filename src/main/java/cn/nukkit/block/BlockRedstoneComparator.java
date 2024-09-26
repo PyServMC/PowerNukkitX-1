@@ -8,6 +8,7 @@ import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.blockentity.BlockEntityComparator;
 import cn.nukkit.blockproperty.BlockProperties;
 import cn.nukkit.blockproperty.BooleanBlockProperty;
+import cn.nukkit.blockproperty.CommonBlockProperties;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemRedstoneComparator;
 import cn.nukkit.level.Level;
@@ -15,13 +16,9 @@ import cn.nukkit.math.BlockFace;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.network.protocol.LevelEventPacket;
-import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.RedstoneComponent;
 import lombok.extern.log4j.Log4j2;
-
 import org.jetbrains.annotations.NotNull;
-
-import static cn.nukkit.blockproperty.CommonBlockProperties.DIRECTION;
 
 /**
  * @author CreeperFace
@@ -41,7 +38,7 @@ public abstract class BlockRedstoneComparator extends BlockRedstoneDiode impleme
 
     @PowerNukkitOnly
     @Since("1.5.0.0-PN")
-    public static final BlockProperties PROPERTIES = new BlockProperties(DIRECTION, OUTPUT_SUBTRACT, OUTPUT_LIT);
+    public static final BlockProperties PROPERTIES = new BlockProperties(CommonBlockProperties.CARDINAL_DIRECTION, OUTPUT_SUBTRACT, OUTPUT_LIT);
 
     public BlockRedstoneComparator() {
         this(0);
@@ -263,8 +260,4 @@ public abstract class BlockRedstoneComparator extends BlockRedstoneDiode impleme
         SUBTRACT
     }
 
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.AIR_BLOCK_COLOR;
-    }
 }

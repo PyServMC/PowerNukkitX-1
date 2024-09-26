@@ -22,7 +22,7 @@ public abstract class DefaultPermissions {
     }
 
     public static void registerCorePermissions() {
-        /*Permission parent = registerPermission(new Permission(ROOT, "Allows using all Nukkit commands and utilities"));
+        Permission parent = registerPermission(new Permission(ROOT, "Allows using all Nukkit commands and utilities"));
 
         Permission broadcasts = registerPermission(new Permission(ROOT + ".broadcast", "Allows the user to receive all broadcast messages"), parent);
 
@@ -31,7 +31,7 @@ public abstract class DefaultPermissions {
 
         broadcasts.recalculatePermissibles();
 
-        Permission commands = registerPermission(new Permission(ROOT + ".command", "Allows using all Nukkit commands"), parent);
+        /*Permission commands = registerPermission(new Permission(ROOT + ".command", "Allows using all Nukkit commands"), parent);
 
         Permission whitelist = registerPermission(new Permission(ROOT + ".command.whitelist", "Allows the user to modify the server whitelist", Permission.DEFAULT_OP), commands);
         registerPermission(new Permission(ROOT + ".command.whitelist.add", "Allows the user to add a player to the server whitelist"), whitelist);
@@ -105,7 +105,6 @@ public abstract class DefaultPermissions {
         registerPermission(new Permission(ROOT + ".command.gc", "Allows the user to fire garbage collection tasks", Permission.DEFAULT_OP), commands);
         //registerPermission(new Permission(ROOT + ".command.dumpmemory", "Allows the user to dump memory contents", Permission.DEFAULT_OP), commands); // this command is not implemented
         registerPermission(new Permission(ROOT + ".command.gamerule", "Sets or queries a game rule value", Permission.DEFAULT_OP), commands);
-        registerPermission(new Permission(ROOT + ".command.timings", "Allows the user to records timings for all plugin events", Permission.DEFAULT_OP), commands);
         registerPermission(new Permission(ROOT + ".command.title", "Allows the user to send titles to players", Permission.DEFAULT_OP), commands);
         registerPermission(new Permission(ROOT + ".command.spawnpoint", "Allows the user to change player's spawnpoint", Permission.DEFAULT_OP), commands);
         registerPermission(new Permission(ROOT + ".command.setworldspawn", "Allows the user to change the world spawn", Permission.DEFAULT_OP), commands);
@@ -117,9 +116,9 @@ public abstract class DefaultPermissions {
         
         registerPermission(new Permission(ROOT + ".textcolor", "Allows the user to write colored text", Permission.DEFAULT_OP), commands);
 
-        commands.recalculatePermissibles();
+        commands.recalculatePermissibles();*/
 
-        parent.recalculatePermissibles();*/
+        parent.recalculatePermissibles();
     }
 
 }

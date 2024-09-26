@@ -499,8 +499,6 @@ public class EntityArmorStand extends Entity implements EntityInventoryHolder, E
             return hasUpdated;
         }
 
-        this.timing.startTiming();
-
         lastUpdate = currentTick;
 
         boolean hasUpdate = entityBaseTick(tickDiff);
@@ -527,8 +525,6 @@ public class EntityArmorStand extends Entity implements EntityInventoryHolder, E
                 level.addSound(this, Sound.MOB_ARMOR_STAND_LAND);
             }
         }
-
-        this.timing.stopTiming();
 
         return hasUpdate || !onGround || Math.abs(motionX) > 0.00001 || Math.abs(motionY) > 0.00001 || Math.abs(motionZ) > 0.00001;
     }

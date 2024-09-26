@@ -9,6 +9,7 @@ import cn.nukkit.event.inventory.InventoryOpenEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.network.protocol.ContainerOpenPacket;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -49,6 +50,7 @@ public class StructBlockInventory implements Inventory {
         return this.getName();
     }
 
+    @NotNull
     @Override
     public Item getItem(int index) {
         return Item.get(Item.AIR);
@@ -171,7 +173,7 @@ public class StructBlockInventory implements Inventory {
 
     @Override
     public InventoryType getType() {
-        return null;
+        return InventoryType.STRUCTURE_EDITOR;
     }
 
     @Override
@@ -184,7 +186,7 @@ public class StructBlockInventory implements Inventory {
         if (who.isOp() && who.isCreative()) {
             ContainerOpenPacket pk = new ContainerOpenPacket();
             pk.windowId = who.getWindowId(this);
-            pk.type = 14;
+            pk.type = getType().getNetworkType();
             InventoryHolder holder = this.getHolder();
             if (holder instanceof Vector3) {
                 pk.x = ((Vector3) holder).getFloorX();

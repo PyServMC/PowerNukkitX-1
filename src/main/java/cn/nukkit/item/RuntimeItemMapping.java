@@ -1,6 +1,7 @@
 package cn.nukkit.item;
 
 import cn.nukkit.Server;
+import cn.nukkit.api.DoNotModify;
 import cn.nukkit.api.PowerNukkitOnly;
 import cn.nukkit.api.PowerNukkitXOnly;
 import cn.nukkit.api.Since;
@@ -10,6 +11,8 @@ import cn.nukkit.item.customitem.CustomItem;
 import cn.nukkit.item.customitem.CustomItemDefinition;
 import cn.nukkit.utils.BinaryStream;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -30,6 +33,10 @@ import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.function.Supplier;
 
+/**
+ * 这个类用于将旧版本物品以id:damage形式转换到新版本物品无damage值(0)的形式，以及提供{@link cn.nukkit.network.protocol.StartGamePacket StartGamePacket}中item Palette的作用<p>
+ * 例如在1.19.70中，不同颜色的羊毛由wool:color damage变成了minecraft:white_wool，minecraft:orange_wool这类字面量形式。
+ */
 @Log4j2
 public class RuntimeItemMapping {
     private final Int2ObjectMap<LegacyEntry> runtime2Legacy = new Int2ObjectOpenHashMap<>();
@@ -47,6 +54,9 @@ public class RuntimeItemMapping {
     @PowerNukkitXOnly
     @Since("1.19.70-r2")
     private final Map<String, Supplier<Item>> namespacedIdItem = new HashMap<>();
+    @PowerNukkitXOnly
+    @Since("1.19.80-r1")
+    private static final BiMap<String, String> blockMappings = HashBiMap.create();
     private byte[] itemPalette;
 
     public RuntimeItemMapping(Map<String, MappingEntry> mappings) {
@@ -89,11 +99,38 @@ public class RuntimeItemMapping {
                 RuntimeEntry runtimeEntry = new RuntimeEntry(identifier, runtimeId, hasDamage, false);
                 this.runtime2Legacy.put(runtimeId, legacyEntry);
                 this.identifier2Legacy.put(identifier, legacyEntry);
-                this.legacy2Runtime.put(fullId, runtimeEntry);
+                if (legacy2Runtime.containsKey(fullId)) {
+                    int old = RuntimeItems.getLegacyIdFromLegacyString(legacy2Runtime.get(fullId).identifier());
+                    int now = RuntimeItems.getLegacyIdFromLegacyString(runtimeEntry.identifier());
+                    if (old != -1 && now == -1) {
+                        legacy2Runtime.put(fullId, runtimeEntry);
+                    }
+                } else {
+                    this.legacy2Runtime.put(fullId, runtimeEntry);
+                }
                 this.itemPaletteEntries.add(runtimeEntry);
             }
 
             this.generatePalette();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        try (InputStream stream = Server.class.getClassLoader().getResourceAsStream("block_mappings.json")) {
+            if (stream == null) {
+                throw new AssertionError("Unable to load block_mappings.json");
+            }
+            JsonObject itemMapping = JsonParser.parseReader(new InputStreamReader(stream)).getAsJsonObject();
+            for (String legacyID : itemMapping.keySet()) {
+                JsonObject convertData = itemMapping.getAsJsonObject(legacyID);
+                int id = Integer.parseInt(legacyID);
+                for (String damageStr : convertData.keySet()) {
+                    String identifier = convertData.get(damageStr).getAsString();
+                    int damage = Integer.parseInt(damageStr);
+                    blockMappings.put(id + ":" + damage, identifier);
+                }
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -113,6 +150,12 @@ public class RuntimeItemMapping {
         this.itemPalette = paletteBuffer.getBuffer();
     }
 
+    /**
+     * From runtimeId to get legacy item entry.
+     *
+     * @param runtimeId the runtime id
+     * @return the legacy entry
+     */
     public LegacyEntry fromRuntime(int runtimeId) {
         LegacyEntry legacyEntry = this.runtime2Legacy.get(runtimeId);
         if (legacyEntry == null) {
@@ -121,6 +164,13 @@ public class RuntimeItemMapping {
         return legacyEntry;
     }
 
+    /**
+     * from legacy item id and meta value to get runtimeId
+     *
+     * @param id   the id
+     * @param meta the meta
+     * @return the runtime entry
+     */
     public RuntimeEntry toRuntime(int id, int meta) {
         RuntimeEntry runtimeEntry = this.legacy2Runtime.get(RuntimeItems.getFullId(id, meta));
         if (runtimeEntry == null) {
@@ -133,10 +183,21 @@ public class RuntimeItemMapping {
         return runtimeEntry;
     }
 
+    /**
+     * From identifier to get legacy entry.According to item_mappings.json
+     *
+     * @param identifier the identifier
+     * @return the legacy entry
+     */
     public LegacyEntry fromIdentifier(String identifier) {
         return this.identifier2Legacy.get(identifier);
     }
 
+    /**
+     * Get item palette byte [ ].
+     *
+     * @return the byte [ ]
+     */
     public byte[] getItemPalette() {
         return this.itemPalette;
     }
@@ -366,6 +427,13 @@ public class RuntimeItemMapping {
         this.namespacedIdItem.put(namespacedId.toLowerCase(Locale.ENGLISH), constructor);
     }
 
+    @DoNotModify
+    @Since("1.19.80-r1")
+    @PowerNukkitXOnly
+    public static BiMap<String, String> getBlockMapping() {
+        return blockMappings;
+    }
+
     @NotNull
     private static Supplier<Item> itemSupplier(@NotNull Constructor<? extends Item> constructor) {
         return () -> {
@@ -400,6 +468,11 @@ public class RuntimeItemMapping {
         }
     }
 
+    /**
+     * The type Runtime entry.
+     *
+     * @param hasDamage 如果为false代表这个runtime物品没有对应的legacy item映射
+     */
     public record RuntimeEntry(String identifier, int runtimeId, boolean hasDamage, boolean isComponent) {
     }
 }

@@ -7,6 +7,7 @@ settings:
  async-workers: auto
  safe-spawn: true
  waterdogpe: false
+ download-spark: true
 
 network:
  maximum-stale-datagrams: 512
@@ -14,22 +15,13 @@ network:
  compression-level: 7
  async-compression: false
  zlib-provider: 2
+ snappy: false
 
 debug:
  level: 1
  commands: false
  ignored-packets:
   - LevelChunkPacket
-
-timings:
- completely-close: false
- enabled: false
- verbose: false
- history-interval: 6000
- history-length: 72000
- bypass-max: false
- privacy: false
- ignore: []
 
 level-settings:
  default-format: anvil
@@ -44,7 +36,7 @@ chunk-saving:
  maximum-size-per-chunk: 1048576
 
 chunk-sending:
- per-tick: 4
+ per-tick: 8
  max-chunks: 192
  spawn-threshold: 56
  cache-chunks: false

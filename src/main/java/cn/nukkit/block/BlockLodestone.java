@@ -11,9 +11,7 @@ import cn.nukkit.item.ItemID;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.level.Sound;
 import cn.nukkit.math.BlockFace;
-import cn.nukkit.utils.BlockColor;
 import lombok.extern.log4j.Log4j2;
-
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -141,11 +139,6 @@ public class BlockLodestone extends BlockSolid implements BlockEntityHolder<Bloc
     @Override
     public boolean canHarvestWithHand() {
         return false;
-    }
-
-    @Override
-    public BlockColor getColor() {
-        return BlockColor.IRON_BLOCK_COLOR;
     }
 
     @Override

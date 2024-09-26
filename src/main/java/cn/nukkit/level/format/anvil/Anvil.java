@@ -240,14 +240,15 @@ public class Anvil extends BaseLevelProvider implements DimensionDataProvider {
         if (chunk == null) {
             throw new ChunkException("Invalid Chunk Set");
         }
-
         long timestamp = chunk.getChanges();
-
         BiConsumer<BinaryStream, Integer> callback = (stream, subchunks) ->
                 this.getLevel().chunkRequestCallback(timestamp, x, z, subchunks, stream.getBuffer());
-        serialize(chunk, callback, this.level.getDimensionData());
-
-        return null;
+        return new AsyncTask() {
+            @Override
+            public void onRun() {
+                serialize(chunk, callback, level.getDimensionData());
+            }
+        };
     }
 
     @PowerNukkitXDifference(info = "Non-static")
@@ -281,9 +282,9 @@ public class Anvil extends BaseLevelProvider implements DimensionDataProvider {
             tmpSubChunkStreams[i] = new BinaryStream(new byte[8192]).reset(); // 8KB
         }
         if (level != null && level.isAntiXrayEnabled()) {
-            IntStream.range(0, subChunkCount).parallel().forEach(i -> sections[i].writeObfuscatedTo(tmpSubChunkStreams[i], level));
+            IntStream.range(0, subChunkCount).forEach(i -> sections[i].writeObfuscatedTo(tmpSubChunkStreams[i], level));
         } else {
-            IntStream.range(0, subChunkCount).parallel().forEach(i -> sections[i].writeTo(tmpSubChunkStreams[i]));
+            IntStream.range(0, subChunkCount).forEach(i -> sections[i].writeTo(tmpSubChunkStreams[i]));
         }
         for (int i = 0; i < subChunkCount; i++) {
             stream.put(tmpSubChunkStreams[i].getBuffer());
@@ -328,7 +329,6 @@ public class Anvil extends BaseLevelProvider implements DimensionDataProvider {
         int regionX = getRegionIndexX(chunkX);
         int regionZ = getRegionIndexZ(chunkZ);
         BaseRegionLoader region = this.loadRegion(regionX, regionZ);
-        this.level.timings.syncChunkLoadDataTimer.startTiming();
         BaseFullChunk chunk;
         try {
             chunk = region.readChunk(chunkX - regionX * 32, chunkZ - regionZ * 32);
@@ -343,7 +343,6 @@ public class Anvil extends BaseLevelProvider implements DimensionDataProvider {
         } else {
             putChunk(index, chunk);
         }
-        this.level.timings.syncChunkLoadDataTimer.stopTiming();
         return chunk;
     }
 

@@ -22,9 +22,6 @@ import cn.nukkit.math.BlockFace;
 import cn.nukkit.math.NukkitRandom;
 import cn.nukkit.math.Vector2;
 import cn.nukkit.math.Vector3;
-import cn.nukkit.nbt.tag.CompoundTag;
-import cn.nukkit.utils.BlockColor;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -341,7 +338,8 @@ public class BlockSapling extends BlockFlowable implements BlockFlowerPot.Flower
     }
 
     @Override
-    public BlockColor getColor() {
-        return BlockColor.FOLIAGE_BLOCK_COLOR;
+    public boolean isFertilizable() {
+        return true;
     }
+
 }

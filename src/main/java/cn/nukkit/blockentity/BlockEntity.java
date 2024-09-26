@@ -10,8 +10,6 @@ import cn.nukkit.math.Vector3;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.scheduler.Task;
 import cn.nukkit.utils.ChunkException;
-import co.aikar.timings.Timing;
-import co.aikar.timings.Timings;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import lombok.extern.log4j.Log4j2;
@@ -34,6 +32,7 @@ public abstract class BlockEntity extends Position {
     @PowerNukkitOnly
     public static final String SMOKER = "Smoker";
     public static final String SIGN = "Sign";
+    public static final String HANGING_SIGN = "HangingSign";
     public static final String MOB_SPAWNER = "MobSpawner";
     public static final String ENCHANT_TABLE = "EnchantTable";
     public static final String SKULL = "Skull";
@@ -77,6 +76,12 @@ public abstract class BlockEntity extends Position {
     @PowerNukkitXOnly
     @Since("1.19.21-r2")
     public static final String STRUCTURE_BLOCK = "StructureBlock";
+    @PowerNukkitXOnly
+    @Since("1.20.0-r2")
+    public static final String CHISELED_BOOKSHELF = "ChiseledBookshelf";
+    @PowerNukkitXOnly
+    @Since("1.20.50-r1")
+    public static final String DECORATED_POT = "DecoratedPot";
 
     public static long count = 1;
 
@@ -94,14 +99,12 @@ public abstract class BlockEntity extends Position {
     @PowerNukkitDifference(info = "Not updated anymore", since = "1.3.1.2-PN")
     protected long lastUpdate;
     protected Server server;
-    protected Timing timing;
 
     public BlockEntity(FullChunk chunk, CompoundTag nbt) {
         if (chunk == null || chunk.getProvider() == null) {
             throw new ChunkException("Invalid garbage Chunk given to Block Entity");
         }
 
-        this.timing = Timings.getBlockEntityTiming(this);
         this.server = chunk.getProvider().getLevel().getServer();
         this.chunk = chunk;
         this.setLevel(chunk.getProvider().getLevel());
@@ -174,6 +177,9 @@ public abstract class BlockEntity extends Position {
         registerBlockEntity(SCULK_SHRIEKER, BlockEntitySculkShrieker.class);
         registerBlockEntity(STRUCTURE_BLOCK, BlockEntityStructBlock.class);
         registerBlockEntity(GLOW_ITEM_FRAME, BlockEntityGlowItemFrame.class);
+        registerBlockEntity(HANGING_SIGN, BlockEntityHangingSign.class);
+        registerBlockEntity(CHISELED_BOOKSHELF, BlockEntityChiseledBookshelf.class);
+        registerBlockEntity(DECORATED_POT, BlockEntityDecoratedPot.class);
     }
 
     protected void initBlockEntity() {
@@ -304,6 +310,19 @@ public abstract class BlockEntity extends Position {
     }
 
     public void close() {
+        if (!this.closed) {
+            this.closed = true;
+            if (this.chunk != null) {
+                this.chunk.removeBlockEntity(this);
+            }
+            if (this.level != null) {
+                this.level.removeBlockEntity(this);
+            }
+            this.level = null;
+        }
+    }
+
+    public void closeS() {
         if (!this.closed) {
             this.closed = true;
             if (this.chunk != null) {

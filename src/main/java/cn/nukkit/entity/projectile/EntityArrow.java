@@ -75,7 +75,6 @@ public class EntityArrow extends SlenderProjectile {
     @Override
     protected void initEntity() {
         super.initEntity();
-        closeOnCollide = false;
 
         this.damage = namedTag.contains("damage") ? namedTag.getDouble("damage") : 2;
         this.pickupMode = namedTag.contains("pickup") ? namedTag.getByte("pickup") : PICKUP_ANY;
@@ -115,8 +114,6 @@ public class EntityArrow extends SlenderProjectile {
             return false;
         }
 
-        this.timing.startTiming();
-
         boolean hasUpdate = super.onUpdate(currentTick);
 
         if (this.onGround || this.hadCollision) {
@@ -133,8 +130,6 @@ public class EntityArrow extends SlenderProjectile {
 
             hasUpdate = true;
         }
-
-        this.timing.stopTiming();
 
         return hasUpdate;
     }
